@@ -72,6 +72,13 @@ EXTRA_ASSETS = [
     f"{CDN_BASE}/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillBNor.png",
     f"{CDN_BASE}/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png",
     f"{CDN_BASE}/p/GameData/UIResources/UiRole/Atlas/SP_RoleTabiconyiyin.png",
+    # Endstate Matrix score tiers (build rating icons): Empty, B, A, S, SS, SSS,
+    # KingGold (gold crown), KingColor (platinum crown), large and small.
+    *[
+        f"https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/UiActivity/Image/Activity32/MowingTower/ScoreLevel/ScoreLevel{size}/T_MowingTowerScore{size}{tier}.webp"
+        for size in ("Larger", "Small")
+        for tier in ("Empty", "B", "A", "S", "SS", "SSS", "KingGold", "KingColor")
+    ],
 ]
 
 # Only strings shaped like an image reference on a known host are ever
