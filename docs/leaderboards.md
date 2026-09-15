@@ -131,22 +131,42 @@ eligible sequence board. The comparison selector and standings table still show
 all standardized weapon/sequence scenarios, including future sequences, and
 label that distinction rather than presenting them as uploaded equipment.
 
-The move breakdown (`BuildMoveBreakdown.tsx`) renders a score equation (rows flagged `modifier: true` are global adjustments like ER scaling and set bonuses — never rotation moves), a damage profile aggregated by move type, and per-move rows with type-colored bars. Move-type colors are a fixed identity map inside the component. Per-hit `moveTypes` (lb per-type sub-hit fold) split mixed-type rows and make the profile lossless; hits without types fall back to the move's primary type. Heal tracks hide the damage profile and flatten the backend's full-window source children into numbered peer rows; each source shows its per-event flat + scaling formula, repeat count, share, and total healing, and supports the same value/rotation sorting as damage moves. API row order is rotation order — the component preserves the first-occurrence index for its rotation-order sort; `lb/docs/move-breakdown-ui.md` is canonical for the response shape.
+The move breakdown (`BuildMoveBreakdown.tsx`, parts in `components/leaderboards/moveBreakdown/`) is one surface: a score header, the rotation, a "Counts as" profile and the abilities table. `parseMovesPayload` in `lib/lb.ts` normalizes the payload for both the client fetch and the home prefetch, so a missing array renders as nothing instead of throwing; `lb/docs/move-breakdown-ui.md` is canonical for the response shape.
 
-Every bar lane in that panel shares one denominator: share of raw damage. The move row's track is the whole score, its fill is `move.percentage` (the same figure the Share column prints), hit bars use `hit.percentage` against the same track, and the damage profile is that same 100% at the same scale. Do not rescale rows to the largest move: it made a row reading 14.8% in the Share column render a bar filling 35% of its lane. The profile bar carries no text — the legend chips beneath it are the labels, and they always render — because an in-segment label gated on a data threshold gets cropped by the segment's own overflow at narrow widths, and no single ink colour clears contrast on all fourteen type fills.
+- **Score header.** Without modifiers it reads `Score {score}` with `{n} abilities · {n} casts`; status casts are not counted because they are not button presses. Rows flagged `modifier: true` turn it into an equation in payload order, since the backend applies modifiers in sequence against the running score: Energy Regen is a `×` term labelled from `modifierInfo` (never parsed from the name), set, echo and bonus modifiers are additive terms, and a factor that follows an additive term wraps what precedes it in parentheses.
+- **Rotation** is a beat chart (`RotationStrip.tsx`). `buildRotation` (`moveBreakdown/model.ts`) sorts every row's `casts` by `index`; back-to-back casts of one row under one `shortName` share a slot, and status rows (`skillTab: status`) sit after a dashed "No button" divider, one slot each. The character's skill-tab icons (`skillIcons`; `inherent` uses `inherent-1`) form the axis in cast order; tune break, echo, set, weapon and mixed get neutral glyphs, status gets the element icon in a dashed ring. Above each slot stands one bar per cast, its height that cast's damage against the biggest single cast, with a 2px floor, so a repeat reads as repeated beats and a small cast stays visible at any density. It replaced curved bands into a share-sized ribbon: order and share shared one x-axis, so every band spent its ink restating the slice below it, and small casts collapsed into hairlines.
+- **Density.** Captions hide below 56px per column and discs shrink below 44px and 32px; below 56px, back-to-back casts under 1% each merge into one "{n} casts" slot. With 12 or more abilities, two or more sub-1% abilities fold into "{n} smaller abilities, {x}% combined".
+- **Counts as** is a 6px part-to-whole bar by scored move type from `typeTotals` (the same aggregation the home record card draws) above chips carrying each type's share. Positive modifiers extend it in the bonus colour and penalties hatch the lost length at its end, captioned with the loss and "Shares are of move damage, before Energy Regen". Hovering a chip or segment previews a type and clicking a chip pins it; a row matches when it declares or scores as that type.
+- **Abilities** sort by damage: tab disc, name with a secondary line, casts, bar, share, damage. The secondary line is "{Tab} → {Type}" only when a scored type is not native to the tab (Normal Attack natively deals Basic and Heavy Attack, a Resonance Skill deals Resonance Skill, and so on), otherwise the type alone with its legend label; status rows read "Negative status, no button". A "No crit or DMG bonus", "No crit" or "No DMG bonus" tag comes from `noCrit` and `bypassDmgBonus`. The whole row is the `aria-expanded` toggle. Its expansion lists children with the name sent by the backend (name ×count, per-event MV, bar, share, damage) and a facts line: "{damage} per cast" when every cast shares one key, "{MV} MV per cast" on a row without children, "Scales with {stat}" only when it differs from the stat carrying most of the damage, and "In the rotation: casts {ranges} of {n}".
+- **Emphasis has two channels.** Hovering or focusing a slot or a row marks the linked slot and row and shows damage, share, per cast and cast position, without dimming anything else; hover happens dozens of times per visit, and whole-panel dimming flickered as the pointer walked the table. Previewing or pinning a type dims everything that does not score as it.
+- **Healing boards** have no cast order. The section is a "Healing" profile of the window's sources in the heal colour above a "Heal sources" table with each source's per-event formula and count, and no chips.
+- **Narrow layout** is a container query on the panel's own width (under 40rem), not a viewport breakpoint: the rotation drops, the profile stays, and "Abilities | Rotation" toggles swap the table for a vertical cast list. Every current host renders the expansion at table or card design width, so a phone scrolls to the full panel like the rest of the expansion; the narrow layout applies wherever the panel box itself is narrow.
+- **Motion.** On first open the rotation plays once in cast order (icons rise, beats grow from the axis, about 600ms in all), then the profile and table bars grow. The `mb-rise`, `mb-beat` and `mb-grow` classes in `globals.css` come off when the sequence ends so a resize never replays it; reduced motion removes all of it.
 
-The reference benchmark (`BuildOptimalityPanel.tsx`) treats ceiling, median, and
-minimum rolls as independent optimized loadouts. Selecting a tier changes its
-layout, main stats, sets, final statline, active `scoreModifiers`, and full Echo
-blueprint together. `scoreModifiers` are already included in the reference
-score; the UI lists them as an explanation, never adds them client-side.
+Every share in the panel has one denominator, move damage before score modifiers. The profile draws type share at true scale, so table bars scale to the largest ability and the Share column beside each bar prints the figure; a true-scale lane in the table compressed every row below the top two into slivers.
+
+The reference benchmark (`BuildOptimalityPanel.tsx`) shows three independent
+optimized loadouts: Standard (`low_roll`, 16 useful lines at median rolls, about
+the live median build), Optimal (`standardized`, all 25 lines at median rolls, a
+top ~0.3% build) and Ceiling (all 25 at max rolls). Standard is selected by
+default, so the headline ratio reads against a typical build. Selecting a tier
+changes its layout, main stats, sets, final statline, active `scoreModifiers`,
+and full Echo blueprint together. `scoreModifiers` are already included in the
+reference score; the UI lists them as an explanation, never adds them
+client-side.
+
+Standard's unused lines hold filler stats the board cannot score (DEF% first),
+so every echo shows five lines; empty slots read as a bug to players. The
+reference's `substats` names only the useful stats, which is the highlight set:
+filler renders dimmed, stays out of the tally row, and a one-line note explains
+it.
 
 Its measurement is one track, not three. `BenchmarkTrack` runs 0 → `max(build,
 ceiling)`, the fill is the build, and each tier is a tick on that same ruler;
 the tier cards below are a selector in ascending order so card N sits under tick
 N. Do not give each tier its own meter again: the previous version divided by
-each tier's own damage and clamped at 100%, so a build that cleared median and
-minimum drew two identical full bars and the graphic carried less the better the
+each tier's own damage and clamped at 100%, so a build that cleared the two lower
+tiers drew two identical full bars and the graphic carried less the better the
 build got. Three colour channels stay separate — gold is the selected tier (card
 chrome and its tick), white is the build (fill and score), teal marks clearing
 the selected reference — and the ratio is printed once, against whichever tier is
