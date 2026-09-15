@@ -3,24 +3,23 @@
 import React, { useId, useMemo, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useGameData } from '@/contexts/GameDataContext';
+import { calculateSelectedStatsRV, DEFAULT_PREFERRED_STATS, getAvailablePreferredSubstats } from '@/lib/calculations/rollValues';
 import { Character, Element } from '@/lib/character';
 import { LBBuildDetailEntry, LBBoardOptimality, LBOptimalityReference } from '@/lib/lb';
-import { formatFlatStat, formatPercentStat } from './formatters';
+import { formatFlatStat, formatPercentStat, normalizeSubstatKey } from './formatters';
 import { getSummaryRowClasses, LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, PERCENT_STAT_KEYS, RegionBadge, SORT_OPTIONS, STATUS_NEGATIVE_COLOR, STATUS_POSITIVE_COLOR } from './constants';
 import { resolveCharacterBaseScaling } from './statColumns';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
 import { buildSubstatSummary } from './substatSummary';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { HoverCard, HoverCardDescription } from '@/components/ui/HoverCard';
 
 const POSITIVE_COLOR = STATUS_POSITIVE_COLOR;
 const NEGATIVE_COLOR = STATUS_NEGATIVE_COLOR;
 
-// Tier scores are read side by side, so they hold two decimals
-const SCORE_FORMATTER = new Intl.NumberFormat('en-US', {
-  notation: 'compact',
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
+// Scores print in full: the tiers sit within a few percent of each other and of
+// the build, and a compact 12.35M hides exactly the digits being compared.
+const SCORE_FORMATTER = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
 // Modifier deltas are read one at a time; padding them adds noise.
 const DELTA_FORMATTER = new Intl.NumberFormat('en-US', {
@@ -53,14 +52,15 @@ type OptimalityTier = 'ceiling' | 'standardized' | 'low_roll';
 // Three colour channels, deliberately non-overlapping:
 //   gold  = the tier you selected (card chrome and its tick on the track)
 //   white = this build (the track fill and its score)
-//   teal  = this build clears the selected reference
-// Every tier is a searched-optimal build; only the substat roll quality
-// differs. Never label a tier "Median" alone: measured against the live
-// population, the median-roll optimum sits in the top ~1% of real builds.
+//   teal  = this build clears that reference (the card's ratio)
+// Every tier is a searched-optimal build; they differ in roll quality and in how
+// many substat lines do anything. Keys are the stored tier names. Standard (16
+// useful lines at median rolls) lands on the live population median; Optimal
+// (all 25 at median rolls) is a top ~0.3% build, so never call it "Median".
 const TIER_META: Record<OptimalityTier, { label: string; rollLabel: string }> = {
-  ceiling: { label: 'Ceiling', rollLabel: 'Optimal at maximum rolls' },
-  standardized: { label: 'Median Rolls', rollLabel: 'Optimal at median rolls' },
-  low_roll: { label: 'Minimum Rolls', rollLabel: 'Optimal at minimum rolls' },
+  ceiling: { label: 'Ceiling', rollLabel: '25 useful lines, max rolls' },
+  standardized: { label: 'Optimal', rollLabel: '25 useful lines, median rolls' },
+  low_roll: { label: 'Standard', rollLabel: '16 useful lines, median rolls' },
 };
 
 const TIER_ORDER: OptimalityTier[] = ['low_roll', 'standardized', 'ceiling'];
@@ -68,6 +68,8 @@ const TICK_RING = '0 0 0 2px #1a1a1a';
 
 interface TierRowProps {
   ref_: LBOptimalityReference;
+  /** This build's score as a fraction of this tier's; undefined without a build score. */
+  ratio?: number;
   isActive: boolean;
   onClick: () => void;
 }
@@ -95,7 +97,6 @@ interface BenchmarkTrackProps {
   currentDamage: number;
   marks: Array<{ tier: OptimalityTier; damage: number }>;
   selectedTier: OptimalityTier;
-  selectedRatio?: number;
 }
 
 /**
@@ -103,33 +104,26 @@ interface BenchmarkTrackProps {
  * this build, and each reference tier is a tick on the same ruler.
  *
  * This replaces three per-card meters that each used their own tier as the
- * denominator and clamped at 100%. Any build that cleared median and minimum
+ * denominator and clamped at 100%. Any build that cleared the two lower tiers
  * therefore rendered two identical full bars, so the graphic said less the
  * better the build got, and no two of the three bar lengths were comparable.
+ * The ratios live on the tier cards as text, one per tier beside the score it
+ * divides by; text has none of the clamping problem the meters had.
  */
-function BenchmarkTrack({ currentDamage, marks, selectedTier, selectedRatio }: BenchmarkTrackProps) {
+function BenchmarkTrack({ currentDamage, marks, selectedTier }: BenchmarkTrackProps) {
   // A build can in principle land past the ceiling (rounding, or an off-model
   // loadout); extend the ruler rather than clamp, so that stays visible.
   const trackMax = Math.max(currentDamage, ...marks.map((m) => m.damage));
   if (!(trackMax > 0)) return null;
   const pct = (value: number) => (value / trackMax) * 100;
-  const selectedLabel = TIER_META[selectedTier].label.toLowerCase();
 
   return (
     <div className="mt-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span className="text-2xs font-semibold uppercase tracking-[0.16em] text-text-primary/55">This build</span>
-        <span className="flex items-baseline gap-2.5">
-          {/* Proportional figures: this is a standalone display number. */}
-          <span className="text-lg font-semibold text-white/88">{fmtScore(currentDamage)}</span>
-          {selectedRatio !== undefined && (
-            <span className="text-xs font-semibold tabular-nums" style={{ color: ratioTextColor(selectedRatio) }}>
-              {(selectedRatio * 100).toFixed(1)}% of {selectedLabel}
-            </span>
-          )}
-        </span>
+        <span className="text-lg font-semibold tabular-nums text-white/88">{fmtScore(currentDamage)}</span>
       </div>
-      <div className="relative mt-2 h-3.5 rounded bg-white/6">
+      <div className="relative mt-2 h-3.5 rounded bg-white/8">
         <div
           className="lb-bar-grow absolute inset-y-0 left-0 rounded bg-linear-to-b from-white/80 to-white/52"
           style={{ width: `${pct(currentDamage)}%` }}
@@ -139,12 +133,13 @@ function BenchmarkTrack({ currentDamage, marks, selectedTier, selectedRatio }: B
           return (
             <span
               key={mark.tier}
-              // The selected tick overhangs the track so its colour reads
-              // against the panel rather than against the white fill.
-              className={`absolute w-0.5 -translate-x-1/2 rounded-full transition-colors duration-150 ${isSelected ? '-top-1.5 -bottom-1.5' : 'inset-y-0'}`}
+              // Every tick overhangs the track so all three read as fixed marks
+              // over the fill and over the empty track alike; the dark ring
+              // separates them from the fill. Selection adds length and gold.
+              className={`absolute w-0.5 -translate-x-1/2 rounded-full transition-colors duration-150 ${isSelected ? '-top-1.5 -bottom-1.5' : '-top-0.5 -bottom-0.5'}`}
               style={{
                 left: `${pct(mark.damage)}%`,
-                backgroundColor: isSelected ? 'var(--color-accent)' : 'rgba(224,224,224,0.5)',
+                backgroundColor: isSelected ? 'var(--color-accent)' : 'rgba(224,224,224,0.85)',
                 boxShadow: TICK_RING,
               }}
             />
@@ -155,7 +150,7 @@ function BenchmarkTrack({ currentDamage, marks, selectedTier, selectedRatio }: B
   );
 }
 
-function TierRow({ ref_, isActive, onClick }: TierRowProps) {
+function TierRow({ ref_, ratio, isActive, onClick }: TierRowProps) {
   const tier = (ref_.tier in TIER_META ? ref_.tier : 'standardized') as OptimalityTier;
   const meta = TIER_META[tier];
 
@@ -174,12 +169,21 @@ function TierRow({ ref_, isActive, onClick }: TierRowProps) {
         <span className={`whitespace-nowrap text-2xs font-semibold uppercase tracking-[0.16em] ${isActive ? 'text-accent-hover' : 'text-text-primary/60'}`}>
           {meta.label}
         </span>
-        <span className={`text-base font-semibold tabular-nums ${isActive ? 'text-accent-hover' : 'text-text-primary/75'}`}>
+        <span className={`whitespace-nowrap text-base font-semibold tabular-nums ${isActive ? 'text-accent-hover' : 'text-text-primary/75'}`}>
           {fmtScore(ref_.damage)}
         </span>
       </span>
-      <span className="mt-0.5 block whitespace-nowrap text-3xs text-text-primary/55">
-        {meta.rollLabel}
+      <span className="mt-0.5 flex items-baseline justify-between gap-2">
+        <span className="min-w-0 truncate text-3xs text-text-primary/55">{meta.rollLabel}</span>
+        {ratio !== undefined && (
+          <span
+            className="shrink-0 text-2xs font-semibold tabular-nums"
+            style={{ color: ratioTextColor(ratio) }}
+            aria-label={`This build is ${(ratio * 100).toFixed(1)}% of ${meta.label}`}
+          >
+            {(ratio * 100).toFixed(1)}%
+          </span>
+        )}
       </span>
     </button>
   );
@@ -209,9 +213,10 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
   regionBadge,
 }) => {
   const { t } = useLanguage();
-  const { fetters, getEcho, statIcons, statTranslations } = useGameData();
+  const { fetters, getEcho, getSubstatValues, statIcons, statTranslations } = useGameData();
   const panelId = useId();
-  const [selectedTier, setSelectedTier] = useState<OptimalityTier>('standardized');
+  // Standard leads so the headline ratio reads against a typical build.
+  const [selectedTier, setSelectedTier] = useState<OptimalityTier>('low_roll');
 
   const selectedRef = useMemo<LBOptimalityReference>(() => {
     if (!data) return EMPTY_REFERENCE;
@@ -268,20 +273,45 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
     });
   }, [character, selectedRef.topLevelStats, statIcons]);
 
+  // The reference's substat list names only the useful stats. Standard fills its
+  // unused lines with stats the character ignores; those stay out of this set,
+  // so the echo cards render them dimmed and the tally leaves them out.
   const highlightedSubstats = useMemo(
-    () => new Set(selectedRef.substats.filter((value): value is string => Boolean(value))),
+    () => new Set(selectedRef.substats.flatMap((value) => {
+      const key = value ? normalizeSubstatKey(value) : null;
+      return key ? [key] : [];
+    })),
     [selectedRef.substats],
   );
   // Same tally, same order, same pills as the build's own row above, so the two
   // can be read chip against chip.
   const blueprintSubstats = useMemo(
-    () => buildSubstatSummary(selectedRef.echoPanels, statIcons, statTranslations),
-    [selectedRef.echoPanels, statIcons, statTranslations],
+    () => buildSubstatSummary(selectedRef.echoPanels, statIcons, statTranslations)
+      .filter((summary) => highlightedSubstats.size === 0 || highlightedSubstats.has(summary.type)),
+    [highlightedSubstats, selectedRef.echoPanels, statIcons, statTranslations],
   );
-  // Blueprint rows never carry an RV pill, so the count is the stat pills alone.
-  // The bench renders under both hosts without knowing which; the expansion
-  // ladder is the narrower one and is safe in the card's frame too.
-  const blueprintClasses = getSummaryRowClasses(blueprintSubstats.length, 'expansion');
+  // Roll Value counts the same substats the build's own row selects by default
+  // (the character's preferred stats), so the two RV pills compare directly. It
+  // does not restate the tier: RV is lines x roll quality, which is exactly what
+  // separates Standard (16 lines) from Optimal (25) and Optimal from Ceiling.
+  const rvSelection = useMemo(
+    () => getAvailablePreferredSubstats(selectedRef.echoPanels, character?.preferredStats ?? DEFAULT_PREFERRED_STATS),
+    [character?.preferredStats, selectedRef.echoPanels],
+  );
+  const blueprintRV = useMemo(() => {
+    const selected = new Map<string, { total: number; count: number }>();
+    let rolls = 0;
+    for (const entry of blueprintSubstats) {
+      if (!rvSelection.has(entry.type)) continue;
+      selected.set(entry.type, { total: entry.total, count: entry.count });
+      rolls += entry.count;
+    }
+    return { rolls, value: rolls * calculateSelectedStatsRV(selected, getSubstatValues) };
+  }, [blueprintSubstats, getSubstatValues, rvSelection]);
+  // Stat pills plus the RV pill. The bench renders under both hosts without
+  // knowing which; the expansion ladder is the narrower one and is safe in the
+  // card's frame too.
+  const blueprintClasses = getSummaryRowClasses(blueprintSubstats.length + 1, 'expansion');
   const syntheticDetail = useMemo<LBBuildDetailEntry>(() => ({
     ...buildDetail,
     id: `${buildDetail.id}-optimality-${selectedTier}`,
@@ -315,7 +345,10 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
           </div>
         </div>
         <div className="space-y-4 px-3 py-3 sm:px-4">
-          <div className="h-20 rounded-lg border border-border/45 bg-black/15" />
+          <div className="flex items-center justify-between gap-4">
+            <div className="h-3 w-72 max-w-[60%] rounded bg-white/8" />
+            <div className="h-8 w-40 rounded-md bg-white/8" />
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="h-12 flex-auto rounded-md border border-border/45 bg-black/15" />
@@ -347,11 +380,11 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
     ? currentDamage / data.lowRoll.damage
     : undefined;
 
-  const selectedRatio = selectedTier === 'ceiling'
-    ? vsCeiling
-    : selectedTier === 'low_roll'
-      ? vsLowRoll
-      : vsStd;
+  const ratioByTier: Record<OptimalityTier, number | undefined> = {
+    low_roll: vsLowRoll,
+    standardized: vsStd,
+    ceiling: vsCeiling,
+  };
   const refByTier: Record<OptimalityTier, LBOptimalityReference> = {
     low_roll: data.lowRoll,
     standardized: data.standardized,
@@ -369,7 +402,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
       <div className="border-b border-border/45 px-3 py-3 sm:px-4">
         <h3 className={SECTION_HEADING}>Reference Benchmark</h3>
         <p className="mt-1 max-w-3xl text-2xs leading-relaxed text-text-primary/55">
-          Best legal loadout found for each roll quality. Select a tier to inspect its independently optimized stats and Echo blueprint.
+          Best loadout found for each tier. Select one to see its stats and Echo layout.
         </p>
 
         {hasCurrent && (
@@ -377,7 +410,6 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
             currentDamage={currentDamage}
             marks={marks}
             selectedTier={selectedTier}
-            selectedRatio={selectedRatio}
           />
         )}
 
@@ -386,6 +418,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
             <TierRow
               key={tier}
               ref_={refByTier[tier]}
+              ratio={ratioByTier[tier]}
               isActive={selectedTier === tier}
               onClick={() => setSelectedTier(tier)}
             />
@@ -398,61 +431,56 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
           old and new stat sheets read as two objects overlapping rather than
           one sheet changing. */}
       <div key={selectedTier} className="lb-tier-swap space-y-4 px-3 py-3 sm:px-4">
-        <section aria-labelledby={`${panelId}-summary`} className="rounded-lg border border-border/45 bg-black/15 p-3">
-          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-            {/* The tier's score is already the figure on its selector card and
-                the ratio is already on the track, so this heading names the
-                loadout rather than restating either number. */}
-            <div className="min-w-0">
-              <h4 id={`${panelId}-summary`} className={SECTION_HEADING}>
-                {TIER_META[selectedTier].label}{layoutLabel ? ` · ${layoutLabel} layout` : ''}
-              </h4>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {selectedSetEntries.map(({ id, fetter }) => (
-                <div key={id} className="flex items-center gap-2 rounded-md border border-border/45 bg-background-secondary/40 px-2 py-1.5">
-                  {fetter?.icon ? (
-                    <img src={fetter.icon} alt="" width={20} height={20} className="h-5 w-5 shrink-0 object-contain" loading="lazy" />
-                  ) : (
-                    <span aria-hidden="true" className="h-5 w-5 shrink-0 rounded bg-white/8" />
-                  )}
-                  <span className="whitespace-nowrap text-xs font-semibold text-text-primary/75">
-                    {fetter ? t(fetter.name) : `Set ${id}`}
-                  </span>
-                </div>
-              ))}
-              {selectedSetEntries.length === 0 && (
-                <span className="self-center text-xs text-text-primary/55">No active set bonus</span>
-              )}
-            </div>
+        {/* One line, not a card: the selected card already names the tier and
+            its score, so what is left is the loadout's shape and what adjusted
+            its score. The score is always the full scored rotation, so the line
+            lists only what varies: the ER target the tier reaches (red below it,
+            where ER scaling costs score; green at or above, where surplus costs
+            nothing) and any team-facing score modifiers (Danjin's Moonlit/Heron,
+            healers, Cantarella). Set chips sit at the far end. */}
+        <section aria-labelledby={`${panelId}-summary`} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <h4 id={`${panelId}-summary`} className="sr-only">{TIER_META[selectedTier].label} loadout</h4>
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+            {layoutLabel && (
+              <span className={SECTION_HEADING}>{layoutLabel} layout</span>
+            )}
+            {data.erTarget > 0 && (
+              <span className="flex items-center gap-1.5">
+                {layoutLabel && <span aria-hidden="true" className="pr-1.5 text-text-primary/25">·</span>}
+                <span className="text-text-primary/55">Energy target</span>
+                <span className="font-semibold tabular-nums" style={{ color: meetsErTarget ? POSITIVE_COLOR : NEGATIVE_COLOR }}>
+                  {formatPercentStat(energyRegen)} / {formatPercentStat(data.erTarget)}
+                </span>
+              </span>
+            )}
+            {selectedRef.scoreModifiers.map((modifier) => (
+              <span key={modifier.key || modifier.name} className="flex items-center gap-1.5">
+                <span aria-hidden="true" className="pr-1.5 text-text-primary/25">·</span>
+                <span className="text-text-primary/55">{modifier.name}</span>
+                <span className="shrink-0 font-semibold tabular-nums" style={{ color: modifier.delta >= 0 ? POSITIVE_COLOR : NEGATIVE_COLOR }}>
+                  {modifier.delta >= 0 ? '+' : '−'}{fmtDelta(Math.abs(modifier.delta))}
+                </span>
+              </span>
+            ))}
           </div>
 
-          {/* The score is always the full scored rotation, so stating that adds
-              nothing. What actually varies is the ER target the tier is built to
-              and any team-facing score modifiers (Danjin's Moonlit/Heron, healers,
-              Cantarella) — show only those, and drop the row entirely when neither
-              applies. */}
-          {(data.erTarget > 0 || selectedRef.scoreModifiers.length > 0) && (
-            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border/45 pt-3 text-xs">
-              {data.erTarget > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-text-primary/55">Energy target</span>
-                  <span className="font-semibold tabular-nums" style={{ color: meetsErTarget ? POSITIVE_COLOR : NEGATIVE_COLOR }}>
-                    {formatPercentStat(energyRegen)} / {formatPercentStat(data.erTarget)}
-                  </span>
-                </div>
-              )}
-              {selectedRef.scoreModifiers.map((modifier) => (
-                <div key={modifier.key || modifier.name} className="flex items-center gap-1.5">
-                  <span className="text-text-primary/55">{modifier.name}</span>
-                  <span className="shrink-0 font-semibold tabular-nums" style={{ color: modifier.delta >= 0 ? POSITIVE_COLOR : NEGATIVE_COLOR }}>
-                    {modifier.delta >= 0 ? '+' : '−'}{fmtDelta(Math.abs(modifier.delta))}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-2 pr-1">
+            {selectedSetEntries.map(({ id, fetter }) => (
+              <div key={id} className="flex items-center gap-2 rounded-md border border-border/45 bg-background-secondary/40 px-2 py-1.5">
+                {fetter?.icon ? (
+                  <img src={fetter.icon} alt="" width={20} height={20} className="h-5 w-5 shrink-0 object-contain" loading="lazy" />
+                ) : (
+                  <span aria-hidden="true" className="h-5 w-5 shrink-0 rounded bg-white/8" />
+                )}
+                <span className="whitespace-nowrap text-xs font-semibold text-text-primary/75">
+                  {fetter ? t(fetter.name) : `Set ${id}`}
+                </span>
+              </div>
+            ))}
+            {selectedSetEntries.length === 0 && (
+              <span className="text-xs text-text-primary/55">No active set bonus</span>
+            )}
+          </div>
         </section>
 
         <section aria-labelledby={`${panelId}-stats`}>
@@ -514,15 +542,16 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
               showHeader={false}
             />
 
-            {/* No RV pill: a reference rolls every substat at exactly its tier
-                value, so its Roll Value is 100 / 50 / 0 by construction and
-                would state the tier a third time. */}
+            {/* Pills outside the Roll Value selection dim exactly as in the
+                build's own row, so the two rows read chip against chip. */}
             {blueprintSubstats.length > 0 && (
               <div className={blueprintClasses.row}>
                 {blueprintSubstats.map((summary) => (
                   <span
                     key={`blueprint-${selectedTier}-${summary.type}`}
-                    className={`${blueprintClasses.pillStatic} border-amber-300/45`}
+                    className={`${blueprintClasses.pillStatic} ${
+                      rvSelection.has(summary.type) ? 'border-amber-300/75' : 'border-amber-300/45 opacity-40'
+                    }`}
                     title={summary.type}
                   >
                     <span className="text-amber-300">x{summary.count}</span>
@@ -536,6 +565,30 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
                     </span>
                   </span>
                 ))}
+
+                {blueprintRV.rolls > 0 && (
+                  <HoverCard
+                    placement="top"
+                    width="md"
+                    title="Roll Value"
+                    subtitle={`${blueprintRV.rolls} roll${blueprintRV.rolls === 1 ? '' : 's'} counted`}
+                    body={(
+                      <HoverCardDescription>
+                        Counted on the same substats as your build&apos;s row, so the two compare
+                        directly. Each roll is scored against the highest value that stat can
+                        roll, and the figure sums every counted roll. Ceiling rolls every line at
+                        its maximum; Optimal and Standard roll at the median.
+                      </HoverCardDescription>
+                    )}
+                  >
+                    <div className={`${blueprintClasses.rv} border border-amber-300/75`}>
+                      <span className="text-amber-300">x{blueprintRV.rolls}</span>
+                      <span>•</span>
+                      <span className="text-amber-300">RV</span>
+                      <span className={blueprintClasses.val}>{blueprintRV.value.toFixed(1)}%</span>
+                    </div>
+                  </HoverCard>
+                )}
               </div>
             )}
           </div>

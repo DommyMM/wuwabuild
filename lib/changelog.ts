@@ -18,7 +18,19 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'improved',
-                text: 'Your UID is now read straight from your card, and you can choose to hide it when uploading',
+                text: 'Benchmark tiers are now Standard, Optimal and Ceiling. Standard is 16 useful lines at median rolls',
+            },
+            {
+                kind: 'improved',
+                text: 'Benchmark shows full scores, your percentage of each tier, and Roll Value for each tier',
+            },
+            {
+                kind: 'fixed',
+                text: 'Median rolls showing below minimum rolls on some boards',
+            },
+            {
+                kind: 'improved',
+                text: 'Choose to hide UID instead of needing to put a 0',
             },
             {
                 kind: 'fixed',

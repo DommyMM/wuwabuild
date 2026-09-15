@@ -158,19 +158,32 @@ client-side.
 Standard's unused lines hold filler stats the board cannot score (DEF% first),
 so every echo shows five lines; empty slots read as a bug to players. The
 reference's `substats` names only the useful stats, which is the highlight set:
-filler renders dimmed, stays out of the tally row, and a one-line note explains
-it.
+filler renders dimmed and stays out of the tally row. There is no note
+explaining it: dimmed DEF% lines read as unused on sight.
+
+The tally carries an RV pill computed exactly like the build row's: the
+character's preferred substats present in the reference, rolls × mean roll
+quality. Non-selected pills dim as they do in the row. It does not restate the
+tier: RV is lines × roll quality, the two axes that separate the tiers, so a
+build's RV reads directly against Standard, Optimal and Ceiling. The loadout's
+shape sits on one unboxed line above the stat sheet (layout, ER target, score
+modifiers, set chips at the far end). ER is red below target, where scaling
+costs score, and green at or above, where surplus costs nothing.
 
 Its measurement is one track, not three. `BenchmarkTrack` runs 0 → `max(build,
 ceiling)`, the fill is the build, and each tier is a tick on that same ruler;
-the tier cards below are a selector in ascending order so card N sits under tick
-N. Do not give each tier its own meter again: the previous version divided by
-each tier's own damage and clamped at 100%, so a build that cleared the two lower
-tiers drew two identical full bars and the graphic carried less the better the
-build got. Three colour channels stay separate — gold is the selected tier (card
-chrome and its tick), white is the build (fill and score), teal marks clearing
-the selected reference — and the ratio is printed once, against whichever tier is
-selected, rather than once per card. Falling short of a reference is neutral, not
+every tick overhangs the track so all three read over the fill and the empty
+track, and the selected one is longer and gold. The tier cards below are a
+selector in ascending order so card N sits under tick N. Do not give each tier
+its own meter again: the previous version divided by each tier's own damage and
+clamped at 100%, so a build that cleared the two lower tiers drew two identical
+full bars and the graphic carried less the better the build got. The ratio is
+text instead: each card prints the build's share of that tier beside the tier's
+score, so all three read at once and each sits next to the number it divides by.
+Scores print in full, not compact, because tiers and builds sit within a few
+percent of each other. Three colour channels stay separate — gold is the
+selected tier (card chrome and its tick), white is the build (fill and score),
+teal marks a ratio at or above 100%. Falling short of a reference is neutral, not
 `STATUS_NEGATIVE_COLOR`: every build is under the ceiling by definition.
 
 The stat comparison (`BuildStatDistribution.tsx`) is an interactive radar showing
