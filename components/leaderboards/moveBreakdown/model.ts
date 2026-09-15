@@ -135,7 +135,7 @@ export function mergeSmallSlots(slots: RotationSlot[], rawDamage: number): Rotat
         id: `merged-${run[0].id}`,
         kind: 'merged',
         rowKeys: Array.from(new Set(run.flatMap((slot) => slot.rowKeys))),
-        label: `${count} casts`,
+        label: `${count} moves`,
         skillTab: '',
         color: MERGED_COLOR,
         count,
@@ -388,24 +388,32 @@ export type Subline = {
 
 /**
  * "{Tab} → {Type}" when the row scores as something its tab does not natively
- * deal, otherwise the type alone; status rows read "Negative Status", and their
- * tag says what that exempts them from.
+ * deal, otherwise the type alone. A negative status reads as one line,
+ * "Negative Status · No Crit or DMG Bonus": a status is always both, so the
+ * exemption belongs to the label rather than to a separate pill. Other rows
+ * with no kit button (Tune Rupture) read as their type, with the tag as a pill.
  * Types always use their legend label, so one type reads the same everywhere.
  */
 export function describeRow(move: Pick<ProcessedMove, 'skillTab' | 'moveTypes' | 'noCrit' | 'bypassDmgBonus'>): Subline {
   const types = move.moveTypes.map((type) => ({ type, ...typeMeta(type) }));
   const typeText = types.map((entry) => entry.label).join(' + ');
   const tabLabel = TAB_LABELS[move.skillTab] ?? null;
+  // Title case, as the game writes its stat names.
   const tag = move.noCrit && move.bypassDmgBonus
-    ? 'No crit or DMG bonus'
+    ? 'No Crit or DMG Bonus'
     : move.noCrit
-      ? 'No crit'
+      ? 'No Crit'
       : move.bypassDmgBonus
-        ? 'No DMG bonus'
+        ? 'No DMG Bonus'
         : null;
 
+  // Everything on the status tab is a negative status except a Tune Rupture.
+  if (isStatusTab(move.skillTab) && types.length > 0 && types.every((entry) => entry.type !== 'tune_rupture')) {
+    const statusText = tag ? `Negative Status · ${tag}` : 'Negative Status';
+    return { tab: null, types, statusText, tag: null, text: statusText };
+  }
   if (isStatusTab(move.skillTab)) {
-    return { tab: null, types, statusText: 'Negative Status', tag, text: 'Negative Status' };
+    return { tab: null, types, statusText: null, tag, text: typeText };
   }
   if (types.length === 0) {
     return { tab: tabLabel, types, statusText: null, tag, text: tabLabel ?? '' };
@@ -446,8 +454,9 @@ export function castRangeLabel(slot: RotationSlot, totalCasts: number): string |
 }
 
 /**
- * Where a row's casts sit in the rotation, in words: "Casts 9-10 and 12-14 of
- * 18", or "Cast 17 of 18". Null for rows with no button casts.
+ * Where a row's casts sit in the rotation, in words: "Moves 9-10, 12-14 of 18",
+ * or "Move 17 of 18". A move is one button press in the rotation. Null for rows
+ * with no button casts.
  */
 export function rotationPositionsText(move: ProcessedMove, rotation: RotationModel): string | null {
   const positions = move.casts
@@ -470,8 +479,7 @@ export function rotationPositionsText(move: ProcessedMove, rotation: RotationMod
   }
   ranges.push(start === end ? `${start}` : `${start}-${end}`);
 
-  const list = ranges.length > 1 ? `${ranges.slice(0, -1).join(', ')} and ${ranges[ranges.length - 1]}` : ranges[0];
-  return `${positions.length === 1 ? 'Cast' : 'Casts'} ${list} of ${rotation.buttonCastCount}`;
+  return `${positions.length === 1 ? 'Move' : 'Moves'} ${ranges.join(', ')} of ${rotation.buttonCastCount}`;
 }
 
 /** The scaling stat carrying the most damage, so rows only mention a different one. */

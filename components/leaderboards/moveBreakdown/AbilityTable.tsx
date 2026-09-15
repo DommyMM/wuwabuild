@@ -361,14 +361,14 @@ export const AbilityTable: React.FC<AbilityTableProps> = ({
   return (
     <div>
       <div className={`${GRID} items-end px-2 pb-2 ${EYEBROW} ${NARROW_HIDDEN}`}>
-        <span className="col-span-2">Abilities · {moves.length}</span>
-        <span className="text-right">Casts</span>
+        <span className="col-span-2">Abilities</span>
+        <span className="text-right">Moves</span>
         <span />
         <span className="text-right">Share</span>
         <span className="text-right">Damage</span>
         <span />
       </div>
-      <div className={`hidden pb-2 ${EYEBROW} @max-[40rem]:block`}>Abilities · {moves.length}</div>
+      <div className={`hidden pb-2 ${EYEBROW} @max-[40rem]:block`}>Abilities</div>
       {primary.map((move, index) => renderRow(move, index, index > 0 && expanded.has(primary[index - 1].key)))}
       {folds && (
         <>
@@ -423,7 +423,7 @@ export const HealSourceTable: React.FC<HealSourceTableProps> = ({
   return (
     <div>
       <div className={`${GRID} items-end px-2 pb-2 ${EYEBROW} @max-[40rem]:flex @max-[40rem]:px-1`}>
-        <span className="col-span-2">Heal sources · {sources.length}</span>
+        <span className="col-span-2">Heal sources</span>
         <span className={`text-right ${NARROW_HIDDEN}`}>Count</span>
         <span className={NARROW_HIDDEN} />
         <span className={`text-right ${NARROW_HIDDEN}`}>Share</span>

@@ -64,16 +64,12 @@ function formatPercentFigure(value: number): string {
   return value.toLocaleString(undefined, { maximumFractionDigits: 1 });
 }
 
-function plural(count: number, one: string, many: string): string {
-  return `${count} ${count === 1 ? one : many}`;
-}
-
 type EquationToken =
   | { kind: 'op'; text: string }
   | { kind: 'term'; label: string; value: string; score?: boolean };
 
 /**
- * "Move damage × factor (Energy Regen er% of target%) = Score". Modifiers apply
+ * "Damage × factor (Energy Regen er% of target%) = Score". Modifiers apply
  * in payload order against the running score, so a factor that follows an
  * additive bonus wraps everything before it in parentheses.
  */
@@ -275,13 +271,13 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   const slotLabel = useCallback((slot: RotationSlot): string => {
     const figures = `${formatDamage(slot.damage)} damage, ${formatShare(slot.damage, rawDamage)} share`;
     if (slot.kind === 'merged') {
-      return `Casts ${slot.firstCast}-${slot.firstCast + slot.count - 1}: ${slot.names.join(', ')}, ${figures}`;
+      return `Moves ${slot.firstCast}-${slot.firstCast + slot.count - 1}: ${slot.names.join(', ')}, ${figures}`;
     }
     const move = movesByKey.get(slot.rowKeys[0]);
     const name = move?.name ?? slot.label;
     const sub = move ? describeRow(move).text : '';
     if (slot.kind === 'status') return `${name}, ${sub}, ${figures}`;
-    const position = slot.count > 1 ? `Casts ${slot.firstCast}-${slot.firstCast + slot.count - 1}` : `Cast ${slot.firstCast}`;
+    const position = slot.count > 1 ? `Moves ${slot.firstCast}-${slot.firstCast + slot.count - 1}` : `Move ${slot.firstCast}`;
     return `${position}: ${name}${slot.count > 1 ? ` ×${slot.count}` : ''}, ${sub}, ${figures}`;
   }, [movesByKey, rawDamage]);
 
@@ -302,9 +298,9 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
       { key: 'damage', label: 'Damage', value: formatDamage(slot.damage) },
       { key: 'share', label: 'Share', value: formatShare(slot.damage, rawDamage) },
     ];
-    if (slot.kind === 'cast' && slot.count > 1) rows.push({ key: 'per-cast', label: 'Per cast', value: formatDamage(slot.damage / slot.count) });
+    if (slot.kind === 'cast' && slot.count > 1) rows.push({ key: 'per-move', label: 'Per move', value: formatDamage(slot.damage / slot.count) });
     const range = castRangeLabel(slot, rotation.buttonCastCount);
-    if (range) rows.push({ key: 'casts', label: slot.count > 1 ? 'Casts' : 'Cast', value: range });
+    if (range) rows.push({ key: 'moves', label: slot.count > 1 ? 'Moves' : 'Move', value: range });
     setTooltip({ x, y: placement === 'below' ? rect.bottom : rect.top, placement, tint: slot.color, title, subtitle, rows });
   }, [movesByKey, rawDamage, rotation.buttonCastCount, setHover]);
 
@@ -354,7 +350,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   // The table bars grow with the ribbon, and no later than 250ms in: the
   // figures are readable before their bars exist.
   const barMotion = { playing, baseDelay: Math.min(250, Math.round(slotCount * stepMs) + 120) };
-  const sharesNote = `Shares are of ${isHealing ? 'healing' : 'move damage'}, before ${[
+  const sharesNote = `Shares are of ${isHealing ? 'healing' : 'damage'}, before ${[
     hasEnergyRegen ? 'Energy Regen' : null,
     bonusTotal > 0 ? 'score bonuses' : null,
   ].filter(Boolean).join(' and ') || 'score modifiers'}`;
@@ -404,7 +400,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
           <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
             {hasStrip ? (
               <div className={`pb-0.5 @max-[40rem]:hidden ${EYEBROW}`}>
-                Rotation{rotation.buttonCastCount > 0 ? ` · ${plural(rotation.buttonCastCount, 'cast', 'casts')}` : ''}
+                Rotation
               </div>
             ) : isHealing && healSegments.length > 0 ? (
               <div className={`pb-0.5 ${EYEBROW}`}>Healing</div>
@@ -413,12 +409,12 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
             )}
             {modifiers.length === 0 ? (
               <div className="flex items-baseline gap-2.5">
-                <span className={EYEBROW}>Score</span>
+                <span className={EYEBROW}>Damage</span>
                 <span className="font-gowun text-[30px] leading-none text-accent-hover">{formatDamage(totalScore)}</span>
               </div>
             ) : (
               <ScoreEquation
-                rawLabel={isHealing ? 'Healing' : 'Move damage'}
+                rawLabel={isHealing ? 'Healing' : 'Damage'}
                 raw={rawDamage}
                 modifiers={modifiers}
                 score={totalScore}
