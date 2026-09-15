@@ -18,7 +18,7 @@ export const FAQS: FaqItem[] = [
     },
     {
         q: 'Can I edit my build after submitting',
-        a: 'No. The build data is locked to what was scanned. You can only update your display name or UID before hitting submit.',
+        a: 'No. The build data is locked to what was scanned. You can only update your display name before hitting submit.',
     },
     {
         q: 'What is CV',

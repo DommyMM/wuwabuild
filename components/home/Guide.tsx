@@ -31,7 +31,7 @@ const STEPS: { title: string; desc: React.ReactNode }[] = [
                 <HomeLink href="/import" cta="import" section="guide" className="text-accent hover:text-accent-hover underline underline-offset-2">
                     Import
                 </HomeLink>
-                . Review what OCR read, fix the name or UID if needed, and submit.
+                . Review what OCR read, fix the name if needed, and submit.
             </>
         ),
     },
