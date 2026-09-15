@@ -50,7 +50,7 @@ const ScoringRow: React.FC<{
   onSelect: (mode: ScoringMode) => void;
 }> = ({ erTarget, scoring, onSelect }) => {
   const isRaw = scoring === 'raw';
-  const scoreTitle = `Score: default ER-adjusted ranking. Builds below ${formatErTarget(erTarget)}% ER are scaled down.`;
+  const scoreTitle = `Score: average damage, minus the % you are under the ${formatErTarget(erTarget)}% ER target`;
   const damageTitle = 'Damage: raw tracked damage before ER scaling. ER still shows, but does not lower this value.';
   return (
     <div className="space-y-2">

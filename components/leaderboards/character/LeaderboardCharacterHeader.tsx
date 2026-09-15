@@ -326,14 +326,14 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
           <span className="text-text-primary/60">{characterName}</span>
         )}
         <span>/</span>
-        <span className="text-text-primary/60">Leaderboard</span>
+        <span className="text-text-primary/60">{cleanTrackLabel ?? 'Leaderboard'}</span>
       </div>
 
       <div className="flex flex-col items-center text-center">
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <h1 className={`text-center text-3xl font-semibold tracking-wide md:text-4xl ${elementClass ? `char-sig ${elementClass}` : 'text-accent'}`}>
-              {cleanTrackLabel ? `${characterName} - ${cleanTrackLabel}` : characterName}
+            <h1 className={`text-center text-3xl tracking-wide md:text-4xl ${elementClass ? `char-sig ${elementClass}` : 'text-accent'}`}>
+              {cleanTrackLabel ? `${characterName} ${cleanTrackLabel}` : characterName}
             </h1>
             {seqLevel > 0 && (
               <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[seqLevel]}`}>
@@ -342,7 +342,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
             )}
           </div>
           {activeTrackNote ? (
-            <p className="text-center mt-2">{renderNoteWithTooltips(activeTrackNote)}</p>
+            <p className="mx-auto mt-2 max-w-[70ch] text-center text-sm text-balance text-text-primary/70 md:text-base">{renderNoteWithTooltips(activeTrackNote)}</p>
           ) : null}
         </div>
 
