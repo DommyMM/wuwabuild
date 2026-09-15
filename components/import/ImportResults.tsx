@@ -18,8 +18,14 @@ interface ImportResultsProps {
   isSubmitting?: boolean;
   uploadToLb?: boolean;
   progress: Record<RegionKey, RegionStatus>;
-  onImport: (watermarkOverride: { username: string; uid: string }) => void;
+  onImport: (watermark: ImportWatermark) => void;
   onReportIssue?: () => void;
+}
+
+/** What the player controls at import: the display name, and whether the card's UID is shown publicly. */
+export interface ImportWatermark {
+  username: string;
+  hideUid: boolean;
 }
 
 // Single pulsing skeleton block.
@@ -124,9 +130,11 @@ export function ImportResults({
 }: ImportResultsProps) {
   const { getCharacterByName, weaponList } = useGameData();
 
-  const [watermarkOverride, setWatermarkOverride] = useState<{ username?: string; uid?: string }>({});
-  const username = watermarkOverride.username ?? data.watermark?.username ?? '';
-  const uid = watermarkOverride.uid ?? String(data.watermark?.uid ?? '');
+  const [usernameOverride, setUsernameOverride] = useState<string | null>(null);
+  const [hideUid, setHideUid] = useState(false);
+  const username = usernameOverride ?? data.watermark?.username ?? '';
+  const readUid = String(data.watermark?.uid ?? '');
+  const uidReadable = /^\d{9}$/.test(readUid);
 
   const char = data.character;
   const weapon = data.weapon;
@@ -319,27 +327,34 @@ export function ImportResults({
             <input
               type="text"
               value={username}
-              onChange={e => setWatermarkOverride(prev => ({ ...prev, username: e.target.value }))}
+              onChange={e => setUsernameOverride(e.target.value)}
               placeholder="Username"
               className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors"
             />
           </label>
-          <label className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1">
             <span className="text-xs text-text-primary/60">UID</span>
-            <input
-              type="text"
-              value={uid}
-              onChange={e => setWatermarkOverride(prev => ({ ...prev, uid: e.target.value.replace(/\D/g, '') }))}
-              placeholder="UID"
-              className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors"
-            />
-          </label>
+            <p className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary/70">
+              {uidReadable ? readUid : 'Not readable'}
+            </p>
+            {uidReadable && (
+              <label className="flex items-center gap-2 text-xs text-text-primary/60 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hideUid}
+                  onChange={e => setHideUid(e.target.checked)}
+                  className="accent-accent"
+                />
+                Hide my UID
+              </label>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <button
-          onClick={() => onImport({ username, uid })}
+          onClick={() => onImport({ username, hideUid })}
           disabled={!canImport}
           className={[
             'w-full py-3 rounded-xl font-semibold text-sm transition-all',

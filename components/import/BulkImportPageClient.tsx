@@ -138,11 +138,11 @@ function prepareBulkSubmitState(
     warnings.push('missing weapon');
   }
 
-  if (!trimmedUid) {
-    buildState = { ...buildState, watermark: { ...buildState.watermark, uid: '0' } };
-    warnings.push('UID 0 fallback');
+  // An unreadable watermark is submitted as uid 0: listed as its own entry with no profile.
+  if (!/^[0-9]{9}$/.test(trimmedUid)) {
+    if (trimmedUid !== '0') buildState = { ...buildState, watermark: { ...buildState.watermark, uid: '0' } };
+    warnings.push('UID unreadable');
   }
-  if (trimmedUid === '0') warnings.push('UID 0');
 
   return { buildState, warnings };
 }

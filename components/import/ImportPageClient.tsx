@@ -12,7 +12,7 @@ import { MAX_OCR_IMAGE_BYTES } from '@/lib/ingestIdentity';
 import { isDraftBuildEdited, loadDraftBuild, saveBuild, saveDraftBuild, snapshotBuildToSaves } from '@/lib/storage';
 import { OCR_HEALTH_URL, OCR_REPORT_URL } from '@/lib/apiEndpoints';
 import { ImportUploader } from './ImportUploader';
-import { ImportResults } from './ImportResults';
+import { ImportResults, type ImportWatermark } from './ImportResults';
 import { ImportComplete, type ImportDestination } from './ImportComplete';
 import { ReportIssueModal } from './ReportIssueModal';
 import type { AnalysisData } from '@/lib/import/types';
@@ -67,7 +67,7 @@ export function ImportPageClient() {
   const [sourceImageKey, setSourceImageKey] = useState<string | null>(null);
   const [confirmedTrainingImageKey, setConfirmedTrainingImageKey] = useState<string | null>(null);
   const [scanId, setScanId] = useState<string | null>(null);
-  const [lastImportWatermark, setLastImportWatermark] = useState<{ username: string; uid: string } | null>(null);
+  const [lastImportWatermark, setLastImportWatermark] = useState<ImportWatermark | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportReason, setReportReason] = useState<OcrIssueReason>('manual_report');
@@ -232,10 +232,12 @@ export function ImportPageClient() {
     setReportReason('manual_report');
   };
 
-  const buildImportedState = useCallback((wm: { username: string; uid: string }) => {
+  // The UID is whatever the card says (0 when unreadable); only the display name is
+  // the player's to edit.
+  const buildImportedState = useCallback((wm: ImportWatermark) => {
     const mergedData: AnalysisData = {
       ...analysisData,
-      watermark: { username: wm.username, uid: Number(wm.uid) || 0 },
+      watermark: { username: wm.username, uid: analysisData.watermark?.uid ?? 0 },
     };
 
     return convertAnalysisToSavedState(mergedData, {
@@ -251,12 +253,12 @@ export function ImportPageClient() {
     'Imported Build'
   );
 
-  const getActiveWatermark = useCallback(() => (
+  const getActiveWatermark = useCallback((): ImportWatermark => (
     lastImportWatermark ?? {
       username: analysisData.watermark?.username ?? '',
-      uid: String(analysisData.watermark?.uid ?? ''),
+      hideUid: false,
     }
-  ), [analysisData.watermark?.uid, analysisData.watermark?.username, lastImportWatermark]);
+  ), [analysisData.watermark?.username, lastImportWatermark]);
 
   const getReportImportedState = () => {
     const activeWatermark = getActiveWatermark();
@@ -285,7 +287,7 @@ export function ImportPageClient() {
     setIsReportModalOpen(true);
   };
 
-  const uploadImportedState = async (importedState: SavedState): Promise<ImportOutcome> => {
+  const uploadImportedState = async (importedState: SavedState, hideUid: boolean): Promise<ImportOutcome> => {
     const captureSubmitResult = (result: 'created' | 'updated' | 'warning' | 'skipped' | 'error', reason: string, damageComputed?: boolean) => {
       posthog.capture('leaderboard_submit_result', {
         result,
@@ -320,14 +322,8 @@ export function ImportPageClient() {
       return skipped('Character or weapon was not recognized, so the leaderboard was skipped.');
     }
 
-    if (!importedState.watermark.uid.trim()) {
-      warning('Leaderboard skipped: UID is required.');
-      captureSubmitResult('skipped', 'uid_missing');
-      return skipped('A UID is required for the leaderboard, so the upload was skipped.');
-    }
-
     try {
-      const result = await submitBuild(importedState, { sourceImageKey, scanId });
+      const result = await submitBuild(importedState, { sourceImageKey, scanId, hideUid });
       const lbAction = result.action === 'created' ? 'created' : 'updated';
 
       captureSubmitResult(lbAction, 'success', result.damageComputed);
@@ -409,7 +405,7 @@ export function ImportPageClient() {
   // Import = upload immediately (when enabled), then land on the completion
   // panel. The draft slot is claimed without prompting: a draft carrying
   // manual /edit work is auto-snapshotted into saves first, so nothing is lost.
-  const handleImport = async (wm: { username: string; uid: string }) => {
+  const handleImport = async (wm: ImportWatermark) => {
     setLastImportWatermark(wm);
 
     let importedState: SavedState;
@@ -423,7 +419,7 @@ export function ImportPageClient() {
 
     setIsSubmitting(true);
     try {
-      const outcome = await uploadImportedState(importedState);
+      const outcome = await uploadImportedState(importedState, wm.hideUid);
 
       try {
         const displacedDraft = loadDraftBuild();
@@ -462,11 +458,14 @@ export function ImportPageClient() {
     return `${href}${separator}buildId=${encodeURIComponent(buildId)}`;
   };
 
-  const completedUid = completedState?.watermark.uid.trim() ?? '';
+  // No profile link for a hidden or unreadable UID: the leaderboard never shows one.
+  const completedUid = importOutcome?.uploaded && !lastImportWatermark?.hideUid
+    ? (completedState?.watermark.uid.trim() ?? '')
+    : '';
   const completedLeaderboardHref = importedLeaderboardLink
     ? appendBuildId(importedLeaderboardLink.href, importOutcome?.buildId ?? null)
     : null;
-  const completedProfileHref = completedUid
+  const completedProfileHref = /^\d{9}$/.test(completedUid)
     ? appendBuildId(`/profile/${encodeURIComponent(completedUid)}`, importOutcome?.buildId ?? null)
     : null;
 
@@ -546,7 +545,7 @@ export function ImportPageClient() {
         ocrError: error,
         lbUploadError,
         uploadToLb,
-        watermark: activeWatermark,
+        watermark: { username: activeWatermark.username, uid: String(analysisData.watermark?.uid ?? '') },
         client: {
           url: window.location.href,
           userAgent: navigator.userAgent,

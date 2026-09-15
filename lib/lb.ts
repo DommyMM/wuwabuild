@@ -1669,7 +1669,11 @@ function parseSubmitBuildResult(raw: unknown): LBSubmitBuildResult {
 
 export async function submitBuild(
   buildState: SavedState,
-  options: { sourceImageKey?: string | null; scanId?: string | null } = {},
+  options: {
+    sourceImageKey?: string | null;
+    scanId?: string | null;
+    hideUid?: boolean;
+  } = {},
   signal?: AbortSignal,
 ): Promise<LBSubmitBuildResult> {
   const rawSourceImageKey = options.sourceImageKey?.trim();
@@ -1693,6 +1697,7 @@ export async function submitBuild(
       buildState,
       ...(sourceImageKey ? { sourceImageKey } : {}),
       ...(scanId ? { scanId } : {}),
+      hideUid: Boolean(options.hideUid),
     }),
     signal,
   });
