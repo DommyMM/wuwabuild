@@ -18,11 +18,11 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'improved',
-                text: 'Every character\'s kit checked against the original game text and damage tables, and most boards rescored. Biggest moves: Galbrena, Iuno S6, Chisa, Rebecca, Jingran and Xuanling S6 up; Lucilla S6, Mornye Nuke, Sigrika, Jinhsi S6 and Denia S6 down',
+                text: 'Cross-validated kits against base CN text and rescored multiple boards, key changes were Galbrena, Iuno, Jingran, Rebecca, and S6 boards',
             },
             {
                 kind: 'fixed',
-                text: 'Non-signature weapons on Iuno and Augusta were getting their signature\'s DEF ignore',
+                text: 'Iuno and Augusta non-sig weapons were getting def-ignore from sig weapons',
             },
             {
                 kind: 'fixed',
@@ -34,11 +34,7 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'improved',
-                text: 'Move breakdown redesigned: the rotation as skill icons in cast order over each cast\'s share of damage, what each ability is considered as, and the hits inside each ability',
-            },
-            {
-                kind: 'improved',
-                text: 'Tune Break shows its own skill icon',
+                text: 'Move breakdown UI overhaul',
             },
             {
                 kind: 'improved',
