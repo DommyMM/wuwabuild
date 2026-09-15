@@ -507,6 +507,7 @@ def extract_skill_icons(data: dict) -> dict[str, str] | None:
         type 5  → "intro"
         type 6  → "circuit"
         type 11 → "outro"
+        type 12 → "tune-break" (one of five weapon-type icons in SkillIconNor)
 
     Returns a flat dict like:
         { "normal-attack": "https://...png", "skill": "https://...png", ... }
@@ -516,7 +517,7 @@ def extract_skill_icons(data: dict) -> dict[str, str] | None:
         return None
 
     # CDN type number → our key name
-    TYPE_MAP = {1: "normal-attack", 2: "skill", 3: "liberation", 5: "intro", 6: "circuit", 11: "outro"}
+    TYPE_MAP = {1: "normal-attack", 2: "skill", 3: "liberation", 5: "intro", 6: "circuit", 11: "outro", 12: "tune-break"}
 
     icons: dict[str, str] = {}
     # Collect type-4 entries separately to sort them

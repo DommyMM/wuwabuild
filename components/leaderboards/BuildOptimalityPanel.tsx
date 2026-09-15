@@ -7,7 +7,7 @@ import { calculateSelectedStatsRV, DEFAULT_PREFERRED_STATS, getAvailablePreferre
 import { Character, Element } from '@/lib/character';
 import { LBBuildDetailEntry, LBBoardOptimality, LBOptimalityReference } from '@/lib/lb';
 import { formatFlatStat, formatPercentStat, normalizeSubstatKey } from './formatters';
-import { getSummaryRowClasses, LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, PERCENT_STAT_KEYS, RegionBadge, SORT_OPTIONS, STATUS_NEGATIVE_COLOR, STATUS_POSITIVE_COLOR } from './constants';
+import { getSummaryRowClasses, LB_SECTION_HEADING, LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, PERCENT_STAT_KEYS, RegionBadge, SORT_OPTIONS, STATUS_NEGATIVE_COLOR, STATUS_POSITIVE_COLOR } from './constants';
 import { resolveCharacterBaseScaling } from './statColumns';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
 import { buildSubstatSummary } from './substatSummary';
@@ -41,7 +41,7 @@ function formatLayoutLabel(layout: string): string {
   return /^\d+$/.test(layout) ? layout.split('').join('-') : layout;
 }
 
-const SECTION_HEADING = 'text-2xs font-semibold uppercase tracking-[0.18em] text-text-primary/55';
+const SECTION_HEADING = LB_SECTION_HEADING;
 
 type OptimalityTier = 'ceiling' | 'standardized' | 'low_roll';
 
@@ -55,12 +55,15 @@ type OptimalityTier = 'ceiling' | 'standardized' | 'low_roll';
 //   teal  = this build clears that reference (the card's ratio)
 // Every tier is a searched-optimal build; they differ in roll quality and in how
 // many substat lines do anything. Keys are the stored tier names. Standard (16
-// useful lines at median rolls) lands on the live population median; Optimal
-// (all 25 at median rolls) is a top ~0.3% build, so never call it "Median".
-const TIER_META: Record<OptimalityTier, { label: string; rollLabel: string }> = {
-  ceiling: { label: 'Ceiling', rollLabel: '25 useful lines, max rolls' },
-  standardized: { label: 'Optimal', rollLabel: '25 useful lines, median rolls' },
-  low_roll: { label: 'Standard', rollLabel: '16 useful lines, median rolls' },
+// useful lines at median rolls on a damage board) lands on the live population
+// median; Optimal (every usable line at median rolls) is a top ~0.3% build, so
+// never call it "Median". The line count comes from the reference, because a
+// healer can use only 15 lines and its Standard spends 10; `lines` is the
+// damage-board count for references stored before the API sent it.
+const TIER_META: Record<OptimalityTier, { label: string; rolls: string; lines: number }> = {
+  ceiling: { label: 'Ceiling', rolls: 'max rolls', lines: 25 },
+  standardized: { label: 'Optimal', rolls: 'median rolls', lines: 25 },
+  low_roll: { label: 'Standard', rolls: 'median rolls', lines: 16 },
 };
 
 const TIER_ORDER: OptimalityTier[] = ['low_roll', 'standardized', 'ceiling'];
@@ -85,6 +88,7 @@ const EMPTY_REFERENCE: LBOptimalityReference = {
   topLevelStats: {},
   echoPanels: [],
   scoreModifiers: [],
+  usefulLines: 0,
 };
 
 // Beating a reference is worth marking; falling short of one is not a failure, so the low side is neutral
@@ -174,7 +178,9 @@ function TierRow({ ref_, ratio, isActive, onClick }: TierRowProps) {
         </span>
       </span>
       <span className="mt-0.5 flex items-baseline justify-between gap-2">
-        <span className="min-w-0 truncate text-3xs text-text-primary/55">{meta.rollLabel}</span>
+        <span className="min-w-0 truncate text-3xs text-text-primary/55">
+          {ref_.usefulLines > 0 ? ref_.usefulLines : meta.lines} useful lines, {meta.rolls}
+        </span>
         {ratio !== undefined && (
           <span
             className="shrink-0 text-2xs font-semibold tabular-nums"

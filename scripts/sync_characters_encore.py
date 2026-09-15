@@ -121,6 +121,7 @@ SKILL_ICON_TYPE_KEYS = {
     "Resonance Liberation": "liberation",
     "Intro Skill": "intro",
     "Outro Skill": "outro",
+    "Tune Break": "tune-break",
     "Forte Circuit": "circuit",
 }
 

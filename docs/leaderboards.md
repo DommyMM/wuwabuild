@@ -146,10 +146,13 @@ The move breakdown (`BuildMoveBreakdown.tsx`, parts in `components/leaderboards/
 Every share in the panel has one denominator, move damage before score modifiers. The profile draws type share at true scale, so table bars scale to the largest ability and the Share column beside each bar prints the figure; a true-scale lane in the table compressed every row below the top two into slivers.
 
 The reference benchmark (`BuildOptimalityPanel.tsx`) shows three independent
-optimized loadouts: Standard (`low_roll`, 16 useful lines at median rolls, about
-the live median build), Optimal (`standardized`, all 25 lines at median rolls, a
-top ~0.3% build) and Ceiling (all 25 at max rolls). Standard is selected by
-default, so the headline ratio reads against a typical build. Selecting a tier
+optimized loadouts: Standard (`low_roll`, 16 of 25 usable lines at median rolls,
+about the live median DPS build), Optimal (`standardized`, every usable line at
+median rolls, a top ~0.3% build) and Ceiling (every line at max rolls). Each card
+prints the reference's `usefulLines`, because a healer can use only 15 lines and
+its Standard spends 10; references stored before the field fall back to 25/25/16.
+Standard is selected by default, so the headline ratio reads against a typical
+build. Selecting a tier
 changes its layout, main stats, sets, final statline, active `scoreModifiers`,
 and full Echo blueprint together. `scoreModifiers` are already included in the
 reference score; the UI lists them as an explanation, never adds them

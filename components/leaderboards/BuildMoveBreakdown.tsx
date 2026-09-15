@@ -1,64 +1,125 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { LBMoveEntry } from '@/lib/lb';
-import { processMoves, typeMeta, TypeTotal } from '@/lib/moveBreakdown';
-import { ELEMENT_COLOR } from '@/lib/elementVisuals';
+import { processMoves, typeMeta, ProcessedModifier, ProcessedMove } from '@/lib/moveBreakdown';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { HoverCardTable } from '@/components/ui/HoverCard';
 import { STATUS_NEGATIVE_COLOR, STATUS_POSITIVE_COLOR } from './constants';
 import { formatDamage } from './formatters';
-import { ErrorBanner } from '@/components/ui/ErrorBanner';
-
-const BONUS_COLOR = STATUS_POSITIVE_COLOR;
-const PENALTY_COLOR = STATUS_NEGATIVE_COLOR;
-const HEAL_COLOR = '#67d4a7';
-
-const LANE_TRACK = 'absolute inset-0 rounded-xs bg-white/4';
-
-function formatModifierDamage(value: number): string {
-  const rounded = Math.round(value);
-  const abs = Math.abs(rounded).toLocaleString();
-  return rounded < 0 ? `−${abs}` : `+${abs}`;
-}
-
-function formatSignedPercent(value: number): string {
-  return `${value < 0 ? '−' : '+'}${Math.abs(value).toFixed(1)}%`;
-}
-
-function formatBaseMV(value: number): string {
-  return `${value.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')}%`;
-}
-
-function formatHealFormula(flatHeal: number, baseMV: number, scaleStat: string): string {
-  const terms: string[] = [];
-  if (flatHeal > 0) {
-    terms.push(flatHeal.toLocaleString(undefined, { maximumFractionDigits: 2 }));
-  }
-  if (baseMV > 0) {
-    terms.push(`${formatBaseMV(baseMV)} ${scaleStat || 'ATK'}`);
-  }
-  return terms.join(' + ');
-}
-
-// "ER Scaling (108% / 115% = ×0.94)" → "ER Scaling ×0.94" for the equation chip.
-function compactModifierLabel(name: string): string {
-  const base = name.split(' (')[0]?.trim() || name;
-  const factor = name.match(/×[\d.]+/)?.[0];
-  return factor ? `${base} ${factor}` : base;
-}
+import { AbilityTable, CastList, EYEBROW, HealSource, HealSourceTable } from './moveBreakdown/AbilityTable';
+import { ProfileBar } from './moveBreakdown/ProfileBar';
+import { RotationStrip } from './moveBreakdown/RotationStrip';
+import { EMPTY_ROTATION, HEAL_COLOR, Highlight, LABEL_MIN_COLUMN, RotationSlot, buildRibbon, buildRotation, castRangeLabel, describeRow, dominantScaleStat, formatShare, formatSigned, layoutColumns, mergeSmallSlots } from './moveBreakdown/model';
 
 type TooltipState = {
-  /** Viewport x of the anchoring segment's centre. */
   x: number;
-  /** Viewport y of the anchoring segment's top edge. */
   y: number;
+  /** Above the anchor (discs) or below it (ribbon segments, so the readout never covers the strip). */
+  placement: 'above' | 'below';
+  /** The slot's type colour, the hover card's corner tint. */
+  tint: string;
   title: string;
-  detail: string;
+  subtitle: string;
+  rows: Array<{ key: string; label: string; value: string }>;
 };
 
-const TOOLTIP_EDGE_MARGIN = 96;
+type View = 'abilities' | 'rotation';
 
-type SortMode = 'damage' | 'rotation';
+const TOOLTIP_EDGE_MARGIN = 130;
+// Covers the longest play sequence: strip stagger capped at ~320ms, then the
+// ribbon and ten staggered table bars growing together.
+const PLAY_MS = 1000;
+const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60';
+const HATCH = `repeating-linear-gradient(135deg, ${STATUS_NEGATIVE_COLOR} 0 2px, transparent 2px 5px)`;
+const FIGURE = 'font-gowun tabular-nums';
+// Every type with a glyph of its own gets it on its chip, so the chips and the
+// rows show one face per type. The four kit buckets take their DMG Bonus stat
+// icon (the one the build row's pills use, so a share and the stat it lives on
+// read as one thing); a type that is its own tab takes the kit button; a
+// negative status takes the element icon. Echo and coordinated damage have no
+// glyph and keep the swatch.
+const TYPE_STAT: Record<string, string> = {
+  basic_attack: 'Basic Attack DMG Bonus',
+  heavy_attack: 'Heavy Attack DMG Bonus',
+  resonance_skill: 'Resonance Skill DMG Bonus',
+  resonance_liberation: 'Resonance Liberation DMG Bonus',
+};
+const TYPE_TAB: Record<string, string> = {
+  intro: 'intro',
+  outro: 'outro',
+  forte_circuit: 'circuit',
+  tune_break: 'tune-break',
+};
+// The chip wears its type as a tint on the frame, not on the glyph or the
+// text: the game's icons are drawn to sit black or white, and small text in a
+// saturated colour on this ground is hard to read.
+const CHIP_REST = 'border-[color-mix(in_srgb,var(--type)_45%,transparent)] bg-[color-mix(in_srgb,var(--type)_10%,transparent)] hover:border-[color-mix(in_srgb,var(--type)_80%,transparent)]';
+const CHIP_PINNED = 'border-[color-mix(in_srgb,var(--type)_95%,transparent)] bg-[color-mix(in_srgb,var(--type)_20%,transparent)]';
+// The hover card's shell (HoverTooltip.tsx), on a readout that keeps its own state.
+const HOVER_SHELL = 'hover-card-panel relative isolate overflow-hidden rounded-xl border border-white/10 p-3 shadow-[0_18px_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)]';
+
+function formatPercentFigure(value: number): string {
+  return value.toLocaleString(undefined, { maximumFractionDigits: 1 });
+}
+
+function plural(count: number, one: string, many: string): string {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+type EquationToken =
+  | { kind: 'op'; text: string }
+  | { kind: 'term'; label: string; value: string; score?: boolean };
+
+/**
+ * "Move damage × factor (Energy Regen er% of target%) = Score". Modifiers apply
+ * in payload order against the running score, so a factor that follows an
+ * additive bonus wraps everything before it in parentheses.
+ */
+const ScoreEquation: React.FC<{ rawLabel: string; raw: number; modifiers: ProcessedModifier[]; score: number }> = ({
+  rawLabel,
+  raw,
+  modifiers,
+  score,
+}) => {
+  let tokens: EquationToken[] = [{ kind: 'term', label: rawLabel, value: formatDamage(raw) }];
+  let hasAdditive = false;
+  for (const modifier of modifiers) {
+    const info = modifier.info;
+    if (info?.kind === 'energy-regen' && info.factor > 0) {
+      if (hasAdditive) tokens = [{ kind: 'op', text: '(' }, ...tokens, { kind: 'op', text: ')' }];
+      tokens.push(
+        { kind: 'op', text: '×' },
+        { kind: 'term', label: `Energy Regen ${formatPercentFigure(info.er)}% of ${formatPercentFigure(info.erTarget)}%`, value: info.factor.toFixed(3) },
+      );
+      continue;
+    }
+    hasAdditive = true;
+    tokens.push(
+      { kind: 'op', text: modifier.damage < 0 ? '−' : '+' },
+      { kind: 'term', label: modifier.name, value: formatDamage(Math.abs(modifier.damage)) },
+    );
+  }
+  tokens.push({ kind: 'op', text: '=' }, { kind: 'term', label: 'Score', value: formatDamage(score), score: true });
+
+  return (
+    <div className="flex flex-wrap items-end gap-x-5.5 gap-y-2.5">
+      {tokens.map((token, index) => (token.kind === 'op' ? (
+        <span key={index} className="pb-px font-gowun text-lg text-text-primary/55">{token.text}</span>
+      ) : (
+        <div key={index} className="flex flex-col gap-0.75">
+          <span className={EYEBROW}>{token.label}</span>
+          <span className={token.score
+            ? 'font-gowun text-[38px] leading-[0.9] text-accent-hover @max-[40rem]:text-[32px]'
+            : 'font-gowun text-lg leading-none text-text-primary'}
+          >
+            {token.value}
+          </span>
+        </div>
+      )))}
+    </div>
+  );
+};
 
 interface BuildMoveBreakdownProps {
   isLoading: boolean;
@@ -73,6 +134,12 @@ interface BuildMoveBreakdownProps {
    * board can never be presented as this rotation's total.
    */
   scoreOverride?: number;
+  /** The character's per-tab skill icons (`Characters.json` skillIcons). */
+  skillIcons?: Record<string, string>;
+  /** Element icon, drawn for status damage that has no kit button. */
+  elementIcon?: string;
+  /** Stat icons by stat name (`Stats.json`), for the types that have a DMG Bonus stat. */
+  statIcons?: Record<string, string> | null;
   onRetry: () => void;
 }
 
@@ -82,116 +149,204 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   moves,
   isHealing = false,
   scoreOverride,
+  skillIcons,
+  elementIcon,
+  statIcons,
   onRetry,
 }) => {
-  const [sortMode, setSortMode] = useState<SortMode>('damage');
-  // Legend/profile hover: transient dim of non-matching rows, segments, chips.
+  // Row keys under the pointer or focus (a merged strip slot spans several),
+  // joined so re-entering the same target is a no-op state update.
+  const [hoverKeys, setHoverKeys] = useState<string | null>(null);
+  // Legend hover previews a type; legend click pins it (keyboard and touch reach it too).
   const [typeFocus, setTypeFocus] = useState<string | null>(null);
-  // Legend click: sticky version of the same focus, so keyboard/touch users can
-  // reach the highlight and it survives pointer-leave. Hover previews over it.
   const [pinnedType, setPinnedType] = useState<string | null>(null);
-  // Row hover: dims non-matching profile segments only. Stored as a joined
-  // string, not an array, so re-entering the same row is a no-op set instead of
-  // a fresh identity that re-renders every row in the table.
-  const [rowFocusKey, setRowFocusKey] = useState<string | null>(null);
-  const [expandedMoves, setExpandedMoves] = useState<Set<string>>(new Set());
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const [foldOpen, setFoldOpen] = useState(false);
+  const [view, setView] = useState<View>('abilities');
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
-  const activeType = typeFocus ?? pinnedType;
+  const [playing, setPlaying] = useState(true);
+  const [stripNode, setStripNode] = useState<HTMLDivElement | null>(null);
+  const [width, setWidth] = useState(0);
 
   const breakdown = useMemo(() => processMoves(moves), [moves]);
-  // Healing is scored as one backend window, but its source hits are the
-  // player-facing peers. Flatten them into ordinary numbered rows so healing
-  // and damage breakdowns share the same table semantics.
-  const displayMoves = useMemo(() => {
-    if (!isHealing) return breakdown.moves;
-    return breakdown.moves.flatMap((move) => {
-      if (move.hits.length === 0) return [move];
-      return move.hits.map((source) => ({
-        ...move,
-        key: source.key,
-        name: `${source.name}${source.count > 1 ? ` ×${source.count}` : ''}`,
-        damage: source.damage,
-        percentage: source.percentage,
-        baseMV: source.baseMV,
-        flatHeal: source.flatHeal,
-        rotationIndex: (move.rotationIndex * 1000) + source.rotationIndex,
-        hits: [],
-        typeSegments: [{ type: source.displayType, damage: source.damage }],
-      }));
-    });
-  }, [breakdown.moves, isHealing]);
-  const sortedMoves = useMemo(() => {
-    if (sortMode === 'rotation') {
-      return [...displayMoves].sort((a, b) => a.rotationIndex - b.rotationIndex);
-    }
-    return [...displayMoves].sort((a, b) => b.damage - a.damage);
-  }, [displayMoves, sortMode]);
+  const hasData = !isLoading && !error && breakdown.moves.length > 0;
+  const rawDamage = breakdown.rawDamage;
   const localScore = breakdown.totalScore;
   const agreesWithBoard = scoreOverride !== undefined
     && scoreOverride > 0
     && Math.abs(scoreOverride - localScore) <= Math.max(1, localScore * 0.001);
   const totalScore = agreesWithBoard ? scoreOverride : localScore;
-  const bonusTotal = breakdown.modifiers.reduce((sum, m) => (m.damage > 0 ? sum + m.damage : sum), 0);
-  const penaltyTotal = breakdown.modifiers.reduce((sum, m) => (m.damage < 0 ? sum - m.damage : sum), 0);
+  const modifiers = breakdown.modifiers;
 
-  // Waterfall geometry: everything is a fraction of the widest quantity so the
-  // track never overflows. The deltas chain off the running total — penalty
-  // bites the raw tail, and the bonus starts where the penalty left off, not
-  // back at the raw end — so the score marker lands exactly on the bonus tip.
-  const waterfallTop = Math.max(breakdown.rawDamage, totalScore);
-  const rawPct = waterfallTop > 0 ? (breakdown.rawDamage / waterfallTop) * 100 : 0;
-  const penaltyPct = waterfallTop > 0 ? Math.max((penaltyTotal / waterfallTop) * 100, penaltyTotal > 0 ? 0.9 : 0) : 0;
-  const bonusPct = waterfallTop > 0 ? (bonusTotal / waterfallTop) * 100 : 0;
-  const scorePct = waterfallTop > 0 ? (totalScore / waterfallTop) * 100 : 0;
-  const displayedSourceCount = displayMoves.length;
-  const sourceCountLabel = `${displayedSourceCount} ${isHealing ? 'healing source' : 'move'}${displayedSourceCount === 1 ? '' : 's'}`;
-
-  // Anchored to the segment, not the cursor: a segment can be 1000px wide, so a
-  // tooltip parked at the entry point drifts far from the pointer, and following
-  // the pointer meant a setState (and a re-render of every row) per mousemove.
-  const showSegmentTooltip = (element: HTMLElement, total: TypeTotal) => {
-    const rect = element.getBoundingClientRect();
-    setTooltip({
-      x: rect.left + (rect.width / 2),
-      y: rect.top,
-      title: typeMeta(total.type).label,
-      detail: `${formatDamage(total.damage)}  [${total.percentage.toFixed(1)}%]`,
+  useEffect(() => {
+    if (!stripNode) return;
+    const observer = new ResizeObserver((entries) => {
+      setWidth(Math.round(entries[0]?.contentRect.width ?? 0));
     });
-  };
+    observer.observe(stripNode);
+    return () => observer.disconnect();
+  }, [stripNode]);
 
-  const toggleExpanded = (moveKey: string) => {
-    setExpandedMoves((prev) => {
+  // The rotation plays once when the data first lands, then the animation
+  // classes come off so a resize or re-render never replays it.
+  useEffect(() => {
+    if (!hasData) return;
+    const timer = setTimeout(() => setPlaying(false), PLAY_MS);
+    return () => clearTimeout(timer);
+  }, [hasData]);
+
+  const movesByKey = useMemo(() => new Map<string, ProcessedMove>(breakdown.moves.map((move) => [move.key, move])), [breakdown.moves]);
+  const rotation = useMemo(() => (isHealing ? EMPTY_ROTATION : buildRotation(breakdown.moves)), [breakdown.moves, isHealing]);
+  // A zero-damage entry (an echo cast that only sets up a trigger) is a real
+  // press, so it keeps its place in the rotation, but it is not an ability row.
+  const abilityMoves = useMemo(() => breakdown.moves.filter((move) => move.damage > 0), [breakdown.moves]);
+  const mainScaleStat = useMemo(() => dominantScaleStat(abilityMoves), [abilityMoves]);
+
+  // Healing is scored as one window, but its source hits are the player-facing
+  // peers: they become the rows and the profile's pieces.
+  const healSources = useMemo<HealSource[]>(() => {
+    if (!isHealing) return [];
+    return breakdown.moves
+      .flatMap((move) => (move.hits.length === 0
+        ? [{ key: move.key, name: move.name, damage: move.damage, count: 1, baseMV: move.baseMV, flatHeal: move.flatHeal, scaleStat: move.scaleStat, skillTab: move.skillTab }]
+        : move.hits.map((hit) => ({ key: hit.key, name: hit.name, damage: hit.damage, count: hit.count, baseMV: hit.baseMV, flatHeal: hit.flatHeal, scaleStat: move.scaleStat, skillTab: hit.skillTab }))))
+      .sort((a, b) => b.damage - a.damage);
+  }, [breakdown.moves, isHealing]);
+
+  const stripSlots = useMemo<RotationSlot[]>(() => {
+    const { columnWidth } = layoutColumns(width, rotation.buttonSlots.length, rotation.statusSlots.length);
+    return width > 0 && columnWidth < LABEL_MIN_COLUMN
+      ? mergeSmallSlots(rotation.buttonSlots, rawDamage)
+      : rotation.buttonSlots;
+  }, [rawDamage, rotation, width]);
+
+  const bonuses = useMemo(
+    () => modifiers.filter((modifier) => modifier.damage > 0).map((modifier) => ({ key: modifier.key, color: STATUS_POSITIVE_COLOR, damage: modifier.damage })),
+    [modifiers],
+  );
+  const bonusTotal = bonuses.reduce((sum, bonus) => sum + bonus.damage, 0);
+  const lostDamage = modifiers.reduce((sum, modifier) => (modifier.damage < 0 ? sum - modifier.damage : sum), 0);
+  const hasEnergyRegen = modifiers.some((modifier) => modifier.info?.kind === 'energy-regen');
+  const hasStrip = !isHealing && rotation.buttonSlots.length + rotation.statusSlots.length > 0;
+  const ribbon = useMemo(() => buildRibbon(stripSlots, rotation.statusSlots, bonuses), [bonuses, rotation.statusSlots, stripSlots]);
+  const healSegments = useMemo(
+    () => healSources.map((source) => ({ key: source.key, color: HEAL_COLOR, damage: source.damage })),
+    [healSources],
+  );
+
+  const activeType = typeFocus ?? pinnedType;
+  const typeRowKeys = useMemo(() => {
+    if (!activeType) return null;
+    return new Set(breakdown.moves
+      .filter((move) => move.moveTypes.includes(activeType) || move.typeSegments.some((segment) => segment.type === activeType))
+      .map((move) => move.key));
+  }, [activeType, breakdown.moves]);
+  const highlight = useMemo<Highlight>(() => {
+    const hovered = hoverKeys ? hoverKeys.split('\n') : null;
+    return {
+      hovered: (keys) => Boolean(hovered && keys.some((key) => hovered.includes(key))),
+      typeActive: Boolean(typeRowKeys),
+      typeOn: (keys) => Boolean(typeRowKeys && keys.some((key) => typeRowKeys.has(key))),
+    };
+  }, [hoverKeys, typeRowKeys]);
+
+  const setHover = useCallback((keys: string[] | null) => {
+    setHoverKeys(keys && keys.length > 0 ? keys.join('\n') : null);
+  }, []);
+
+  // A character's status damage is its own element, so a status type takes
+  // the element icon; the set is read off the payload rather than hard-coded.
+  const statusTypes = useMemo(
+    () => new Set(breakdown.moves.filter((move) => move.skillTab === 'status').flatMap((move) => move.moveTypes)),
+    [breakdown.moves],
+  );
+  const typeIcon = useCallback((type: string): string | undefined => {
+    const stat = TYPE_STAT[type];
+    if (stat) return statIcons?.[stat];
+    const tab = TYPE_TAB[type];
+    if (tab) return skillIcons?.[tab];
+    return statusTypes.has(type) ? elementIcon : undefined;
+  }, [elementIcon, skillIcons, statIcons, statusTypes]);
+
+  const slotLabel = useCallback((slot: RotationSlot): string => {
+    const figures = `${formatDamage(slot.damage)} damage, ${formatShare(slot.damage, rawDamage)} share`;
+    if (slot.kind === 'merged') {
+      return `Casts ${slot.firstCast}-${slot.firstCast + slot.count - 1}: ${slot.names.join(', ')}, ${figures}`;
+    }
+    const move = movesByKey.get(slot.rowKeys[0]);
+    const name = move?.name ?? slot.label;
+    const sub = move ? describeRow(move).text : '';
+    if (slot.kind === 'status') return `${name}, ${sub}, ${figures}`;
+    const position = slot.count > 1 ? `Casts ${slot.firstCast}-${slot.firstCast + slot.count - 1}` : `Cast ${slot.firstCast}`;
+    return `${position}: ${name}${slot.count > 1 ? ` ×${slot.count}` : ''}, ${sub}, ${figures}`;
+  }, [movesByKey, rawDamage]);
+
+  const showReadout = useCallback((slot: RotationSlot, anchor: HTMLElement, placement: 'above' | 'below' = 'above') => {
+    setHover(slot.rowKeys);
+    const rect = anchor.getBoundingClientRect();
+    const x = Math.min(Math.max(rect.left + (rect.width / 2), TOOLTIP_EDGE_MARGIN), window.innerWidth - TOOLTIP_EDGE_MARGIN);
+    const move = movesByKey.get(slot.rowKeys[0]);
+    let title = slot.label;
+    let subtitle = '';
+    if (slot.kind === 'merged') {
+      subtitle = slot.names.join(', ');
+    } else if (move) {
+      title = `${move.name}${slot.kind === 'cast' && slot.count > 1 ? ` ×${slot.count}` : ''}`;
+      subtitle = describeRow(move).text;
+    }
+    const rows: TooltipState['rows'] = [
+      { key: 'damage', label: 'Damage', value: formatDamage(slot.damage) },
+      { key: 'share', label: 'Share', value: formatShare(slot.damage, rawDamage) },
+    ];
+    if (slot.kind === 'cast' && slot.count > 1) rows.push({ key: 'per-cast', label: 'Per cast', value: formatDamage(slot.damage / slot.count) });
+    const range = castRangeLabel(slot, rotation.buttonCastCount);
+    if (range) rows.push({ key: 'casts', label: slot.count > 1 ? 'Casts' : 'Cast', value: range });
+    setTooltip({ x, y: placement === 'below' ? rect.bottom : rect.top, placement, tint: slot.color, title, subtitle, rows });
+  }, [movesByKey, rawDamage, rotation.buttonCastCount, setHover]);
+
+  const hideReadout = useCallback(() => {
+    setHover(null);
+    setTooltip(null);
+  }, [setHover]);
+
+  const toggleExpanded = useCallback((key: string) => {
+    setExpanded((prev) => {
       const next = new Set(prev);
-      if (next.has(moveKey)) next.delete(moveKey);
-      else next.add(moveKey);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
-  };
+  }, []);
+
+  const slotCount = stripSlots.length + rotation.statusSlots.length;
+  const stepMs = Math.min(26, 320 / Math.max(1, slotCount));
+  // The table bars grow with the ribbon, once the last icon has landed.
+  const barMotion = { playing, baseDelay: Math.round(slotCount * stepMs) + 120 };
+  const sharesNote = `Shares are of ${isHealing ? 'healing' : 'move damage'}, before ${[
+    hasEnergyRegen ? 'Energy Regen' : null,
+    bonusTotal > 0 ? 'score bonuses' : null,
+  ].filter(Boolean).join(' and ') || 'score modifiers'}`;
 
   return (
-    <section className="w-full space-y-3">
+    <section className="@container w-full" aria-label={isHealing ? 'Heal breakdown' : 'Move breakdown'}>
       {isLoading && (
-        // Mirrors the real layout (summary card, profile bar, legend, rows) so
-        // the panel does not jump when the data lands.
-        <div className="animate-pulse space-y-3">
-          <div className="rounded-lg border border-border/45 bg-background-secondary/24 px-4 py-3.5">
-            <div className="flex items-baseline justify-between gap-3">
-              <div className="h-3 w-24 rounded bg-white/8" />
-              <div className="h-6 w-32 rounded bg-white/10" />
-            </div>
-            <div className="mt-4 border-t border-border/45 pt-3.5">
-              <div className="h-3 w-28 rounded bg-white/8" />
-              <div className="mt-2.5 h-3 w-full rounded bg-white/8" />
-              <div className="mt-2.5 flex gap-1.5">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <div key={`legend-skeleton-${index}`} className="h-6 w-28 rounded-md bg-white/6" />
-                ))}
+        // Mirrors the real layout (score, icons, ribbon, chips, rows) so the
+        // panel does not jump when the data lands.
+        <div className="animate-pulse rounded-lg border border-border/45 bg-background-secondary/20 px-6 pt-5 pb-4 @max-[40rem]:px-3.5">
+          <div className="h-10 w-56 rounded bg-white/10" />
+          <div className="mt-7 h-3 w-20 rounded bg-white/8" />
+          <div className="mt-4 flex justify-between gap-2 @max-[40rem]:hidden">
+            {Array.from({ length: 12 }).map((_, index) => (
+              <div key={`slot-skeleton-${index}`} className="flex flex-col items-center gap-2">
+                <div className="size-9 rounded-full bg-white/6" />
+                <div className="h-2.5 w-12 rounded bg-white/6" />
               </div>
-            </div>
+            ))}
           </div>
-          <div className="space-y-1.5">
+          <div className="mt-6 h-3 w-full rounded bg-white/8 @max-[40rem]:mt-4" />
+          <div className="mt-8 space-y-2">
             {Array.from({ length: 5 }).map((_, index) => (
-              <div key={`move-skeleton-${index}`} className="h-10 rounded-lg border border-border/45 bg-background-secondary/20" />
+              <div key={`row-skeleton-${index}`} className="h-10 rounded bg-white/4" />
             ))}
           </div>
         </div>
@@ -207,424 +362,198 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
         </div>
       )}
 
-      {!isLoading && !error && breakdown.moves.length > 0 && (
-        <>
-          {/* Score equation + waterfall + optional damage profile */}
-          <div className="rounded-lg border border-border/45 bg-background-secondary/24 px-4 py-3.5">
-            {/* Without modifiers the raw total IS the score; the equation row
-                would just restate one number, so the header carries it inline. */}
-            <div className="flex items-baseline justify-between gap-3">
-              <h3 className="text-2xs font-semibold uppercase tracking-[0.18em] text-text-primary/55">
-                Total Score
-              </h3>
-              {breakdown.modifiers.length === 0 && (
-                <div className="flex items-baseline gap-2.5">
-                  {/* Proportional figures: tabular gives every digit a zero's width, which reads loose at display size. */}
-                  <span className="text-2xl font-bold text-accent-hover">{formatDamage(totalScore)}</span>
-                  <span className="text-2xs text-text-primary/58">{sourceCountLabel}</span>
-                </div>
-              )}
-            </div>
-
-            {breakdown.modifiers.length > 0 && (
-              <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-2xs font-semibold uppercase tracking-[0.08em] text-text-primary/58">{isHealing ? 'Raw healing' : 'Move damage'}</span>
-                  <span className="text-xl font-semibold tabular-nums text-white/85">{formatDamage(breakdown.rawDamage)}</span>
-                </div>
-
-                {breakdown.modifiers.map((modifier) => {
-                  const isBonus = modifier.damage > 0;
-                  return (
-                    <div
-                      key={modifier.key}
-                      className="flex flex-col gap-0.5 rounded-md border border-border/45 bg-background-secondary/40 px-3 py-1.5"
-                      title={modifier.name}
-                    >
-                      <span className="flex items-center gap-1.5 text-2xs font-semibold text-text-primary/62">
-                        <span
-                          className="h-1.5 w-1.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: isBonus ? BONUS_COLOR : PENALTY_COLOR }}
-                        />
-                        {compactModifierLabel(modifier.name)}
-                      </span>
-                      <span className="flex items-baseline gap-2 text-sm font-semibold tabular-nums" style={{ color: isBonus ? BONUS_COLOR : PENALTY_COLOR }}>
-                        {formatModifierDamage(modifier.damage)}
-                        <span className="text-2xs font-medium text-text-primary/58">{formatSignedPercent(modifier.percentage)}</span>
-                      </span>
-                    </div>
-                  );
-                })}
-
-                <div className="ml-auto flex flex-col gap-0.5 text-right max-sm:ml-0 max-sm:w-full max-sm:text-left">
-                  <span className="text-2xs font-semibold uppercase tracking-[0.08em] text-text-primary/58">Score</span>
-                  <span className="text-2xl font-bold text-accent-hover">{formatDamage(totalScore)}</span>
-                  <span className="text-2xs text-text-primary/58">{sourceCountLabel}</span>
-                </div>
+      {hasData && (
+        <div className="rounded-lg border border-border/45 bg-background-secondary/20 px-6 pt-5 pb-2.5 @max-[40rem]:px-3.5 @max-[40rem]:pt-4 @max-[40rem]:pb-2">
+          <header>
+            {modifiers.length === 0 ? (
+              <div className="flex items-baseline gap-3">
+                <span className={EYEBROW}>Score</span>
+                <span className="font-gowun text-[42px] leading-none text-accent-hover @max-[40rem]:text-[34px]">{formatDamage(totalScore)}</span>
               </div>
+            ) : (
+              <ScoreEquation
+                rawLabel={isHealing ? 'Healing' : 'Move damage'}
+                raw={rawDamage}
+                modifiers={modifiers}
+                score={totalScore}
+              />
             )}
+          </header>
 
-            {breakdown.modifiers.length > 0 && (
-              <div className="mt-3" aria-hidden="true">
-                <div className="relative h-3.5 rounded bg-white/5">
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-l bg-linear-to-b from-accent/55 to-accent/35"
-                    style={{ width: `${rawPct}%`, borderRadius: bonusPct > 0 ? '4px 0 0 4px' : '4px' }}
-                  />
-                  {penaltyTotal > 0 && (
-                    <div
-                      className="absolute inset-y-0"
-                      style={{
-                        left: `${rawPct - penaltyPct}%`,
-                        width: `${penaltyPct}%`,
-                        background: `repeating-linear-gradient(135deg, ${PENALTY_COLOR}c0 0 3px, ${PENALTY_COLOR}40 3px 6px)`,
-                        borderRadius: bonusPct > 0 ? '0' : '0 4px 4px 0',
-                      }}
-                    />
-                  )}
-                  {bonusTotal > 0 && (
-                    <div
-                      className="absolute inset-y-0 rounded-r"
-                      style={{
-                        left: `calc(${rawPct - penaltyPct}% + 2px)`,
-                        width: `calc(${bonusPct}% - 2px)`,
-                        background: `linear-gradient(180deg, ${BONUS_COLOR}e6, ${BONUS_COLOR}a6)`,
-                      }}
-                    />
-                  )}
-                  <div
-                    className="absolute -bottom-1 -top-1 w-0.5 rounded-full bg-white/85"
-                    style={{ left: `${scorePct}%` }}
-                  />
-                </div>
-                <div className="mt-1.5 flex justify-between text-2xs text-text-primary/55">
-                  <span><span className="font-semibold text-text-primary/70">{isHealing ? 'Raw healing' : 'Move damage'}</span> {formatDamage(breakdown.rawDamage)}</span>
-                  <span><span className="font-semibold text-text-primary/70">Score</span> {formatDamage(totalScore)}</span>
-                </div>
+          {hasStrip && (
+            <>
+              <div className={`mt-7 mb-3.5 @max-[40rem]:hidden ${EYEBROW}`}>
+                Rotation{rotation.buttonCastCount > 0 ? ` · ${plural(rotation.buttonCastCount, 'cast', 'casts')}` : ''}
               </div>
-            )}
-
-            {/* A heal window has no meaningful damage-type profile. */}
-            {!isHealing && (
-              <div className="mt-4 border-t border-border/45 pt-3.5">
-                <div className="flex items-baseline gap-3">
-                  <h3 className="text-2xs font-semibold uppercase tracking-[0.18em] text-text-primary/55">Damage profile</h3>
-                  <span className="ml-auto text-2xs text-text-primary/58">by move type</span>
-                </div>
-                {/* Thin, and no text inside. In-segment labels were gated on a
-                    data threshold (>= 14%) rather than a measurement, so the
-                    same label that fit on desktop was cropped by the segment's
-                    own overflow at narrow widths, and a fixed black ink failed
-                    contrast on five of the fourteen fills. The chips below are
-                    the legend and carry every label, share and figure. */}
-                <div className="mt-2.5 flex h-3 gap-0.5 overflow-hidden rounded-sm">
-                  {breakdown.typeTotals.map((total) => {
-                    const meta = typeMeta(total.type);
-                    const dimmed =
-                      (activeType !== null && activeType !== total.type)
-                      || (pinnedType === null && rowFocusKey !== null && !rowFocusKey.split('|').includes(total.type));
-                    return (
-                      <div
-                        key={`profile-${total.type}`}
-                        className={`relative min-w-0.75 cursor-pointer transition-opacity duration-150 ${dimmed ? 'opacity-30' : ''}`}
-                        style={{ width: `${total.percentage}%`, backgroundColor: meta.color }}
-                        onPointerEnter={(event) => {
-                          if (event.pointerType !== 'mouse') return;
-                          setTypeFocus(total.type);
-                          showSegmentTooltip(event.currentTarget, total);
-                        }}
-                        onPointerLeave={() => {
-                          setTypeFocus(null);
-                          setTooltip(null);
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-                {/* Chips pin the highlight on click (keyboard/touch reach it too);
-                    hover still previews. */}
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {breakdown.typeTotals.map((total) => {
-                    const meta = typeMeta(total.type);
-                    const isPinned = pinnedType === total.type;
-                    const dimmed = activeType !== null && activeType !== total.type;
-                    return (
-                      <button
-                        key={`legend-${total.type}`}
-                        type="button"
-                        aria-pressed={isPinned}
-                        className={`flex items-baseline gap-1.5 rounded-md border bg-background-secondary/40 px-2.5 py-1 transition-[opacity,border-color] duration-150 hover:border-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${isPinned ? 'border-accent/70' : 'border-border/45'} ${dimmed ? 'opacity-45' : ''}`}
-                        onClick={() => setPinnedType((prev) => (prev === total.type ? null : total.type))}
-                        onPointerEnter={(event) => {
-                          if (event.pointerType !== 'mouse') return;
-                          setTypeFocus(total.type);
-                          showSegmentTooltip(event.currentTarget, total);
-                        }}
-                        onPointerLeave={() => {
-                          setTypeFocus(null);
-                          setTooltip(null);
-                        }}
-                        // Keyboard reaches the same readout the pointer does.
-                        onFocus={(event) => {
-                          setTypeFocus(total.type);
-                          showSegmentTooltip(event.currentTarget, total);
-                        }}
-                        onBlur={() => {
-                          setTypeFocus(null);
-                          setTooltip(null);
-                        }}
-                      >
-                        <span className="h-2 w-2 self-center rounded-xs" style={{ backgroundColor: meta.color }} />
-                        <span className="text-xs font-semibold text-text-primary/62">{meta.label}</span>
-                        <span className="text-xs font-bold tabular-nums text-white/82">{total.percentage.toFixed(1)}%</span>
-                      </button>
-                    );
-                  })}
-                </div>
+              <div ref={setStripNode} className="@max-[40rem]:hidden">
+                <RotationStrip
+                  width={width}
+                  buttonSlots={stripSlots}
+                  statusSlots={rotation.statusSlots}
+                  ribbon={ribbon}
+                  lostDamage={lostDamage}
+                  highlight={highlight}
+                  playing={playing}
+                  stepMs={stepMs}
+                  slotLabel={slotLabel}
+                  onSlotEnter={showReadout}
+                  onSlotLeave={hideReadout}
+                  skillIcons={skillIcons}
+                  elementIcon={elementIcon}
+                />
               </div>
-            )}
-          </div>
+            </>
+          )}
 
-          {/* Move rows */}
-          <div>
-            <div className="flex items-center gap-3 px-1 pb-2.5">
-              <h3 className="text-2xs font-semibold uppercase tracking-[0.18em] text-text-primary/55">{isHealing ? 'Healing sources' : 'Moves'}</h3>
-              {breakdown.dominantElement && ELEMENT_COLOR[breakdown.dominantElement] && (
-                <span
-                  className="rounded border px-1.5 py-px text-3xs leading-4"
-                  style={{
-                    color: ELEMENT_COLOR[breakdown.dominantElement],
-                    borderColor: `${ELEMENT_COLOR[breakdown.dominantElement]}40`,
-                    backgroundColor: `${ELEMENT_COLOR[breakdown.dominantElement]}12`,
-                  }}
-                >
-                  {breakdown.dominantElement}
-                </span>
-              )}
-              <div className="ml-auto flex gap-1 rounded-md border border-border/45 bg-background-secondary/40 p-0.5">
-                {([['damage', isHealing ? 'By healing' : 'By damage'], ['rotation', 'Rotation order']] as const).map(([mode, label]) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    aria-pressed={sortMode === mode}
-                    onClick={() => setSortMode(mode)}
-                    className={`rounded px-2.5 py-1 text-2xs font-semibold transition-[color,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${
-                      sortMode === mode
-                        ? 'bg-accent/16 text-accent-hover'
-                        : 'text-text-primary/55 hover:text-text-primary'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Column labels for the two right-hand numbers, so share vs damage
-                doesn't need inference. Mirrors the row grid below. The leading
-                column changes meaning with the sort, so it says which. */}
-            <div className="grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,420px)_52px_92px_24px] items-center gap-3 px-2.5 pb-1.5 text-3xs font-semibold uppercase text-text-primary/55 max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px]">
-              <span className="text-center">{sortMode === 'damage' ? 'Rank' : '#'}</span>
-              <span className="tracking-[0.08em]" />
-              <span className="max-lg:hidden tracking-[0.08em]">Share of score</span>
-              <span className="text-right tracking-[0.08em]">Share</span>
-              <span className="text-right tracking-[0.08em]">{isHealing ? 'Healing' : 'Damage'}</span>
-              <span />
-            </div>
-
-            {/* Keyed on the sort so switching remounts the list: the rows fade
-                back in staggered, which reads as "same rows, reordered" instead
-                of an instant jump. Expansion state lives above this. */}
-            <div className="space-y-1.5" key={sortMode}>
-              {sortedMoves.map((move, index) => {
-                const segmentTypes = move.typeSegments.map((segment) => segment.type);
-                const dimmed = activeType !== null && !segmentTypes.includes(activeType);
-                const hasHits = move.hits.length > 0;
-                const canToggle = hasHits;
-                const isExpanded = expandedMoves.has(move.key);
-                const showElementChip = Boolean(
-                  move.elemType && move.elemType !== breakdown.dominantElement && ELEMENT_COLOR[move.elemType],
-                );
-                const stagger = Math.min(index, 8);
-
-                return (
-                  <article
-                    key={move.key}
-                    className={`lb-row-in rounded-lg border border-border/45 bg-background-secondary/20 transition-[opacity,border-color,background-color] duration-150 hover:border-accent/40 hover:bg-background-secondary/40 ${dimmed ? 'opacity-45' : ''}`}
-                    style={{ animationDelay: `${stagger * 20}ms` }}
-                    onPointerEnter={(event) => {
-                      if (event.pointerType !== 'mouse') return;
-                      setRowFocusKey(segmentTypes.join('|'));
-                    }}
-                    onPointerLeave={() => setRowFocusKey(null)}
-                  >
-                    {/* Whole row toggles nested damage hits. Healing sources are
-                        flattened into peer rows before rendering. */}
-                    {/* Row click is a convenience; the chevron button below is the
-                        accessible toggle (keyboard + aria-expanded). */}
-                    <div
-                      className={`grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,420px)_52px_92px_24px] items-center gap-3 px-2.5 py-2 max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px] ${canToggle ? 'cursor-pointer transition-colors duration-100 active:bg-white/6' : ''}`}
-                      onClick={canToggle ? () => toggleExpanded(move.key) : undefined}
-                    >
-                      {/* Sequential in both sort modes; the raw rotation index skips
-                          slots (folded repeats, modifiers) and reads as missing rows. */}
-                      <span className="text-center text-2xs font-semibold tabular-nums text-text-primary/58">
-                        {index + 1}
-                      </span>
-
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <span className="truncate text-sm font-semibold text-text-primary">
-                          {move.name}
-                        </span>
-                        {/* Type/element chips hug the name (stable identity, same
-                            position whether or not the row carries an MV). */}
-                        <span className="flex shrink-0 gap-1">
-                          {showElementChip && move.elemType && (
-                            <span
-                              className="rounded border px-1.5 py-px text-3xs leading-4"
-                              style={{
-                                color: ELEMENT_COLOR[move.elemType],
-                                borderColor: `${ELEMENT_COLOR[move.elemType]}40`,
-                                backgroundColor: `${ELEMENT_COLOR[move.elemType]}12`,
-                              }}
-                            >
-                              {move.elemType}
-                            </span>
-                          )}
-                          {move.moveTypes.map((moveType) => (
-                            <span
-                              key={`${move.key}-chip-${moveType}`}
-                              className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/5 px-1.5 py-px text-3xs leading-4 text-text-primary/58 max-sm:hidden"
-                            >
-                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: typeMeta(moveType).color }} />
-                              {typeMeta(moveType).label}
-                            </span>
-                          ))}
-                        </span>
-                        {/* MV trails as metadata after the identity chips. Simple rows
-                            only — fold rows carry per-hit MVs in the expansion, and the
-                            parent's own-cast MV there would mislead. */}
-                        {!hasHits && isHealing && (move.flatHeal > 0 || move.baseMV > 0) && (
-                          <span className="shrink-0 text-3xs tabular-nums text-text-primary/58 max-sm:hidden">
-                            {formatHealFormula(move.flatHeal, move.baseMV, move.scaleStat)}
-                          </span>
-                        )}
-                        {!hasHits && !isHealing && move.baseMV > 0 && (
-                          <span className="shrink-0 text-3xs tabular-nums text-text-primary/58">
-                            {formatBaseMV(move.baseMV)} MV{move.scaleStat && move.scaleStat !== 'ATK' ? ` · ${move.scaleStat}` : ''}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* The track is the whole score; the fill is this move's
-                          share of it, the same figure the Share column prints. */}
-                      <div className="relative h-2.5 max-lg:hidden">
-                        <div className={LANE_TRACK} />
-                        <div
-                          className="lb-bar-grow absolute inset-y-0 left-0 flex gap-0.5"
-                          style={{ width: `${move.percentage}%`, animationDelay: `${stagger * 24}ms` }}
-                        >
-                          {move.typeSegments.map((segment) => (
-                            <div
-                              key={`${move.key}-segment-${segment.type}`}
-                              className="min-w-0.75 rounded-xs"
-                              style={{
-                                flexGrow: segment.damage,
-                                backgroundColor: isHealing ? HEAL_COLOR : typeMeta(segment.type).color,
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      <span className="text-right text-xs tabular-nums text-text-primary/58">{move.percentage.toFixed(1)}%</span>
-                      <span className="text-right text-sm font-semibold tabular-nums text-accent">{formatDamage(move.damage)}</span>
-
-                      {canToggle ? (
-                        <button
-                          type="button"
-                          aria-expanded={isExpanded}
-                          aria-label={`Toggle ${move.name} hits`}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            toggleExpanded(move.key);
-                          }}
-                          /* -m-2 keeps the 30px hit target from widening the 24px column. */
-                          className="-m-2 flex items-center justify-center rounded p-2 text-text-primary/50 transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-                        >
-                          <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-accent' : ''}`} />
-                        </button>
-                      ) : (
-                        <span />
-                      )}
-                    </div>
-
-                    {/* 0fr → 1fr so the reveal animates. The chevron already
-                        rotated on toggle; leaving the content it reveals to pop
-                        in was the one place the panel stopped feeling attached
-                        to its own control. */}
-                    {hasHits && (
-                      <div
-                        aria-hidden={!isExpanded}
-                        className={`grid transition-[grid-template-rows] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
-                      >
-                        <div className="overflow-hidden">
-                          {/* Same grid + global scale as the parent row so hit bars share
-                              one lane and one meaning (share of score); hierarchy reads
-                              via the empty number column, indented dot, and dim bg. */}
-                          <div className="border-t border-border/45 bg-black/15 py-1">
-                            {move.hits.map((hit) => (
-                              <div
-                                key={hit.key}
-                                className="grid grid-cols-[26px_minmax(0,1fr)_minmax(120px,420px)_52px_92px_24px] items-center gap-3 px-2.5 py-1 text-[13px] max-lg:grid-cols-[26px_minmax(0,1fr)_52px_92px_24px]"
-                              >
-                                <span />
-                                <span className="flex min-w-0 items-center gap-2 pl-3 text-text-primary/72">
-                                  <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: typeMeta(hit.displayType).color }} />
-                                  <span className="truncate">{hit.name}{hit.count > 1 ? ` ×${hit.count}` : ''}</span>
-                                  {hit.baseMV > 0 && (
-                                    <span className="shrink-0 text-3xs tabular-nums text-text-primary/58">{formatBaseMV(hit.baseMV)} MV</span>
-                                  )}
-                                </span>
-                                <div className="max-lg:hidden">
-                                  <div
-                                    className="h-1.5 min-w-0.75 rounded-xs opacity-80"
-                                    style={{
-                                      width: `${hit.percentage}%`,
-                                      backgroundColor: typeMeta(hit.displayType).color,
-                                    }}
-                                  />
-                                </div>
-                                <span className="text-right text-2xs tabular-nums text-text-primary/55">{hit.percentage.toFixed(1)}%</span>
-                                <span className="text-right font-medium tabular-nums text-white/80">{formatDamage(hit.damage)}</span>
-                                <span />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-
-          {tooltip && (
-            <div
-              className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-md border border-accent/70 bg-[#131313]/95 px-3 py-2 shadow-[0_10px_28px_rgba(0,0,0,0.38)]"
-              style={{
-                left: typeof window !== 'undefined'
-                  ? Math.min(Math.max(tooltip.x, TOOLTIP_EDGE_MARGIN), window.innerWidth - TOOLTIP_EDGE_MARGIN)
-                  : tooltip.x,
-                top: tooltip.y - 8,
-              }}
-            >
-              <div className="whitespace-nowrap text-sm font-semibold text-white/95">{tooltip.title}</div>
-              <div className="mt-0.5 whitespace-pre text-xs tabular-nums text-text-primary/72">{tooltip.detail}</div>
+          {isHealing && healSegments.length > 0 && (
+            <div className="mt-7 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 @max-[40rem]:mt-4.5 @max-[40rem]:grid-cols-1 @max-[40rem]:gap-y-2.5">
+              <span className={EYEBROW}>Healing</span>
+              <ProfileBar segments={healSegments} bonuses={bonuses} lostDamage={lostDamage} playing={playing} />
             </div>
           )}
-        </>
+
+          {!isHealing && breakdown.typeTotals.length > 0 && (
+            <div className="mt-3.5 flex flex-wrap items-center gap-x-3.5 gap-y-2 @max-[40rem]:mt-4.5">
+              <span className={EYEBROW}>Considered as</span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {breakdown.typeTotals.map((total) => {
+                  const meta = typeMeta(total.type);
+                  const isPinned = pinnedType === total.type;
+                  const icon = typeIcon(total.type);
+                  return (
+                    <button
+                      key={total.type}
+                      type="button"
+                      aria-pressed={isPinned}
+                      onClick={() => setPinnedType((prev) => (prev === total.type ? null : total.type))}
+                      onPointerEnter={(event) => {
+                        if (event.pointerType === 'mouse') setTypeFocus(total.type);
+                      }}
+                      onPointerLeave={() => setTypeFocus(null)}
+                      style={{ '--type': meta.color } as React.CSSProperties}
+                      className={`inline-flex items-center gap-2 rounded-md border px-2 py-1.5 transition-[border-color,background-color,opacity,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] motion-reduce:transition-none ${FOCUS_RING} ${isPinned ? CHIP_PINNED : CHIP_REST} ${pinnedType && !isPinned ? 'opacity-50' : ''}`}
+                    >
+                      <span aria-hidden className="grid h-4 w-4 shrink-0 place-items-center">
+                        {icon ? (
+                          <img src={icon} alt="" className="h-4 w-4 object-contain opacity-90" />
+                        ) : (
+                          <span className="h-2 w-2 rounded-xs" style={{ backgroundColor: meta.color }} />
+                        )}
+                      </span>
+                      <span className="text-xs text-text-primary/70">{meta.label}</span>
+                      <span className={`${FIGURE} text-xs text-text-primary`}>{total.percentage.toFixed(1)}%</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {modifiers.length > 0 && (
+            <div className="mt-2.5 flex flex-wrap justify-between gap-x-3 gap-y-1.5 text-xs text-text-primary/55">
+              <span className="flex flex-wrap gap-x-4 gap-y-1">
+                {modifiers.map((modifier) => (
+                  <span key={modifier.key} className="inline-flex items-center gap-1.5">
+                    <span
+                      aria-hidden
+                      className="inline-block h-2 w-3"
+                      style={{ background: modifier.damage < 0 ? HATCH : STATUS_POSITIVE_COLOR }}
+                    />
+                    <b className={`${FIGURE} font-normal text-text-primary`}>{formatSigned(modifier.damage)}</b>
+                    <span>
+                      from {modifier.info?.kind === 'energy-regen'
+                        ? `Energy Regen below ${formatPercentFigure(modifier.info.erTarget)}%`
+                        : modifier.name}
+                    </span>
+                  </span>
+                ))}
+              </span>
+              <span>{sharesNote}</span>
+            </div>
+          )}
+
+          {hasStrip && (
+            <div className="mt-4.5 mb-1.5 hidden gap-0.5 rounded-md border border-border/45 bg-background-secondary/40 p-0.5 @max-[40rem]:flex">
+              {([['abilities', 'Abilities'], ['rotation', 'Rotation']] as const).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  aria-pressed={view === mode}
+                  onClick={() => setView(mode)}
+                  className={`flex-1 rounded py-1.75 text-[13px] transition-colors duration-150 ${FOCUS_RING} ${view === mode ? 'bg-accent/16 text-accent-hover' : 'text-text-primary/55 hover:text-text-primary'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className={`mt-7.5 @max-[40rem]:mt-1.5 ${hasStrip && view === 'rotation' ? '@max-[40rem]:hidden' : ''}`}>
+            {isHealing ? (
+              <HealSourceTable
+                sources={healSources}
+                rawHealing={rawDamage}
+                highlight={highlight}
+                onHover={setHover}
+                motion={barMotion}
+                skillIcons={skillIcons}
+                elementIcon={elementIcon}
+              />
+            ) : (
+              <AbilityTable
+                moves={abilityMoves}
+                rawDamage={rawDamage}
+                rotation={rotation}
+                ribbon={ribbon}
+                mainScaleStat={mainScaleStat}
+                highlight={highlight}
+                expanded={expanded}
+                onToggle={toggleExpanded}
+                foldOpen={foldOpen}
+                onToggleFold={() => setFoldOpen((prev) => !prev)}
+                onHover={setHover}
+                motion={barMotion}
+                skillIcons={skillIcons}
+                elementIcon={elementIcon}
+              />
+            )}
+          </div>
+
+          {hasStrip && view === 'rotation' && (
+            <div className="hidden @max-[40rem]:block">
+              <CastList
+                rotation={rotation}
+                rawDamage={rawDamage}
+                movesByKey={movesByKey}
+                skillIcons={skillIcons}
+                elementIcon={elementIcon}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {tooltip && (
+        // The readout keeps its own state (HoverTooltip makes every trigger a
+        // tab stop, and a ribbon segment must not be one) but wears the hover
+        // card's shell: ground, tint, radius, shadow and enter motion. It stays
+        // mounted while the pointer walks the strip, so only the first open
+        // animates, the toolbar rule.
+        <div
+          aria-hidden
+          className="pointer-events-none fixed z-60"
+          style={{ left: tooltip.x, top: tooltip.y, transform: tooltip.placement === 'below' ? 'translate(-50%, 10px)' : 'translate(-50%, calc(-100% - 10px))' }}
+        >
+          <div className="hover-card-enter" style={{ transformOrigin: tooltip.placement === 'below' ? 'center top' : 'center bottom' }}>
+            <div className={`${HOVER_SHELL} min-w-48`} style={{ '--hover-tint': tooltip.tint } as React.CSSProperties}>
+              <div className="whitespace-nowrap font-plus-jakarta text-[13px] font-semibold text-text-primary">{tooltip.title}</div>
+              {tooltip.subtitle && <div className="mt-0.5 whitespace-nowrap text-2xs text-text-primary/55">{tooltip.subtitle}</div>}
+              <div className="mt-2 text-xs">
+                <HoverCardTable rows={tooltip.rows} />
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );

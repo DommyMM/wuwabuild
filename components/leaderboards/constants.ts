@@ -213,7 +213,7 @@ export const LB_EXPANDED_OPAQUE_SURFACE_FROM = 'from-[#191919]';
 // Padding on a row, one wider track, or an extra gap puts a horizontal scrollbar
 // under the table at 1080p. Header, skeleton and rows must all carry this grid
 // with no horizontal padding of their own.
-export const LB_TABLE_GRID = 'grid-cols-[48px_178px_154px_112px_minmax(0,1fr)]';
+export const LB_TABLE_GRID = 'grid-cols-[64px_160px_154px_112px_minmax(0,1fr)]';
 export const LB_SORTABLE_GROUP_GRID = 'grid-cols-[172px_repeat(4,121px)_minmax(140px,1fr)]';
 export const DEFAULT_LB_SORT = 'damage';
 export const DEFAULT_LB_TRACK = 's0';
@@ -286,6 +286,9 @@ export const getSummaryRowClasses = (pillCount: number, host: SummaryHost): Summ
 
 /** Normal-density row, for skeletons that render a fixed handful of pills. */
 export const LB_SUMMARY_ROW = getSummaryRowClasses(0, 'expansion').row;
+
+/** Section eyebrow inside an expanded row. The expansion inherits Plus Jakarta, so the weight is real. */
+export const LB_SECTION_HEADING = 'text-2xs font-semibold uppercase tracking-[0.18em] text-text-primary/55';
 
 export const LB_SUMMARY_ICON = 'h-4 w-4 object-contain';
 

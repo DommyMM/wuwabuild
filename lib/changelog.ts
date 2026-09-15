@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-09-16',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Healer Standard benchmark now uses 10 useful lines, since healers can only use 15',
+            },
+            {
+                kind: 'fixed',
+                text: 'Some scores changed by a point depending on the order echoes were entered',
+            },
+        ],
+    },
+    {
         date: '2026-09-15',
         changes: [
             {

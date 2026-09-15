@@ -1,4 +1,4 @@
-import { LBMoveEntry } from '@/lib/lb';
+import type { LBMoveCastEntry, LBMoveEntry, LBMoveModifierInfo } from '@/lib/lb';
 
 // Fixed move-type identity: every board colors a type the same way, so the
 // mapping is learnable across builds. Steps validated (CVD + contrast) against
@@ -20,7 +20,7 @@ import { LBMoveEntry } from '@/lib/lb';
 const MOVE_TYPE_META: Record<string, { label: string; color: string }> = {
   basic_attack: { label: 'Basic Attack', color: '#c98500' },
   heavy_attack: { label: 'Heavy Attack', color: '#008300' },
-  resonance_skill: { label: 'Resonance Skill', color: '#3987e5' },
+  resonance_skill: { label: 'Resonance Skill', color: '#5294e6' },
   resonance_liberation: { label: 'Liberation', color: '#d55181' },
   intro: { label: 'Intro', color: '#199e70' },
   outro: { label: 'Outro', color: '#d95926' },
@@ -32,7 +32,7 @@ const MOVE_TYPE_META: Record<string, { label: string; color: string }> = {
   erosion: { label: 'Erosion', color: '#a06ee0' },
   tune_rupture: { label: 'Tune Rupture', color: '#d3c23c' },
   fusion_burst: { label: 'Fusion Burst', color: '#e08b4a' },
-  tune_break: { label: 'Tune Break', color: '#a4379d' },
+  tune_break: { label: 'Tune Break', color: '#bb4db3' },
 };
 const FALLBACK_TYPE_COLOR = '#7f93a8';
 
@@ -55,7 +55,7 @@ type ProcessedHit = {
   baseMV: number;
   flatHeal: number;
   count: number;
-  rotationIndex: number;
+  skillTab: string;
 };
 
 type TypeSegment = {
@@ -63,29 +63,38 @@ type TypeSegment = {
   damage: number;
 };
 
-type ProcessedMove = {
+export type ProcessedMove = {
   key: string;
   name: string;
+  shortName: string;
+  skillTab: string;
   damage: number;
   percentage: number;
   elemType: string;
   moveTypes: string[];
+  /** First declared move type: the row's colour identity. */
+  primaryType: string;
   baseMV: number;
   flatHeal: number;
   scaleStat: string;
-  rotationIndex: number;
+  noCrit: boolean;
+  bypassDmgBonus: boolean;
   hits: ProcessedHit[];
+  /** Every rotation entry folded into the row, sorted by rotation index. */
+  casts: LBMoveCastEntry[];
   typeSegments: TypeSegment[];
 };
 
 // Global score adjustments (ER scaling, set/echo/sub-DPS bonuses). They scale
-// or extend the whole rotation rather than being a part of it — rendered as
-// the score equation and the waterfall, never as rotation rows.
-type ProcessedModifier = {
+// or extend the whole rotation rather than being a part of it, so they render
+// as the score equation, never as rotation rows. Kept in payload order: the
+// backend applies them in sequence, each against the running score.
+export type ProcessedModifier = {
   key: string;
   name: string;
   damage: number;
   percentage: number;
+  info: LBMoveModifierInfo | null;
 };
 
 export type TypeTotal = {
@@ -111,51 +120,74 @@ function hitDisplayType(hitTypes: string[], primary: string): string {
   return hitTypes.find((t) => t !== primary) ?? hitTypes[0];
 }
 
+type GroupedHit = {
+  key: string;
+  name: string;
+  damage: number;
+  types: string[];
+  baseMV: number;
+  flatHeal: number;
+  count: number;
+  skillTab: string;
+};
+
 export function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
   const grouped = new Map<string, {
     name: string;
+    shortName: string;
+    skillTab: string;
     damage: number;
-    hits: Map<string, { key: string; name: string; damage: number; types: string[]; baseMV: number; flatHeal: number; count: number; rotationIndex: number }>;
+    hits: Map<string, GroupedHit>;
+    casts: LBMoveCastEntry[];
     elemType: string;
     moveTypes: string[];
     baseMV: number;
     flatHeal: number;
     scaleStat: string;
+    noCrit: boolean;
+    bypassDmgBonus: boolean;
     modifier: boolean;
-    rotationIndex: number;
+    modifierInfo: LBMoveModifierInfo | null;
   }>();
 
-  moves.forEach((move, index) => {
+  // The contract sends one row per ability; merging by key only guards against
+  // a repeated row, whose casts and hits then fold into the first.
+  moves.forEach((move) => {
     const key = move.key;
     const existing = grouped.get(key) ?? {
       name: move.name,
+      shortName: move.shortName ?? '',
+      skillTab: move.skillTab ?? '',
       damage: 0,
-      hits: new Map<string, { key: string; name: string; damage: number; types: string[]; baseMV: number; flatHeal: number; count: number; rotationIndex: number }>(),
+      hits: new Map<string, GroupedHit>(),
+      casts: [],
       elemType: move.elemType,
-      moveTypes: move.moveTypes,
+      moveTypes: move.moveTypes ?? [],
       baseMV: move.baseMV,
       flatHeal: move.flatHeal,
       scaleStat: move.scaleStat,
+      noCrit: move.noCrit === true,
+      bypassDmgBonus: move.bypassDmgBonus === true,
       modifier: false,
-      // API row order is rotation order; a repeated cast keeps its first slot.
-      rotationIndex: index,
+      modifierInfo: move.modifierInfo ?? null,
     };
     existing.damage += move.damage;
     if (move.modifier) existing.modifier = true;
+    if (Array.isArray(move.casts)) existing.casts.push(...move.casts);
 
-    move.hits.forEach((hit, hitIndex) => {
+    (move.hits ?? []).forEach((hit) => {
       // Zero-damage hits are trigger bookkeeping (e.g. a 0-MV echo cast folded
-      // for rotation accounting), not damage — never rows or type segments.
+      // for rotation accounting), not damage, so never rows or type segments.
       if (!(hit.damage > 0)) return;
       const existingHit = existing.hits.get(hit.key) ?? {
         key: hit.key,
         name: hit.name,
         damage: 0,
-        types: hit.moveTypes,
+        types: hit.moveTypes ?? [],
         baseMV: hit.baseMV,
         flatHeal: hit.flatHeal,
         count: 0,
-        rotationIndex: hitIndex,
+        skillTab: hit.skillTab ?? '',
       };
       existingHit.damage += hit.damage;
       existingHit.count += hit.count;
@@ -191,7 +223,7 @@ export function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
           baseMV: hit.baseMV,
           flatHeal: hit.flatHeal,
           count: hit.count,
-          rotationIndex: hit.rotationIndex,
+          skillTab: hit.skillTab,
         }))
         .filter((hit) => !(hit.name === move.name && hit.displayType === primary))
         .sort((a, b) => b.damage - a.damage);
@@ -221,15 +253,20 @@ export function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
       return {
         key,
         name: move.name,
+        shortName: move.shortName,
+        skillTab: move.skillTab,
         damage: move.damage,
         percentage: (move.damage / rawDamage) * 100,
         elemType: move.elemType,
         moveTypes: move.moveTypes,
+        primaryType: primary,
         baseMV: move.baseMV,
         flatHeal: move.flatHeal,
         scaleStat: move.scaleStat,
-        rotationIndex: move.rotationIndex,
+        noCrit: move.noCrit,
+        bypassDmgBonus: move.bypassDmgBonus,
         hits,
+        casts: [...move.casts].sort((a, b) => a.index - b.index),
         typeSegments,
       };
     })
@@ -242,8 +279,8 @@ export function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
       name: move.name,
       damage: move.damage,
       percentage: (move.damage / rawDamage) * 100,
-    }))
-    .sort((a, b) => b.damage - a.damage);
+      info: move.modifierInfo,
+    }));
 
   const typeAggregate = new Map<string, number>();
   for (const move of processedMoves) {

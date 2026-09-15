@@ -1500,6 +1500,8 @@ export interface LBOptimalityReference {
   topLevelStats: Record<string, number>;
   echoPanels: EchoPanelState[];
   scoreModifiers: Array<{ key: string; name: string; delta: number }>;
+  /** Substat lines whose stat can raise the board's score; 0 on references built before it existed. */
+  usefulLines: number;
 }
 
 export interface LBBoardOptimality {
@@ -1552,11 +1554,12 @@ function parseOptimalityEchoPanel(raw: unknown): EchoPanelState | null {
 
 function parseOptimalityReference(raw: unknown): LBOptimalityReference {
   if (!isRecord(raw)) {
-    return { tier: '', damage: 0, layout: '', setPattern: [], mainStats: [], substats: [], echoIds: [], topLevelStats: {}, echoPanels: [], scoreModifiers: [] };
+    return { tier: '', damage: 0, layout: '', setPattern: [], mainStats: [], substats: [], echoIds: [], topLevelStats: {}, echoPanels: [], scoreModifiers: [], usefulLines: 0 };
   }
   return {
     tier: typeof raw.tier === 'string' ? raw.tier : '',
     damage: toFiniteNumber(raw.damage),
+    usefulLines: toFiniteNumber(raw.usefulLines),
     layout: typeof raw.layout === 'string' ? raw.layout : '',
     setPattern: Array.isArray(raw.setPattern) ? raw.setPattern.filter((v): v is string => typeof v === 'string') : [],
     mainStats: Array.isArray(raw.mainStats) ? raw.mainStats.filter((v): v is string => typeof v === 'string') : [],

@@ -445,6 +445,9 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
           moves={moves}
           isHealing={isHealing}
           scoreOverride={scoreBaseDamage}
+          skillIcons={character?.skillIcons}
+          elementIcon={character?.elementIcon}
+          statIcons={statIcons}
           onRetry={movesResource.retry}
         />
       )}
