@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-09-15',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Your UID is now read straight from your card, and you can choose to hide it when uploading',
+            },
+            {
+                kind: 'fixed',
+                text: 'Players split across misread UIDs are merged back into one entry on the leaderboards',
+            },
+        ],
+    },
+    {
         date: '2026-09-13',
         changes: [
             {
