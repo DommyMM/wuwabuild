@@ -1,6 +1,6 @@
 // Server-only module: SSR prefetch against the LB API via the Cloudflare gateway
 import 'server-only';
-import { buildLeaderboardSearchParams, toFiniteNumber, parseBuildListResponsePayload, parseLeaderboardOverviewPayload, parseLeaderboardResponsePayload, LBListBuildsResponse, LBListBuildsResponseRaw, LBCharacterOverview, LBLeaderboardQuery, LBLeaderboardResponse, LBLeaderboardResponseRaw, LBMoveEntry } from './lb';
+import { buildLeaderboardSearchParams, toFiniteNumber, parseBuildListResponsePayload, parseLeaderboardOverviewPayload, parseLeaderboardResponsePayload, LBListBuildsResponse, LBListBuildsResponseRaw, LBCharacterOverview, LBLeaderboardQuery, LBLeaderboardResponse, LBLeaderboardResponseRaw, LBMoveEntry, parseMovesPayload } from './lb';
 import { LB_API_BASE } from './apiEndpoints';
 import { loadCharacterDisplayMap } from './server/gameData';
 
@@ -75,8 +75,9 @@ export async function prefetchBuildMoves(
       return null;
     }
 
-    const payload = await response.json() as { moves?: LBMoveEntry[] };
-    return Array.isArray(payload.moves) ? payload.moves : null;
+    const payload: unknown = await response.json();
+    const hasMoves = typeof payload === 'object' && payload !== null && Array.isArray((payload as { moves?: unknown }).moves);
+    return hasMoves ? parseMovesPayload(payload) : null;
   } catch (err) {
     console.error('[lbServer] prefetchBuildMoves failed', err);
     return null;

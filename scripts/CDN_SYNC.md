@@ -161,7 +161,7 @@ The `skillIcons` field is a flat dict mapping skill type keys to their CDN icon 
 }
 ```
 
-Keys map to CDN skill `type` field: `1`→normal-attack, `2`→skill, `3`→liberation, `4`→inherent-1/2, `5`→intro, `6`→circuit, `11`→outro.
+Keys map to CDN skill `type` field: `1`→normal-attack, `2`→skill, `3`→liberation, `4`→inherent-1/2, `5`→intro, `6`→circuit, `11`→outro, `12`→tune-break (one of five shared weapon-type icons under `SkillIconNor/SP_IconWeakPointBreak*`).
 
 This **replaces** the old `paths.ts` approach of constructing skill icon URLs from `SKILL_CDN_NAMES`, `SKILL_ICON_NAMES`, `getRoverVariant`, and special-case handling (Galbrena D1→1D1 etc.). The frontend now uses `character.skillIcons[skillKey]` directly.
 

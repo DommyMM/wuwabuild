@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { typeMeta, ProcessedMove } from '@/lib/moveBreakdown';
 import { LB_SECTION_HEADING } from '../constants';
 import { formatDamage } from '../formatters';
 import { SkillTabDisc } from './SkillTabDisc';
-import { DENSE_ROW_COUNT, HEAL_COLOR, Highlight, RibbonSegment, RotationModel, RotationSlot, Subline, describeRow, formatBaseMV, formatHealFormula, formatShare, isSmallShare, rotationPositionsText } from './model';
+import { HEAL_COLOR, HOVER_RING, Highlight, RibbonSegment, RotationModel, RotationSlot, Subline, describeRow, foldedKeys, formatBaseMV, formatHealFormula, formatShare, rotationPositionsText, rowDomId } from './model';
 
-// Icon | name | casts | bar | share | damage | chevron. Below 40rem of panel
-// width the row becomes icon | name | figures, with the bar on a second line.
-const GRID = 'grid grid-cols-[32px_minmax(0,1fr)_44px_minmax(120px,30%)_58px_104px_16px] items-center gap-x-3.5';
+// Icon | name | casts | bar | share | damage | chevron. The bar lane flexes,
+// not the name: extra width goes to the one element that can use it, and the
+// cast count stays beside the name instead of drifting across a void. Below
+// 40rem of panel width the row becomes icon | name | figures, with the bar on
+// a second line.
+const GRID = 'grid grid-cols-[32px_minmax(0,22rem)_44px_minmax(120px,1fr)_58px_104px_16px] items-center gap-x-3.5';
 const NARROW_GRID = '@max-[40rem]:grid-cols-[32px_minmax(0,1fr)_auto] @max-[40rem]:gap-x-2.5';
 const NARROW_HIDDEN = '@max-[40rem]:hidden';
 const FIGURES = 'contents @max-[40rem]:col-start-3 @max-[40rem]:row-start-1 @max-[40rem]:flex @max-[40rem]:flex-col @max-[40rem]:items-end @max-[40rem]:gap-0.5';
@@ -145,18 +148,26 @@ const AbilityRow: React.FC<AbilityRowProps> = ({
   const castCount = isStatus ? 0 : move.casts.length;
   const hovered = highlight.hovered([move.key]);
   const dimmed = highlight.typeActive && !highlight.typeOn([move.key]);
-  const panelId = `mb-row-${move.key.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+  const rowId = rowDomId(move.key);
+  const panelId = `${rowId}-panel`;
   const positions = isStatus ? null : rotationPositionsText(move, rotation);
   const inRibbon = ribbon.some((segment) => segment.rowKeys.includes(move.key));
   const showScaleStat = Boolean(move.scaleStat) && move.scaleStat !== mainScaleStat;
-  // Open is a state, so it takes the site's selected-row tint (the expanded
-  // leaderboard row, the standings row); the ring is the hover.
-  const headerTone = isOpen
-    ? 'bg-accent/8'
-    : `rounded-md ${hovered ? `bg-white/3 ${ROW_RING}` : ''}`;
+  // Open, the bar splits by hit instead of by type: the hit rows below carry
+  // the figures and the bar shows how they add up to the row, instead of each
+  // hit redrawing the row's mark on the row's scale. A hit row and its piece
+  // are one thing, so hovering either lights both.
+  const [hitHover, setHitHover] = useState<string | null>(null);
+  const pieces = isOpen && move.hits.length > 1
+    ? move.hits.map((hit) => ({ key: hit.key, damage: hit.damage, color: typeMeta(hit.displayType).color }))
+    : move.typeSegments.map((segment) => ({ key: segment.type, damage: segment.damage, color: typeMeta(segment.type).color }));
+  // The card's frame is the open state and the ring is the link, so the open
+  // header carries no tint of its own: a third mark said nothing new.
+  const headerTone = isOpen ? '' : `rounded-md ${hovered ? `bg-white/3 ${ROW_RING}` : ''}`;
 
   return (
     <div
+      id={rowId}
       className={`transition-[opacity,border-color] duration-150 motion-reduce:transition-none ${isOpen ? `${ROW_OPEN} ${hovered ? 'border-white/50' : 'border-border/60'}` : afterOpen ? '' : ROW_CLOSED} ${dimmed ? 'opacity-40' : ''}`}
       onPointerEnter={(event) => {
         if (event.pointerType === 'mouse') onHover([move.key]);
@@ -170,7 +181,7 @@ const AbilityRow: React.FC<AbilityRowProps> = ({
         onClick={() => onToggle(move.key)}
         onFocus={() => onHover([move.key])}
         onBlur={() => onHover(null)}
-        className={`${GRID} ${NARROW_GRID} w-full px-2 py-2 text-left transition-[background-color,box-shadow] duration-100 @max-[40rem]:grid-rows-[auto_auto] @max-[40rem]:gap-y-2 @max-[40rem]:px-1 ${FOCUS_RING} ${headerTone}`}
+        className={`${GRID} ${NARROW_GRID} w-full cursor-pointer px-2 py-2 text-left transition-[background-color,box-shadow] duration-150 active:bg-white/6 @max-[40rem]:grid-rows-[auto_auto] @max-[40rem]:gap-y-2 @max-[40rem]:px-1 ${FOCUS_RING} ${headerTone}`}
       >
         <SkillTabDisc
           skillTab={move.skillTab}
@@ -192,16 +203,22 @@ const AbilityRow: React.FC<AbilityRowProps> = ({
         <span className={`text-right font-mono text-xs text-text-primary/70 ${NARROW_HIDDEN}`}>
           {castCount > 0 ? `×${castCount}` : ''}
         </span>
-        <span className={`relative h-2 ${NARROW_LANE} @max-[40rem]:h-1.5`}>
+        <span className={`relative h-2 rounded-[1px_3px_3px_1px] bg-white/8 ${NARROW_LANE} @max-[40rem]:h-1.5`}>
           <span
             className={`absolute inset-y-0 left-0 flex gap-0.5 ${motion.playing ? 'mb-grow' : ''}`}
             style={{ width: `${maxDamage > 0 ? (move.damage / maxDamage) * 100 : 0}%`, animationDelay: barDelay(motion, index) }}
           >
-            {move.typeSegments.map((segment) => (
+            {pieces.map((piece) => (
               <b
-                key={segment.type}
-                className="block h-full min-w-0.75 rounded-[1px_3px_3px_1px]"
-                style={{ flexGrow: segment.damage, flexBasis: 0, backgroundColor: typeMeta(segment.type).color }}
+                key={piece.key}
+                className="block h-full min-w-0.75 rounded-[1px_3px_3px_1px] transition-shadow duration-150 motion-reduce:transition-none"
+                style={{ flexGrow: piece.damage, flexBasis: 0, backgroundColor: piece.color, boxShadow: hitHover === piece.key ? HOVER_RING : undefined }}
+                onPointerEnter={(event) => {
+                  if (isOpen && event.pointerType === 'mouse') setHitHover(piece.key);
+                }}
+                onPointerLeave={() => {
+                  if (isOpen) setHitHover(null);
+                }}
               />
             ))}
           </span>
@@ -212,21 +229,28 @@ const AbilityRow: React.FC<AbilityRowProps> = ({
         </span>
         <ChevronDown
           aria-hidden
-          className={`h-3.5 w-3.5 transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${NARROW_HIDDEN} ${isOpen ? 'rotate-180 text-text-primary' : 'text-text-primary/55'}`}
+          className={`h-3.5 w-3.5 transition-transform duration-180 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${NARROW_HIDDEN} ${isOpen ? 'rotate-180 text-text-primary' : 'text-text-primary/55'}`}
         />
       </button>
 
       <div
         id={panelId}
         inert={!isOpen || undefined}
-        className={`grid transition-[grid-template-rows] duration-220 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+        className={`grid transition-[grid-template-rows] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${isOpen ? 'duration-180 grid-rows-[1fr]' : 'duration-140 grid-rows-[0fr]'}`}
       >
         <div className="overflow-hidden">
           <div className="border-t border-border/45 bg-black/20 pt-1.5 pb-3">
             {move.hits.map((hit) => (
-              <div key={hit.key} className={`${GRID} ${NARROW_GRID} px-2 py-1.25 @max-[40rem]:px-1`}>
+              <div
+                key={hit.key}
+                className={`${GRID} ${NARROW_GRID} rounded-md px-2 py-1.25 transition-colors duration-150 motion-reduce:transition-none @max-[40rem]:px-1 ${hitHover === hit.key ? 'bg-white/3 text-text-primary' : 'text-text-primary/70'}`}
+                onPointerEnter={(event) => {
+                  if (event.pointerType === 'mouse') setHitHover(hit.key);
+                }}
+                onPointerLeave={() => setHitHover(null)}
+              >
                 <span />
-                <span className="flex min-w-0 items-baseline gap-2 whitespace-nowrap text-[13px] text-text-primary/70 @max-[40rem]:flex-wrap @max-[40rem]:gap-x-2 @max-[40rem]:gap-y-0.5 @max-[40rem]:whitespace-normal">
+                <span className="flex min-w-0 items-baseline gap-2 whitespace-nowrap text-[13px] @max-[40rem]:flex-wrap @max-[40rem]:gap-x-2 @max-[40rem]:gap-y-0.5 @max-[40rem]:whitespace-normal">
                   <span className="truncate @max-[40rem]:whitespace-normal">
                     {hit.name}{hit.count > 1 ? ` ×${hit.count}` : ''}
                   </span>
@@ -235,12 +259,7 @@ const AbilityRow: React.FC<AbilityRowProps> = ({
                   )}
                 </span>
                 <span className={NARROW_HIDDEN} />
-                <span className={`relative h-1.5 ${NARROW_HIDDEN}`}>
-                  <b
-                    className="absolute inset-y-0 left-0 block min-w-0.75 rounded-[1px_3px_3px_1px] opacity-70"
-                    style={{ width: `${maxDamage > 0 ? (hit.damage / maxDamage) * 100 : 0}%`, backgroundColor: typeMeta(hit.displayType).color }}
-                  />
-                </span>
+                <span className={NARROW_HIDDEN} />
                 <span className={FIGURES}>
                   <span className={`text-right ${FIGURE} text-xs text-text-primary/70`}>{formatShare(hit.damage, rawDamage)}</span>
                   <span className={`text-right ${FIGURE} text-[13px] text-text-primary/85`}>{formatDamage(hit.damage)}</span>
@@ -254,16 +273,15 @@ const AbilityRow: React.FC<AbilityRowProps> = ({
                 {((move.hits.length === 0 && move.baseMV > 0) || showScaleStat) && (
                   <div className="flex flex-wrap items-center gap-x-5.5 gap-y-2">
                     {move.hits.length === 0 && move.baseMV > 0 && (
-                      <span>
-                        <strong className="font-mono text-[13px] font-normal text-text-primary">{formatBaseMV(move.baseMV)}</strong> MV
-                      </span>
+                      <span className="font-mono text-2xs text-text-primary/55">{formatBaseMV(move.baseMV)} MV</span>
                     )}
                     {showScaleStat && <span>Scales with {move.scaleStat}</span>}
                   </div>
                 )}
                 {inRibbon && (
-                  <div className={`flex items-center gap-3 ${NARROW_HIDDEN}`} aria-label={`Position in the rotation${positions ? `: ${positions}` : ''}`}>
-                    <span aria-hidden className="shrink-0">Position in the rotation</span>
+                  // The sentence is the answer; the ribbon is the picture of it.
+                  <div className={`flex items-center gap-3 ${NARROW_HIDDEN}`}>
+                    <span className="shrink-0">{positions ?? 'Position in the rotation'}</span>
                     <MiniRibbon ribbon={ribbon} rowKey={move.key} />
                   </div>
                 )}
@@ -311,9 +329,9 @@ export const AbilityTable: React.FC<AbilityTableProps> = ({
 }) => {
   const maxDamage = moves.reduce((max, move) => Math.max(max, move.damage), 0);
   // Dense kits: the long tail of sub-1% abilities folds into one summary row.
-  const small = moves.length >= DENSE_ROW_COUNT ? moves.filter((move) => isSmallShare(move.damage, rawDamage)) : [];
-  const folds = small.length >= 2;
-  const smallKeys = new Set(small.map((move) => move.key));
+  const smallKeys = foldedKeys(moves, rawDamage);
+  const small = moves.filter((move) => smallKeys.has(move.key));
+  const folds = small.length > 0;
   const primary = folds ? moves.filter((move) => !smallKeys.has(move.key)) : moves;
   const smallDamage = small.reduce((sum, move) => sum + move.damage, 0);
   const foldKeys = small.map((move) => move.key);
@@ -359,7 +377,7 @@ export const AbilityTable: React.FC<AbilityTableProps> = ({
               type="button"
               aria-expanded={foldOpen}
               onClick={onToggleFold}
-              className={`${GRID} ${NARROW_GRID} w-full rounded-md px-2 py-2 text-left transition-colors duration-100 hover:bg-white/3 @max-[40rem]:px-1 ${FOCUS_RING} ${highlight.hovered(foldKeys) ? 'bg-white/3' : ''}`}
+              className={`${GRID} ${NARROW_GRID} w-full cursor-pointer rounded-md px-2 py-2 text-left transition-colors duration-100 hover:bg-white/3 @max-[40rem]:px-1 ${FOCUS_RING} ${highlight.hovered(foldKeys) ? 'bg-white/3' : ''}`}
             >
               <span />
               <span className="text-sm text-text-primary/70">
@@ -371,7 +389,7 @@ export const AbilityTable: React.FC<AbilityTableProps> = ({
               <span className={`text-right ${FIGURE} text-sm text-text-primary/85 @max-[40rem]:col-start-3`}>{formatDamage(smallDamage)}</span>
               <ChevronDown
                 aria-hidden
-                className={`h-3.5 w-3.5 transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${NARROW_HIDDEN} ${foldOpen ? 'rotate-180 text-text-primary' : 'text-text-primary/55'}`}
+                className={`h-3.5 w-3.5 transition-transform duration-180 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${NARROW_HIDDEN} ${foldOpen ? 'rotate-180 text-text-primary' : 'text-text-primary/55'}`}
               />
             </button>
           </div>

@@ -2,9 +2,9 @@ import { typeMeta, ProcessedMove } from '@/lib/moveBreakdown';
 
 // Healing has no damage-bonus bucket, so heal sources share one colour.
 export const HEAL_COLOR = '#67d4a7';
-// A merged run of small casts spans several types; it takes the palette's
-// deliberate neutral rather than any one of them.
-const MERGED_COLOR = '#7f93a8';
+// A merged run of small casts spans several types; its disc arc takes a plain
+// grey that no type uses (Echo's slate is a type colour, not a neutral).
+const MERGED_COLOR = '#6f737b';
 
 /** Share (of move damage) under which a row or cast counts as small. */
 const SMALL_SHARE = 0.01;
@@ -163,6 +163,20 @@ export function mergeSmallSlots(slots: RotationSlot[], rawDamage: number): Rotat
 
 export const isSmallShare = (damage: number, rawDamage: number) => rawDamage > 0 && damage / rawDamage < SMALL_SHARE;
 
+/**
+ * Dense kits fold their long tail: with DENSE_ROW_COUNT or more abilities, two
+ * or more sub-1% rows become one summary row. The keys that fold, or an empty
+ * set when nothing does; the table and the strip's click both need to know.
+ */
+export function foldedKeys(moves: Pick<ProcessedMove, 'key' | 'damage'>[], rawDamage: number): Set<string> {
+  if (moves.length < DENSE_ROW_COUNT) return new Set();
+  const small = moves.filter((move) => isSmallShare(move.damage, rawDamage)).map((move) => move.key);
+  return small.length >= 2 ? new Set(small) : new Set();
+}
+
+/** DOM id of a row's card in the table, the target a strip slot's click reveals. */
+export const rowDomId = (key: string) => `mb-row-${key.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+
 // ---------------------------------------------------------------------------
 // Geometry
 
@@ -192,6 +206,8 @@ export function layoutColumns(width: number, buttonCount: number, statusCount: n
 // Ribbon: the rotation as one part-to-whole bar in cast order
 
 export const RIBBON_HEIGHT = 12;
+/** The one hover mark: the same inset ring on a disc, a ribbon segment and a bar piece. */
+export const HOVER_RING = 'inset 0 0 0 1px rgba(255,255,255,0.75)';
 const SEGMENT_GAP = 2;
 /** A cast never disappears: the smallest segment is still a visible sliver. */
 const MIN_SEGMENT = 2;
@@ -258,17 +274,74 @@ export function layoutRibbon(segments: RibbonSegment[], width: number, lostDamag
   return { spans, lostWidth };
 }
 
+/** Two verticals on the shared rail closer than this read as one wobbly line. */
+const LEADER_CLEARANCE = 8;
+/** How far a drop may leave its column centre; the disc is 36px wide, so the line still leaves that disc. */
+const DROP_SLACK = 10;
+/** Segments narrower than this get one stem for the slot instead of a tooth each. */
+const MIN_TOOTH = 6;
+
+export type LeaderInput = { id: string; dropX: number; segments: Span[] };
+export type Leader = { id: string; dropX: number; stems: number[] };
+
 /**
- * An orthogonal hairline from under a slot's caption: down to a rail, across,
- * and down onto the centre of its ribbon extent. Every run is axis-aligned and
- * snapped to the pixel grid, so it stays 1px crisp at any offset, and it is the
- * same object on every hover, unlike a band whose shape changed per cast.
+ * Where each leader's verticals stand. Stems are fixed: one on the centre of
+ * each of the slot's segments, so a ×3 slot gets three teeth off one rail and
+ * the count reads at a glance; segments too narrow for teeth to separate get
+ * one stem, on the centre of the middle one. Only the drop moves: onto a stem
+ * within reach (a jog of a few pixels reads as a kink, not a route), and away
+ * from any other leader's vertical that comes within clearance, so two lines
+ * never sit close enough to read as one wobbly line or as one line joining the
+ * wrong disc to the wrong segment.
  */
-export function leaderPath(cx: number, topY: number, railY: number, sx: number, ribbonY: number): string {
-  const dropX = Math.round(cx) + 0.5;
-  const stemX = Math.floor(sx) + 0.5;
-  if (Math.abs(dropX - stemX) < 2) return `M${dropX},${topY} V${ribbonY}`;
-  return `M${dropX},${topY} V${railY} H${stemX} V${ribbonY}`;
+export function layoutLeaders(items: LeaderInput[]): Leader[] {
+  const leaders = items.map((item) => {
+    const centres = item.segments.map((span) => span.x + (span.w / 2));
+    const teeth = centres.length > 0 && item.segments.every((span) => span.w >= MIN_TOOTH);
+    const middle = Math.floor((centres.length - 1) / 2);
+    const stems = teeth ? centres : centres.slice(middle, middle + 1);
+    return { id: item.id, home: item.dropX, dropX: item.dropX, stems };
+  });
+  for (const leader of leaders) {
+    if (leader.stems.length === 0) continue;
+    const nearest = leader.stems.reduce((best, stem) => (Math.abs(stem - leader.home) < Math.abs(best - leader.home) ? stem : best));
+    if (Math.abs(nearest - leader.home) <= DROP_SLACK) leader.dropX = nearest;
+  }
+  for (const leader of leaders) {
+    const others = leaders.filter((other) => other !== leader).flatMap((other) => [other.dropX, ...other.stems]);
+    const clear = (x: number) => others.every((v) => Math.abs(x - v) >= LEADER_CLEARANCE)
+      && leader.stems.every((stem) => Math.abs(x - stem) < 1 || Math.abs(x - stem) >= LEADER_CLEARANCE);
+    if (clear(leader.dropX)) continue;
+    const candidates: number[] = [];
+    for (let d = 0; d <= DROP_SLACK; d += 1) {
+      candidates.push(leader.home + d);
+      if (d > 0) candidates.push(leader.home - d);
+    }
+    const found = candidates.find(clear);
+    if (found !== undefined) leader.dropX = found;
+  }
+  return leaders.map(({ id, dropX, stems }) => ({ id, dropX, stems }));
+}
+
+/**
+ * An orthogonal hairline from under a slot's caption: down to a rail, along
+ * it, and down onto the centre of each of its segments. Every run is
+ * axis-aligned and snapped to the pixel grid, so it stays 1px crisp at any
+ * offset, and it is the same object on every hover, unlike a band whose shape
+ * changed per cast.
+ */
+export function leaderPath(dropX: number, topY: number, railY: number, stems: number[], ribbonY: number): string {
+  if (stems.length === 0) return '';
+  const drop = Math.round(dropX) + 0.5;
+  const xs = stems.map((stem) => Math.round(stem) + 0.5);
+  if (xs.length === 1 && Math.abs(drop - xs[0]) < 2) return `M${drop},${topY} V${ribbonY}`;
+  const left = Math.min(drop, ...xs);
+  const right = Math.max(drop, ...xs);
+  return [
+    `M${drop},${topY} V${railY}`,
+    left !== right ? `M${left},${railY} H${right}` : '',
+    ...xs.map((x) => `M${x},${railY} V${ribbonY}`),
+  ].filter(Boolean).join(' ');
 }
 
 // ---------------------------------------------------------------------------
@@ -373,8 +446,8 @@ export function castRangeLabel(slot: RotationSlot, totalCasts: number): string |
 }
 
 /**
- * Where a row's casts sit in the rotation, in words: "casts 9-10 and 12-14 of
- * 18", or "cast 17 of 18". Null for rows with no button casts.
+ * Where a row's casts sit in the rotation, in words: "Casts 9-10 and 12-14 of
+ * 18", or "Cast 17 of 18". Null for rows with no button casts.
  */
 export function rotationPositionsText(move: ProcessedMove, rotation: RotationModel): string | null {
   const positions = move.casts
@@ -398,7 +471,7 @@ export function rotationPositionsText(move: ProcessedMove, rotation: RotationMod
   ranges.push(start === end ? `${start}` : `${start}-${end}`);
 
   const list = ranges.length > 1 ? `${ranges.slice(0, -1).join(', ')} and ${ranges[ranges.length - 1]}` : ranges[0];
-  return `${positions.length === 1 ? 'cast' : 'casts'} ${list} of ${rotation.buttonCastCount}`;
+  return `${positions.length === 1 ? 'Cast' : 'Casts'} ${list} of ${rotation.buttonCastCount}`;
 }
 
 /** The scaling stat carrying the most damage, so rows only mention a different one. */

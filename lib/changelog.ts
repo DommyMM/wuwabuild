@@ -18,6 +18,14 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'improved',
+                text: 'Move breakdown redesigned: the rotation as skill icons in cast order over each cast\'s share of damage, what each ability is considered as, and the hits inside each ability',
+            },
+            {
+                kind: 'improved',
+                text: 'Tune Break shows its own skill icon',
+            },
+            {
+                kind: 'improved',
                 text: 'Healer Standard benchmark now uses 10 useful lines, since healers can only use 15',
             },
             {

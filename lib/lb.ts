@@ -289,23 +289,53 @@ export interface LBBuildDetailEntry extends LBBuildRowEntry {
 
 // No damage share on the wire: processMoves computes every percentage it renders
 // against the rotation total, so a stored per-row share was both unread and a
-// different number than anything the UI draws.
+// different number than anything the UI draws. lb/docs/move-breakdown-ui.md is
+// the canonical contract for every field below.
 interface LBMoveHitEntry {
   key: string;
   name: string;
   damage: number;
   moveTypes: string[];
-  /** Per-cast base MV before sequence/forte multipliers. */
+  /** Per-event base MV before sequence/forte multipliers; 0 when merged events differ. */
   baseMV: number;
   /** Flat healing per represented event; zero for damage hits. */
   flatHeal: number;
   /** Number of identical events folded into this source row. */
   count: number;
+  /** Kit tab the hit comes from; carries the real tab under a `mixed` row. */
+  skillTab: string;
+}
+
+/** One rotation entry folded into a row, in scored-rotation order by `index`. */
+export interface LBMoveCastEntry {
+  index: number;
+  key: string;
+  shortName: string;
+  skillTab: string;
+  damage: number;
+}
+
+/** Structured terms of a score modifier row, so the name is never parsed. */
+export interface LBMoveModifierInfo {
+  /** `energy-regen`, `set`, `echo` or `bonus`. */
+  kind: string;
+  /** ER / target on an energy-regen modifier; 0 otherwise. */
+  factor: number;
+  er: number;
+  erTarget: number;
 }
 
 export interface LBMoveEntry {
   key: string;
   name: string;
+  /** Rotation strip caption ("Iai", "Basic 1-3"); empty on modifiers. */
+  shortName: string;
+  /**
+   * Where the ability lives in the kit: `normal-attack`, `skill`, `liberation`,
+   * `circuit`, `intro`, `outro`, `inherent`, or a buttonless source (`tune-break`,
+   * `echo`, `status`, `set`, `weapon`), or `mixed` for a composite heal window.
+   */
+  skillTab: string;
   damage: number;
   elemType: string;
   moveTypes: string[];
@@ -316,7 +346,78 @@ export interface LBMoveEntry {
   flatHeal: number;
   /** Scaling stat for attacks ("ATK", "HP", or "DEF"); empty for modifiers. */
   scaleStat: string;
+  noCrit: boolean;
+  bypassDmgBonus: boolean;
   hits: LBMoveHitEntry[];
+  casts: LBMoveCastEntry[];
+  modifierInfo?: LBMoveModifierInfo;
+}
+
+function parseStringValue(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function parseStringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+}
+
+// The contract makes every field required, but a row from an older calculation
+// or a partial payload must render as "nothing for that field", never throw.
+// Shared by the client fetch and the home page's server prefetch.
+export function parseMovesPayload(payload: unknown): LBMoveEntry[] {
+  const rawMoves = isRecord(payload) && Array.isArray(payload.moves) ? payload.moves : [];
+  const moves: LBMoveEntry[] = [];
+  for (const raw of rawMoves) {
+    if (!isRecord(raw)) continue;
+    const hits: LBMoveHitEntry[] = (Array.isArray(raw.hits) ? raw.hits : [])
+      .filter(isRecord)
+      .map((hit) => ({
+        key: parseStringValue(hit.key),
+        name: parseStringValue(hit.name),
+        damage: toFiniteNumber(hit.damage),
+        moveTypes: parseStringList(hit.moveTypes),
+        baseMV: toFiniteNumber(hit.baseMV),
+        flatHeal: toFiniteNumber(hit.flatHeal),
+        count: toFiniteNumber(hit.count, 1),
+        skillTab: parseStringValue(hit.skillTab),
+      }));
+    const casts: LBMoveCastEntry[] = (Array.isArray(raw.casts) ? raw.casts : [])
+      .filter(isRecord)
+      .map((cast) => ({
+        index: toFiniteNumber(cast.index),
+        key: parseStringValue(cast.key),
+        shortName: parseStringValue(cast.shortName),
+        skillTab: parseStringValue(cast.skillTab),
+        damage: toFiniteNumber(cast.damage),
+      }));
+    const info = isRecord(raw.modifierInfo) ? raw.modifierInfo : null;
+    moves.push({
+      key: parseStringValue(raw.key),
+      name: parseStringValue(raw.name),
+      shortName: parseStringValue(raw.shortName),
+      skillTab: parseStringValue(raw.skillTab),
+      damage: toFiniteNumber(raw.damage),
+      elemType: parseStringValue(raw.elemType),
+      moveTypes: parseStringList(raw.moveTypes),
+      modifier: raw.modifier === true,
+      baseMV: toFiniteNumber(raw.baseMV),
+      flatHeal: toFiniteNumber(raw.flatHeal),
+      scaleStat: parseStringValue(raw.scaleStat),
+      noCrit: raw.noCrit === true,
+      bypassDmgBonus: raw.bypassDmgBonus === true,
+      hits,
+      casts,
+      modifierInfo: info
+        ? {
+          kind: parseStringValue(info.kind),
+          factor: toFiniteNumber(info.factor),
+          er: toFiniteNumber(info.er),
+          erTarget: toFiniteNumber(info.erTarget),
+        }
+        : undefined,
+    });
+  }
+  return moves;
 }
 
 export interface LBSubstatUpgradeTierSet {
@@ -1275,8 +1376,7 @@ export async function getBuildMoves(
     return [];
   }
 
-  const payload = await response.json() as { moves: LBMoveEntry[] };
-  return payload.moves;
+  return parseMovesPayload(await response.json());
 }
 
 export async function getBuildSubstatUpgrades(

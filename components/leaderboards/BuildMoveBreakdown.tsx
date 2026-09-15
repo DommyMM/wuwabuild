@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LBMoveEntry } from '@/lib/lb';
 import { processMoves, typeMeta, ProcessedModifier, ProcessedMove } from '@/lib/moveBreakdown';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
@@ -10,7 +10,8 @@ import { formatDamage } from './formatters';
 import { AbilityTable, CastList, EYEBROW, HealSource, HealSourceTable } from './moveBreakdown/AbilityTable';
 import { ProfileBar } from './moveBreakdown/ProfileBar';
 import { RotationStrip } from './moveBreakdown/RotationStrip';
-import { EMPTY_ROTATION, HEAL_COLOR, Highlight, LABEL_MIN_COLUMN, RotationSlot, buildRibbon, buildRotation, castRangeLabel, describeRow, dominantScaleStat, formatShare, formatSigned, layoutColumns, mergeSmallSlots } from './moveBreakdown/model';
+import { EMPTY_ROTATION, HEAL_COLOR, Highlight, LABEL_MIN_COLUMN, RotationSlot, buildRibbon, buildRotation, castRangeLabel, describeRow, dominantScaleStat, foldedKeys, formatShare, formatSigned, layoutColumns, mergeSmallSlots, rowDomId } from './moveBreakdown/model';
+import { scrollElementIntoViewBelowNav } from './scrollToElementBelowNav';
 
 type TooltipState = {
   x: number;
@@ -103,15 +104,15 @@ const ScoreEquation: React.FC<{ rawLabel: string; raw: number; modifiers: Proces
   tokens.push({ kind: 'op', text: '=' }, { kind: 'term', label: 'Score', value: formatDamage(score), score: true });
 
   return (
-    <div className="flex flex-wrap items-end gap-x-5.5 gap-y-2.5">
+    <div className="flex flex-wrap items-end justify-end gap-x-5 gap-y-2.5">
       {tokens.map((token, index) => (token.kind === 'op' ? (
-        <span key={index} className="pb-px font-gowun text-lg text-text-primary/55">{token.text}</span>
+        <span key={index} className="pb-px font-gowun text-base text-text-primary/55">{token.text}</span>
       ) : (
         <div key={index} className="flex flex-col gap-0.75">
           <span className={EYEBROW}>{token.label}</span>
           <span className={token.score
-            ? 'font-gowun text-[38px] leading-[0.9] text-accent-hover @max-[40rem]:text-[32px]'
-            : 'font-gowun text-lg leading-none text-text-primary'}
+            ? 'font-gowun text-[30px] leading-[0.9] text-accent-hover'
+            : 'font-gowun text-base leading-none text-text-primary'}
           >
             {token.value}
           </span>
@@ -162,6 +163,8 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   const [pinnedType, setPinnedType] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [foldOpen, setFoldOpen] = useState(false);
+  // The row a strip click asked for; read once the table has rendered it open.
+  const pendingReveal = useRef<string | null>(null);
   const [view, setView] = useState<View>('abilities');
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [playing, setPlaying] = useState(true);
@@ -201,6 +204,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   // press, so it keeps its place in the rotation, but it is not an ability row.
   const abilityMoves = useMemo(() => breakdown.moves.filter((move) => move.damage > 0), [breakdown.moves]);
   const mainScaleStat = useMemo(() => dominantScaleStat(abilityMoves), [abilityMoves]);
+  const foldKeys = useMemo(() => foldedKeys(abilityMoves, rawDamage), [abilityMoves, rawDamage]);
 
   // Healing is scored as one window, but its source hits are the player-facing
   // peers: they become the rows and the profile's pieces.
@@ -318,10 +322,38 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
     });
   }, []);
 
+  // A strip click opens the slot's row (and the fold, if the row lives there)
+  // and then brings the row into view. Open only, never toggle: a second click
+  // or a double click on an icon must not close a row the reader cannot see.
+  const revealRows = useCallback((slot: RotationSlot) => {
+    const keys = slot.rowKeys.filter((key) => movesByKey.has(key));
+    if (keys.length === 0) return;
+    if (keys.some((key) => foldKeys.has(key))) setFoldOpen(true);
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      keys.forEach((key) => next.add(key));
+      return next;
+    });
+    pendingReveal.current = keys[0];
+  }, [foldKeys, movesByKey]);
+
+  useEffect(() => {
+    const key = pendingReveal.current;
+    if (!key) return;
+    pendingReveal.current = null;
+    const node = document.getElementById(rowDomId(key));
+    if (!node) return;
+    // The card takes 180ms to reach its height; measure it once it has.
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const timer = window.setTimeout(() => scrollElementIntoViewBelowNav(node), reduced ? 0 : 200);
+    return () => window.clearTimeout(timer);
+  }, [expanded, foldOpen]);
+
   const slotCount = stripSlots.length + rotation.statusSlots.length;
   const stepMs = Math.min(26, 320 / Math.max(1, slotCount));
-  // The table bars grow with the ribbon, once the last icon has landed.
-  const barMotion = { playing, baseDelay: Math.round(slotCount * stepMs) + 120 };
+  // The table bars grow with the ribbon, and no later than 250ms in: the
+  // figures are readable before their bars exist.
+  const barMotion = { playing, baseDelay: Math.min(250, Math.round(slotCount * stepMs) + 120) };
   const sharesNote = `Shares are of ${isHealing ? 'healing' : 'move damage'}, before ${[
     hasEnergyRegen ? 'Energy Regen' : null,
     bonusTotal > 0 ? 'score bonuses' : null,
@@ -333,8 +365,10 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
         // Mirrors the real layout (score, icons, ribbon, chips, rows) so the
         // panel does not jump when the data lands.
         <div className="animate-pulse rounded-lg border border-border/45 bg-background-secondary/20 px-6 pt-5 pb-4 @max-[40rem]:px-3.5">
-          <div className="h-10 w-56 rounded bg-white/10" />
-          <div className="mt-7 h-3 w-20 rounded bg-white/8" />
+          <div className="flex items-end justify-between gap-3">
+            <div className="h-3 w-28 rounded bg-white/8" />
+            <div className="h-7 w-44 rounded bg-white/10" />
+          </div>
           <div className="mt-4 flex justify-between gap-2 @max-[40rem]:hidden">
             {Array.from({ length: 12 }).map((_, index) => (
               <div key={`slot-skeleton-${index}`} className="flex flex-col items-center gap-2">
@@ -364,11 +398,23 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
 
       {hasData && (
         <div className="rounded-lg border border-border/45 bg-background-secondary/20 px-6 pt-5 pb-2.5 @max-[40rem]:px-3.5 @max-[40rem]:pt-4 @max-[40rem]:pb-2">
-          <header>
+          {/* One line: what follows, named at the left, and the score at the
+              right. The build row above already carries the score, so here it
+              is a figure beside the rotation, not a banner over it. */}
+          <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+            {hasStrip ? (
+              <div className={`pb-0.5 @max-[40rem]:hidden ${EYEBROW}`}>
+                Rotation{rotation.buttonCastCount > 0 ? ` · ${plural(rotation.buttonCastCount, 'cast', 'casts')}` : ''}
+              </div>
+            ) : isHealing && healSegments.length > 0 ? (
+              <div className={`pb-0.5 ${EYEBROW}`}>Healing</div>
+            ) : (
+              <span />
+            )}
             {modifiers.length === 0 ? (
-              <div className="flex items-baseline gap-3">
+              <div className="flex items-baseline gap-2.5">
                 <span className={EYEBROW}>Score</span>
-                <span className="font-gowun text-[42px] leading-none text-accent-hover @max-[40rem]:text-[34px]">{formatDamage(totalScore)}</span>
+                <span className="font-gowun text-[30px] leading-none text-accent-hover">{formatDamage(totalScore)}</span>
               </div>
             ) : (
               <ScoreEquation
@@ -381,33 +427,28 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
           </header>
 
           {hasStrip && (
-            <>
-              <div className={`mt-7 mb-3.5 @max-[40rem]:hidden ${EYEBROW}`}>
-                Rotation{rotation.buttonCastCount > 0 ? ` · ${plural(rotation.buttonCastCount, 'cast', 'casts')}` : ''}
-              </div>
-              <div ref={setStripNode} className="@max-[40rem]:hidden">
-                <RotationStrip
-                  width={width}
-                  buttonSlots={stripSlots}
-                  statusSlots={rotation.statusSlots}
-                  ribbon={ribbon}
-                  lostDamage={lostDamage}
-                  highlight={highlight}
-                  playing={playing}
-                  stepMs={stepMs}
-                  slotLabel={slotLabel}
-                  onSlotEnter={showReadout}
-                  onSlotLeave={hideReadout}
-                  skillIcons={skillIcons}
-                  elementIcon={elementIcon}
-                />
-              </div>
-            </>
+            <div ref={setStripNode} className="mt-3.5 @max-[40rem]:hidden">
+              <RotationStrip
+                width={width}
+                buttonSlots={stripSlots}
+                statusSlots={rotation.statusSlots}
+                ribbon={ribbon}
+                lostDamage={lostDamage}
+                highlight={highlight}
+                playing={playing}
+                stepMs={stepMs}
+                slotLabel={slotLabel}
+                onSlotEnter={showReadout}
+                onSlotLeave={hideReadout}
+                onSlotClick={revealRows}
+                skillIcons={skillIcons}
+                elementIcon={elementIcon}
+              />
+            </div>
           )}
 
           {isHealing && healSegments.length > 0 && (
-            <div className="mt-7 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 @max-[40rem]:mt-4.5 @max-[40rem]:grid-cols-1 @max-[40rem]:gap-y-2.5">
-              <span className={EYEBROW}>Healing</span>
+            <div className="mt-3.5">
               <ProfileBar segments={healSegments} bonuses={bonuses} lostDamage={lostDamage} playing={playing} />
             </div>
           )}
@@ -431,7 +472,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                       }}
                       onPointerLeave={() => setTypeFocus(null)}
                       style={{ '--type': meta.color } as React.CSSProperties}
-                      className={`inline-flex items-center gap-2 rounded-md border px-2 py-1.5 transition-[border-color,background-color,opacity,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] motion-reduce:transition-none ${FOCUS_RING} ${isPinned ? CHIP_PINNED : CHIP_REST} ${pinnedType && !isPinned ? 'opacity-50' : ''}`}
+                      className={`inline-flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 transition-[border-color,background-color,opacity,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] motion-reduce:transition-none ${FOCUS_RING} ${isPinned ? CHIP_PINNED : CHIP_REST} ${pinnedType && !isPinned ? 'opacity-50' : ''}`}
                     >
                       <span aria-hidden className="grid h-4 w-4 shrink-0 place-items-center">
                         {icon ? (
@@ -480,7 +521,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                   type="button"
                   aria-pressed={view === mode}
                   onClick={() => setView(mode)}
-                  className={`flex-1 rounded py-1.75 text-[13px] transition-colors duration-150 ${FOCUS_RING} ${view === mode ? 'bg-accent/16 text-accent-hover' : 'text-text-primary/55 hover:text-text-primary'}`}
+                  className={`flex-1 cursor-pointer rounded py-1.75 text-[13px] transition-colors duration-150 ${FOCUS_RING} ${view === mode ? 'bg-accent/16 text-accent-hover' : 'text-text-primary/55 hover:text-text-primary'}`}
                 >
                   {label}
                 </button>
