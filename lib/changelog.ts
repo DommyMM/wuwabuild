@@ -18,6 +18,22 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'improved',
+                text: 'Every character\'s kit checked against the original game text and damage tables, and most boards rescored. Biggest moves: Galbrena, Iuno S6, Chisa, Rebecca, Jingran and Xuanling S6 up; Lucilla S6, Mornye Nuke, Sigrika, Jinhsi S6 and Denia S6 down',
+            },
+            {
+                kind: 'fixed',
+                text: 'Non-signature weapons on Iuno and Augusta were getting their signature\'s DEF ignore',
+            },
+            {
+                kind: 'fixed',
+                text: 'Outro buffs that end when you swap out no longer boost your own Outro',
+            },
+            {
+                kind: 'improved',
+                text: 'Board descriptions now describe the rotation and its quirks, and the leaderboard headers explain the standardized conditions and how Score works',
+            },
+            {
+                kind: 'improved',
                 text: 'Move breakdown redesigned: the rotation as skill icons in cast order over each cast\'s share of damage, what each ability is considered as, and the hits inside each ability',
             },
             {
