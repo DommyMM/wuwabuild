@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import threading
 import time
 from pathlib import Path
@@ -71,8 +72,19 @@ def write_json_atomic(path: Path, data: Any, **json_kwargs: Any) -> None:
 
 
 def write_bytes_atomic(path: Path, data: bytes) -> None:
-    """Write bytes beside their destination, then atomically replace it."""
+    """Write bytes beside their destination, then atomically replace it.
+
+    A sibling differing only in case is removed first because os.replace keeps the existing directory
+    entry on Windows, so the bytes change while the old spelling stays and Vercel then 404s the
+    reference the JSON actually holds. A warning means two refs differ only by case and one will lose.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.parent.exists():
+        lowered = path.name.lower()
+        for sibling in path.parent.iterdir():
+            if sibling.name != path.name and sibling.name.lower() == lowered:
+                print(f"  case collision: replacing {sibling.name} with {path.name}", file=sys.stderr)
+                sibling.unlink()
     temp_path = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     try:
         with temp_path.open("wb") as handle:
