@@ -6,20 +6,15 @@ import { useTerms } from '@/lib/terms';
 import { collectTemplateTermIds, renderGameTemplateWithHighlights } from '@/lib/text/gameText';
 
 /**
- * The glossary entries for the keywords in a block of game text, printed under
- * it as footnotes.
+ * Glossary entries for the keywords in a block of game text, printed under it as footnotes
  *
- * Hover cards use this instead of per-keyword popups. A second card opened from
- * inside the first overlaps both it and the triggers behind it, which on the
- * sequence strip means reaching for the definition brushes the next sequence
- * node. Printing the definitions underneath removes the second layer entirely:
- * the card is one surface you hover once and scroll.
- *
- * The headword carries the same gold as the keyword in the text above, which is
- * what pairs the two without numbering them.
+ * - Hover cards use this instead of per-keyword popups, which would overlap the triggers behind them
+ * - On the sequence strip that meant reaching for a definition brushed the next node
+ * - Printing definitions underneath leaves one surface to hover and scroll
+ * - The headword repeats the keyword's gold, which pairs the two without numbering
  */
 interface GlossaryNotesProps {
-  /** The same template string the text above was rendered from. */
+  /** The same template string the text above was rendered from */
   template: string;
   className?: string;
 }
@@ -50,8 +45,7 @@ export function GlossaryNotes({ template, className = '' }: GlossaryNotesProps) 
                     template: description,
                     getParamValue: () => null,
                     keepUnknownPlaceholders: false,
-                    // A definition may name other keywords. Marking them would
-                    // promise a footnote to a footnote, so they stay plain.
+                    // A definition may name other keywords, but marking them would promise a footnote to a footnote
                     termMode: 'plain',
                   })}
                 </dd>

@@ -82,11 +82,12 @@ const STAT_ALIAS_MAP: Record<string, string> = {
   Liberation: 'Resonance Liberation DMG Bonus',
 };
 
-// Derive possible legacy echo IDs from CDN icon file names.
-// Supports patterns like:
-// - T_IconMonsterHead_34010_1_UI.png  -> "34010"
-// - T_IconMonsterHead_31083_UI.png    -> "31083"
-// - T_IconMonsterGoods_061_UI.png     -> "061" and "61"
+/**
+ * Every legacy echo id a CDN icon file name could stand for
+ *
+ * - T_IconMonsterHead_34010_1_UI.png gives "34010", the trailing 1 being too short to seed an id
+ * - T_IconMonsterGoods_061_UI.png gives both "061" and the unpadded "61"
+ */
 function extractLegacyEchoIdsFromUrl(url: string | undefined): string[] {
   if (!url) return [];
   const filename = url.split('/').pop() ?? '';
@@ -484,8 +485,7 @@ export function getLegacySavesSummaryFromStorage(): LegacySavesSummary {
   }
 }
 
-// Parse errors deliberately propagate: the caller distinguishes "no legacy
-// saves" (null) from "legacy saves present but unreadable" (throw).
+/** Parse errors propagate so the caller can tell null (no legacy saves) from a throw (present but unreadable) */
 export function readLegacySavesPayload(): unknown | null {
   const raw = getLocalStorageItem(LEGACY_SAVED_BUILDS_STORAGE_KEY);
   if (!raw) return null;

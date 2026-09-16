@@ -26,7 +26,7 @@ import { buildOcrIssueReportForm } from '@/lib/import/issueReport';
 
 type ImportStep = 'upload' | 'results';
 
-/** Settled leaderboard outcome of one import, driving the completion panel. */
+/** Settled leaderboard outcome of one import, which drives the completion panel */
 interface ImportOutcome {
   uploaded: boolean;
   buildId: string | null;
@@ -76,10 +76,11 @@ export function ImportPageClient() {
   // Silent wake-up ping so Railway auto-starts the server if sleeping
   useEffect(() => { fetch(OCR_HEALTH_URL).catch(() => {}); }, []);
 
-  // Passive image linking: hand the LB service the raw scan plus the
-  // screenshot's R2 key so it can attach the image to the build row with this
-  // exact echo content. Fill-only server-side and independent of whether the
-  // user goes on to import or submit.
+  /**
+   * Hands the LB service the raw scan and the screenshot's R2 key so it can attach the image to a matching build row
+   *
+   * - Fill-only server-side, and runs whether or not the reader goes on to import or submit
+   */
   const linkScannedImage = async (
     scan: AnalysisData,
     sourceImageKey: string,
@@ -98,7 +99,7 @@ export function ImportPageClient() {
         echoes:     gameData.echoes,
       });
       const result = await linkBuildImage(rawState, sourceImageKey, correlationScanId);
-      // Expected misses and already-linked rows are routine, not useful analytics.
+      // Expected misses and already-linked rows are routine, so they stay out of analytics
       if ((result.linked && result.reason !== 'already_linked') || result.reason === 'ambiguous') {
         posthog.capture('build_image_link', {
           linked: result.linked,
@@ -109,7 +110,7 @@ export function ImportPageClient() {
         });
       }
     } catch {
-      // Best-effort only; linking never affects the import flow.
+      // Best-effort only, so linking never affects the import flow
     }
   };
 
@@ -232,8 +233,7 @@ export function ImportPageClient() {
     setReportReason('manual_report');
   };
 
-  // The UID is whatever the card says (0 when unreadable); only the display name is
-  // the player's to edit.
+  /** Builds the imported state, keeping the card's own UID (0 when unreadable) so only the display name is editable */
   const buildImportedState = useCallback((wm: ImportWatermark) => {
     const mergedData: AnalysisData = {
       ...analysisData,
@@ -386,7 +386,7 @@ export function ImportPageClient() {
         });
       }
     } catch {
-      // Incomplete OCR results are handled by the regular import validation path.
+      // Incomplete OCR results fall to the regular import validation path
     }
 
     return () => { cancelled = true; };
@@ -402,9 +402,11 @@ export function ImportPageClient() {
     uploadToLb,
   ]);
 
-  // Import = upload immediately (when enabled), then land on the completion
-  // panel. The draft slot is claimed without prompting: a draft carrying
-  // manual /edit work is auto-snapshotted into saves first, so nothing is lost.
+  /**
+   * Uploads straight away when upload is enabled, then lands on the completion panel
+   *
+   * - Claims the draft slot without prompting, snapshotting an edited draft into saves first so nothing is lost
+   */
   const handleImport = async (wm: ImportWatermark) => {
     setLastImportWatermark(wm);
 
@@ -429,7 +431,7 @@ export function ImportPageClient() {
           if (snapshot) info(`Your edited ${displacedName} draft was saved to Saves.`);
         }
       } catch {
-        // Snapshot is best-effort; never block the import on it.
+        // Snapshot is best-effort, so it never blocks the import
       }
 
       saveDraftBuild(importedState);
@@ -458,7 +460,7 @@ export function ImportPageClient() {
     return `${href}${separator}buildId=${encodeURIComponent(buildId)}`;
   };
 
-  // No profile link for a hidden or unreadable UID: the leaderboard never shows one.
+  // A hidden or unreadable UID gets no profile link, because the leaderboard never shows one either
   const completedUid = importOutcome?.uploaded && !lastImportWatermark?.hideUid
     ? (completedState?.watermark.uid.trim() ?? '')
     : '';
@@ -493,8 +495,7 @@ export function ImportPageClient() {
     handleReset();
   };
 
-  // Closing the completion dialog returns to the scan results; the upload
-  // already happened, so re-importing just updates the same entry.
+  /** Returns to the scan results, where re-importing updates the same entry because the upload already happened */
   const handleDismissComplete = () => {
     setImportOutcome(null);
     setCompletedState(null);

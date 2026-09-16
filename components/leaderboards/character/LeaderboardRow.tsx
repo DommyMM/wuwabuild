@@ -30,21 +30,18 @@ const BuildExpanded = dynamic(loadBuildExpanded, {
 
 interface LeaderboardRowProps {
   entry: LBLeaderboardEntry;
-  /**
-   * Server-resolved name/icon maps, used only while the client catalog is loading.
-   * Keyed by id, so a row can only ever read its own character's and sets' fields.
-   */
+  /** Server-resolved name/icon maps until the client catalog loads, keyed by id so a row reads only its own fields */
   boardDisplay?: LBBoardDisplay | null;
   isGhost?: boolean;
   activeWeaponId: string;
   activeTrackKey: string;
-  /** Active track's ER target; tints the ER stat cell and enables the raw damage tooltip. */
+  /** Active track's ER target, tints the ER stat cell and enables the raw damage tooltip */
   erTarget?: number;
-  /** Whether ER is scored on the current view. Raw mode passes false to neutralize the ER tint. */
+  /** Whether ER is scored on the current view, raw mode passes false to neutralize the ER tint */
   erScored?: boolean;
-  /** Current leaderboard metric lens; standings remain canonical Score but can explain that context. */
+  /** Current metric lens, standings stay on Score but can explain that context */
   scoring?: ScoringMode;
-  /** Board-level stat columns from the backend; overrides the per-row heuristic when present. */
+  /** Board-level stat columns from the backend, overriding the per-row heuristic when present */
   boardStatColumns?: StatSortKey[] | null;
   sort: LBLeaderboardSortKey;
   isCvColumnActive: boolean;
@@ -106,13 +103,12 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
     );
   }, [boardStatColumns, character, entry.stats, sort]);
 
-  // Resolved once so the table row and the small-screen card render identical
-  // stat values, icons, and ER tinting instead of duplicating the rules.
+  // Resolved once so the table row and the small-screen card share the same values, icons and ER tinting
   const statCells = useMemo(() => rowStatColumns.map((columnKey, statIndex) => {
     const label = getSortLabel(columnKey);
     const value = entry.stats[getLBStatCode(columnKey)] ?? 0;
-    // ER vs the board target: at/above = met (green), below = score-scaled (red).
-    // In Raw mode ER is not scored, so the tint is suppressed (ER reads as plain).
+    // ER vs the board target: at or above reads green, below reads red because the score is scaled
+    // Raw mode does not score ER, so the tint is suppressed
     const isErColumn = columnKey === 'energy_regen' && erTarget > 0 && erScored;
     const erMet = isErColumn && value >= erTarget;
     return {
@@ -141,8 +137,7 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
     Object.entries(echoSetCounts)
       .map(([setId, count]) => {
         const fetter = fetters.find((f) => String(f.id) === setId);
-        // Falls back to the server catalog before the unknown-set default, so a
-        // 3-piece set is not briefly reported active at 2 pieces during load.
+        // Server catalog before the unknown-set default, so a 3-piece set is not briefly reported active at 2 pieces
         const fallbackSet = boardDisplay?.sets[setId];
         const threshold = fetter?.pieceCount ?? fallbackSet?.pieceCount ?? UNKNOWN_SET_ACTIVATION_THRESHOLD;
         return {
@@ -158,7 +153,6 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
       .slice(0, 3)
   ), [boardDisplay, echoSetCounts, fetters, t]);
 
-  // Rank display
   const rank = entry.globalRank;
   const showReignHold = rank === 1 && !isGhost && Boolean(entry.reignSince);
   const reignHoldLabel = showReignHold && entry.reignSince

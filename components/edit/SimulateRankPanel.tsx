@@ -18,17 +18,11 @@ const formatTopPct = (rank: number, total: number): string => {
 };
 
 /**
- * Editor-side "where would this build rank" console. A collapsed-by-default
- * disclosure that lives under the card (so the shareable export stays clean) and
- * never submits anything — pure read. Runs only from the Simulate button, so
- * opening the editor, expanding the panel, swapping resonators, and echo edits do
- * not issue leaderboard requests.
+ * Editor-side "where would this build rank" console, collapsed by default and read-only
  *
- * Expanded, it splits into a summary rail (the headline best placement + the
- * resonator swap + Simulate/Re-simulate) and the full per-board standings table.
- * Swapping the resonator carries echoes over via SET_CHARACTER, so the same
- * farmed set can be ranked on any character — owned or not — normalized to a fair
- * ceiling (max level + forte), but it still waits for explicit user action.
+ * - Sits under the card so the shareable export stays clean
+ * - Only the Simulate button issues a request, so opening the editor, swapping resonators and echo edits cost nothing
+ * - Expanded it splits into a summary rail (best placement, resonator swap, Simulate) and the per-board table
  */
 export const SimulateRankPanel: React.FC = () => {
   const { state } = useBuild();
@@ -41,7 +35,7 @@ export const SimulateRankPanel: React.FC = () => {
   const hasEchoes = state.echoPanels.some((panel) => Boolean(panel.id));
   const canRun = Boolean(state.characterId) && hasEchoes;
 
-  // Only boards with a real pool are rankable; total === 0 is the "would be #1" case.
+  // Only boards with a real pool are rankable, so total 0 is the "would be #1" case
   const standings = useMemo<LBStandingEntry[]>(() => (
     boards
       .filter((board) => board.total > 0)
@@ -58,7 +52,7 @@ export const SimulateRankPanel: React.FC = () => {
       }))
   ), [boards]);
 
-  // The headline: the single best placement across every board (lowest rank).
+  /** Headline placement: the lowest rank across every board */
   const best = useMemo<LBStandingEntry | null>(() => (
     standings.reduce<LBStandingEntry | null>((acc, s) => (!acc || s.rank < acc.rank ? s : acc), null)
   ), [standings]);
@@ -170,14 +164,13 @@ export const SimulateRankPanel: React.FC = () => {
         </div>
       );
     }
-    // Non-table states (no run yet, would-be-first, no board, error) are voiced in
-    // the rail, so the table side stays empty rather than repeating the message.
+    // No run yet, would-be-first, no board and error all speak in the rail, so the table side stays empty
     return null;
   };
 
   return (
     <section className="mt-4 overflow-hidden rounded-xl border border-border bg-background-secondary">
-      {/* Disclosure bar — the whole panel at rest; clicking it expands the body. */}
+      {/* Disclosure bar, the whole panel at rest */}
       <button
         type="button"
         onClick={toggle}
@@ -223,11 +216,11 @@ export const SimulateRankPanel: React.FC = () => {
         </div>
       </button>
 
-      {/* Animated reveal: grid-rows 0fr -> 1fr expands to content height, no JS measure. */}
+      {/* grid-rows 0fr to 1fr reveals at content height without a JS measure */}
       <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
         <div className="overflow-hidden" inert={!expanded || undefined}>
           <div className="flex flex-col gap-5 border-t border-border/70 px-4 py-4 md:flex-row md:items-start md:px-5">
-            {/* Summary rail: headline placement + the controls. */}
+            {/* Summary rail: headline placement and the controls */}
             <aside className="flex shrink-0 flex-col gap-4 md:w-60 md:border-r md:border-border/60 md:pr-5">
               {renderRailSummary()}
 
@@ -250,7 +243,6 @@ export const SimulateRankPanel: React.FC = () => {
               </div>
             </aside>
 
-            {/* Full per-board standings. */}
             <div className="min-w-0 flex-1 md:pl-5">{renderTable()}</div>
           </div>
         </div>

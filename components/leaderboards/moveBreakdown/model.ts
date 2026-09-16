@@ -1,32 +1,31 @@
 import { typeMeta, ProcessedMove } from '@/lib/moveBreakdown';
 
-// Healing has no damage-bonus bucket, so heal sources share one colour.
+/** Healing has no damage-bonus bucket, so heal sources share one colour */
 export const HEAL_COLOR = '#67d4a7';
-// A merged run of small casts spans several types; its disc arc takes a plain
-// grey that no type uses (Echo's slate is a type colour, not a neutral).
+/** A merged run spans several types, so its arc takes a grey no type uses (Echo's slate looks neutral but is typed) */
 const MERGED_COLOR = '#6f737b';
 
-/** Share (of move damage) under which a row or cast counts as small. */
+/** Share of move damage under which a row or cast counts as small */
 const SMALL_SHARE = 0.01;
-/** Row count at which sub-1% abilities fold into one summary row. */
+/** Row count at which sub-1% abilities fold into one summary row */
 export const DENSE_ROW_COUNT = 12;
 
 export type RotationSlot = {
   id: string;
-  /** `cast`: a button press (or back-to-back repeats); `status`: buttonless damage; `merged`: a run of small casts. */
+  /** cast is a button press or back-to-back repeats, status is buttonless damage, merged is a run of small casts */
   kind: 'cast' | 'status' | 'merged';
   rowKeys: string[];
   label: string;
   skillTab: string;
   color: string;
-  /** Casts folded into the slot. */
+  /** Casts folded into the slot */
   count: number;
   damage: number;
-  /** 1-based position of the slot's first cast among button casts; 0 for status. */
+  /** 1-based position of the slot's first cast among button casts, 0 for status */
   firstCast: number;
-  /** One beat per cast, drawn as that cast's ribbon segment; a status slot is one beat. */
+  /** One beat per cast, drawn as that cast's ribbon segment, a status slot is one beat */
   beats: Array<{ color: string; damage: number }>;
-  /** Row names, for a merged slot's readout. */
+  /** Row names for a merged slot's readout */
   names: string[];
 };
 
@@ -34,15 +33,15 @@ export type RotationModel = {
   buttonSlots: RotationSlot[];
   statusSlots: RotationSlot[];
   buttonCastCount: number;
-  /** Rotation index of a button cast → its 1-based position among button casts. */
+  /** Rotation index of a button cast → its 1-based position among button casts */
   castPosition: Map<number, number>;
 };
 
 /**
- * Two separate emphasis channels. Hovering a row or a strip slot marks every
- * linked piece (the row, every run of it in the strip, its segments) without
- * touching anything else; previewing or pinning a type in the legend dims
- * everything that does not score as that type.
+ * Two emphasis channels that never touch each other
+ *
+ * - Hovering a row or a strip slot marks every linked piece: the row, each run of it in the strip, its segments
+ * - Previewing or pinning a type in the legend dims everything that does not score as that type
  */
 export type Highlight = {
   hovered: (rowKeys: string[]) => boolean;
@@ -55,9 +54,10 @@ export const EMPTY_ROTATION: RotationModel = { buttonSlots: [], statusSlots: [],
 export const isStatusTab = (tab: string) => tab === 'status';
 
 /**
- * Rebuilds rotation order from every row's casts. Back-to-back casts of one row
- * under one caption become a single slot with one beat per cast; status rows are
- * not button presses and sit after the divider as one slot each.
+ * Rebuilds rotation order from every row's casts
+ *
+ * - Back-to-back casts of one row under one caption become a single slot with one beat per cast
+ * - Status rows are not button presses, so they sit after the divider as one slot each
  */
 export function buildRotation(moves: ProcessedMove[]): RotationModel {
   const buttonCasts: Array<{ move: ProcessedMove; cast: ProcessedMove['casts'][number] }> = [];
@@ -124,7 +124,7 @@ export function buildRotation(moves: ProcessedMove[]): RotationModel {
   };
 }
 
-/** Dense strips: back-to-back casts under 1% each become one "{n} casts" slot. */
+/** Dense strips: a run of back-to-back casts under SMALL_SHARE each becomes one "{n} moves" slot */
 export function mergeSmallSlots(slots: RotationSlot[], rawDamage: number): RotationSlot[] {
   const out: RotationSlot[] = [];
   let run: RotationSlot[] = [];
@@ -164,9 +164,10 @@ export function mergeSmallSlots(slots: RotationSlot[], rawDamage: number): Rotat
 export const isSmallShare = (damage: number, rawDamage: number) => rawDamage > 0 && damage / rawDamage < SMALL_SHARE;
 
 /**
- * Dense kits fold their long tail: with DENSE_ROW_COUNT or more abilities, two
- * or more sub-1% rows become one summary row. The keys that fold, or an empty
- * set when nothing does; the table and the strip's click both need to know.
+ * Keys of the sub-1% rows that fold into one summary row, empty when nothing folds
+ *
+ * - Only kits with DENSE_ROW_COUNT or more abilities fold, and only when two or more rows qualify
+ * - Both the table and a strip slot's click need the set
  */
 export function foldedKeys(moves: Pick<ProcessedMove, 'key' | 'damage'>[], rawDamage: number): Set<string> {
   if (moves.length < DENSE_ROW_COUNT) return new Set();
@@ -174,14 +175,11 @@ export function foldedKeys(moves: Pick<ProcessedMove, 'key' | 'damage'>[], rawDa
   return small.length >= 2 ? new Set(small) : new Set();
 }
 
-/** DOM id of a row's card in the table, the target a strip slot's click reveals. */
+/** DOM id of a row's card in the table, the target a strip slot's click reveals */
 export const rowDomId = (key: string) => `mb-row-${key.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
-// ---------------------------------------------------------------------------
-// Geometry
-
 const DIVIDER_GAP = 22;
-/** Column width below which cast captions hide. */
+/** Column width below which cast captions hide */
 export const LABEL_MIN_COLUMN = 56;
 
 export type Span = { x: number; w: number };
@@ -202,19 +200,16 @@ export function layoutColumns(width: number, buttonCount: number, statusCount: n
   };
 }
 
-// ---------------------------------------------------------------------------
-// Ribbon: the rotation as one part-to-whole bar in cast order
-
 export const RIBBON_HEIGHT = 12;
-/** The one hover mark: the same inset ring on a disc, a ribbon segment and a bar piece. */
+/** The one hover mark, the same inset ring on a disc, a ribbon segment and a bar piece */
 export const HOVER_RING = 'inset 0 0 0 1px rgba(255,255,255,0.75)';
 const SEGMENT_GAP = 2;
-/** A cast never disappears: the smallest segment is still a visible sliver. */
+/** A cast never disappears: the smallest segment is still a visible sliver */
 const MIN_SEGMENT = 2;
 
 export type RibbonSegment = {
   id: string;
-  /** The strip slot the segment belongs to; null for a score bonus. */
+  /** Strip slot the segment belongs to, null for a score bonus */
   slotId: string | null;
   rowKeys: string[];
   color: string;
@@ -222,7 +217,7 @@ export type RibbonSegment = {
   group: 'button' | 'status' | 'bonus';
 };
 
-/** One segment per cast in rotation order, then status damage, then score bonuses. */
+/** One segment per cast in rotation order, then status damage, then score bonuses */
 export function buildRibbon(
   buttonSlots: RotationSlot[],
   statusSlots: RotationSlot[],
@@ -246,11 +241,10 @@ export function buildRibbon(
 export type RibbonLayout = { spans: Span[]; lostWidth: number };
 
 /**
- * Proportional widths with a 2px surface gap between segments, one continuous
- * line from the first cast through status damage and score bonuses. Sub-pixel
- * casts are floored to a sliver and the rest shrink to pay for it, so the bar
- * still ends exactly at the width. Edges snap to whole pixels so every segment
- * renders crisp at the same height.
+ * Proportional widths with a 2px surface gap, one unbroken line from the first cast to the last bonus
+ *
+ * - Sub-pixel casts floor to a sliver and the rest shrink to pay for it, so the bar still ends exactly at the width
+ * - Edges snap to whole pixels so every segment renders crisp at the same height
  */
 export function layoutRibbon(segments: RibbonSegment[], width: number, lostDamage: number): RibbonLayout {
   if (segments.length === 0 || width <= 0) return { spans: [], lostWidth: 0 };
@@ -274,25 +268,22 @@ export function layoutRibbon(segments: RibbonSegment[], width: number, lostDamag
   return { spans, lostWidth };
 }
 
-/** Two verticals on the shared rail closer than this read as one wobbly line. */
+/** Two verticals on the shared rail closer than this read as one wobbly line */
 const LEADER_CLEARANCE = 8;
-/** How far a drop may leave its column centre; the disc is 36px wide, so the line still leaves that disc. */
+/** How far a drop may leave its column centre, under the 36px disc width so the line still leaves that disc */
 const DROP_SLACK = 10;
-/** Segments narrower than this get one stem for the slot instead of a tooth each. */
+/** Segments narrower than this get one stem for the slot instead of a tooth each */
 const MIN_TOOTH = 6;
 
 export type LeaderInput = { id: string; dropX: number; segments: Span[] };
 export type Leader = { id: string; dropX: number; stems: number[] };
 
 /**
- * Where each leader's verticals stand. Stems are fixed: one on the centre of
- * each of the slot's segments, so a ×3 slot gets three teeth off one rail and
- * the count reads at a glance; segments too narrow for teeth to separate get
- * one stem, on the centre of the middle one. Only the drop moves: onto a stem
- * within reach (a jog of a few pixels reads as a kink, not a route), and away
- * from any other leader's vertical that comes within clearance, so two lines
- * never sit close enough to read as one wobbly line or as one line joining the
- * wrong disc to the wrong segment.
+ * Where each leader's verticals stand
+ *
+ * - One stem per segment centre, so a ×3 slot gets three teeth off one rail and the count reads at a glance
+ * - Segments too narrow for teeth to separate get one stem, on the centre of the middle segment
+ * - Only the drop moves: onto a stem within DROP_SLACK, away from another leader's vertical within LEADER_CLEARANCE
  */
 export function layoutLeaders(items: LeaderInput[]): Leader[] {
   const leaders = items.map((item) => {
@@ -323,15 +314,10 @@ export function layoutLeaders(items: LeaderInput[]): Leader[] {
   return leaders.map(({ id, dropX, stems }) => ({ id, dropX, stems }));
 }
 
-/**
- * An orthogonal hairline from under a slot's caption: down to a rail, along
- * it, and down onto the centre of each of its segments. Every run is
- * axis-aligned and snapped to the pixel grid, so it stays 1px crisp at any
- * offset, and it is the same object on every hover, unlike a band whose shape
- * changed per cast.
- */
+/** Orthogonal hairline from under a slot's caption: down to a rail, along it, down onto each segment centre */
 export function leaderPath(dropX: number, topY: number, railY: number, stems: number[], ribbonY: number): string {
   if (stems.length === 0) return '';
+  // Half-pixel offsets keep every run 1px crisp at any offset
   const drop = Math.round(dropX) + 0.5;
   const xs = stems.map((stem) => Math.round(stem) + 0.5);
   if (xs.length === 1 && Math.abs(drop - xs[0]) < 2) return `M${drop},${topY} V${ribbonY}`;
@@ -343,9 +329,6 @@ export function leaderPath(dropX: number, topY: number, railY: number, stems: nu
     ...xs.map((x) => `M${x},${railY} V${ribbonY}`),
   ].filter(Boolean).join(' ');
 }
-
-// ---------------------------------------------------------------------------
-// Text
 
 const TAB_LABELS: Record<string, string> = {
   'normal-attack': 'Normal Attack',
@@ -361,10 +344,12 @@ const TAB_LABELS: Record<string, string> = {
   weapon: 'Weapon',
 };
 
-// The damage types a tab deals without any conversion. A row whose every scored
-// type is native to its tab needs no arrow: a basic attack under Normal Attack is
-// just "Basic Attack". Inherent, set and weapon damage has no native type, so it
-// always shows what it counts as.
+/**
+ * Damage types a tab deals without any conversion
+ *
+ * - A row whose every scored type is native needs no arrow: a basic attack under Normal Attack is just "Basic Attack"
+ * - Inherent, set and weapon damage has no native type, so it always shows what it counts as
+ */
 const TAB_NATIVE_TYPES: Record<string, string[]> = {
   'normal-attack': ['basic_attack', 'heavy_attack'],
   skill: ['resonance_skill'],
@@ -377,28 +362,27 @@ const TAB_NATIVE_TYPES: Record<string, string[]> = {
 };
 
 export type Subline = {
-  /** Tab label shown before the arrow; null when the line is the type alone. */
+  /** Tab label shown before the arrow, null when the line is the type alone */
   tab: string | null;
   types: Array<{ type: string; label: string; color: string }>;
-  /** Replaces the whole line for status rows. */
+  /** Replaces the whole line for status rows */
   statusText: string | null;
   tag: string | null;
   text: string;
 };
 
 /**
- * "{Tab} → {Type}" when the row scores as something its tab does not natively
- * deal, otherwise the type alone. A negative status reads as one line,
- * "Negative Status · No Crit or DMG Bonus": a status is always both, so the
- * exemption belongs to the label rather than to a separate pill. Other rows
- * with no kit button (Tune Rupture) read as their type, with the tag as a pill.
- * Types always use their legend label, so one type reads the same everywhere.
+ * Subline for a row: "{Tab} → {Type}" when its tab does not natively deal the scored type, otherwise the type alone
+ *
+ * - A negative status folds its exemption into the label, "Negative Status · No Crit or DMG Bonus", not a pill
+ * - Rows with no kit button (Tune Rupture) read as their type, with the tag as a pill
+ * - Types always use their legend label, so one type reads the same everywhere
  */
 export function describeRow(move: Pick<ProcessedMove, 'skillTab' | 'moveTypes' | 'noCrit' | 'bypassDmgBonus'>): Subline {
   const types = move.moveTypes.map((type) => ({ type, ...typeMeta(type) }));
   const typeText = types.map((entry) => entry.label).join(' + ');
   const tabLabel = TAB_LABELS[move.skillTab] ?? null;
-  // Title case, as the game writes its stat names.
+  // Title case, the way the game writes its stat names
   const tag = move.noCrit && move.bypassDmgBonus
     ? 'No Crit or DMG Bonus'
     : move.noCrit
@@ -407,7 +391,7 @@ export function describeRow(move: Pick<ProcessedMove, 'skillTab' | 'moveTypes' |
         ? 'No DMG Bonus'
         : null;
 
-  // Everything on the status tab is a negative status except a Tune Rupture.
+  // Everything on the status tab is a negative status except a Tune Rupture
   if (isStatusTab(move.skillTab) && types.length > 0 && types.every((entry) => entry.type !== 'tune_rupture')) {
     const statusText = tag ? `Negative Status · ${tag}` : 'Negative Status';
     return { tab: null, types, statusText, tag: null, text: statusText };
@@ -440,7 +424,7 @@ export function formatHealFormula(flatHeal: number, baseMV: number, scaleStat: s
   return terms.join(' + ');
 }
 
-/** Signed figure with a true minus sign. */
+/** Signed figure with a true minus sign */
 export function formatSigned(value: number): string {
   const rounded = Math.round(value);
   const abs = Math.abs(rounded).toLocaleString();
@@ -454,9 +438,9 @@ export function castRangeLabel(slot: RotationSlot, totalCasts: number): string |
 }
 
 /**
- * Where a row's casts sit in the rotation, in words: "Moves 9-10, 12-14 of 18",
- * or "Move 17 of 18". A move is one button press in the rotation. Null for rows
- * with no button casts.
+ * Where a row's casts sit in the rotation, in words: "Moves 9-10, 12-14 of 18" or "Move 17 of 18"
+ *
+ * - A move is one button press, so a row with no button casts gets null
  */
 export function rotationPositionsText(move: ProcessedMove, rotation: RotationModel): string | null {
   const positions = move.casts
@@ -482,7 +466,7 @@ export function rotationPositionsText(move: ProcessedMove, rotation: RotationMod
   return `${positions.length === 1 ? 'Move' : 'Moves'} ${ranges.join(', ')} of ${rotation.buttonCastCount}`;
 }
 
-/** The scaling stat carrying the most damage, so rows only mention a different one. */
+/** The scaling stat carrying the most damage, so rows only mention a different one */
 export function dominantScaleStat(moves: ProcessedMove[]): string {
   const totals = new Map<string, number>();
   for (const move of moves) {

@@ -1,38 +1,38 @@
-/** Server-resolved leaderboard record for the home page board index. */
+/** Server-resolved leaderboard record for the home page board index */
 export interface HomeBoardRecord {
     characterId: string;
     trackKey: string;
-    /** Prebuilt href into the per-character leaderboard (same helper as the overview page). */
+    /** Prebuilt href into the per-character leaderboard (same helper as the overview page) */
     href: string;
     name: string;
-    /** Lowercase element key for `char-sig` styling; empty when unknown. */
+    /** Lowercase element key for `char-sig` styling, empty when unknown */
     element: string;
     head: string | null;
     seqLevel: number;
-    /** Track label with the "S{n}" prefix stripped (sequence shown separately). */
+    /** Track label with the "S{n}" prefix stripped, since the sequence is shown separately */
     trackLabel: string;
     totalEntries: number;
-    /** Best damage across the board's weapons; 0 = no record yet. */
+    /** Best damage across the board's weapons, 0 when there is no record yet */
     topDamage: number;
     topOwner: string;
-    /** Record holder's UID; pairs with topOwner for the search example. */
+    /** Record holder's UID, paired with topOwner for the search example */
     topOwnerUid: string;
-    /** Weapon holding the board record, used to resolve weapon display and the matching #1 row. */
+    /** Weapon holding the board record, used to resolve weapon display and the matching #1 row */
     topWeaponId: string;
-    /** Rank-1 build id for that weapon; empty when the board has no record yet. */
+    /** Rank-1 build id for that weapon, empty when the board has no record yet */
     topBuildId: string;
-    /** RFC3339 start of the selected weapon's current rank-1 hold; empty when unknown. */
+    /** RFC3339 start of the selected weapon's current rank-1 hold, empty when unknown */
     topReignSince: string;
     isHeal: boolean;
 }
 
-/** One hero showcase slide: a character's record run over their splash art. */
+/** One hero showcase slide: a character's record run over their splash art */
 export interface HomeHeroSlide {
     characterId: string;
     trackKey: string;
-    /** Deep link to this exact record: board href carrying weaponId + buildId. */
+    /** Deep link to this exact record: board href carrying weaponId and buildId */
     href: string;
-    /** Record build + its weapon, so the client can fetch that run's move breakdown. */
+    /** Record build and its weapon, so the client can fetch that run's move breakdown */
     buildId: string;
     weaponId: string;
     name: string;
@@ -44,8 +44,8 @@ export interface HomeHeroSlide {
     weaponIcon: string | null;
     damage: number;
     owner: string;
-    /** Owner's UID, paired with the name in the search placeholder example. */
+    /** Owner's UID, paired with the name in the search placeholder example */
     ownerUid: string;
-    /** Pre-formatted reign text ("#1 for 12 days"), computed server-side; null when unknown. */
+    /** Pre-formatted reign text ("#1 for 12 days"), computed server-side, null when unknown */
     reignLabel: string | null;
 }

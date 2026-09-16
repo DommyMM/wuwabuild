@@ -10,8 +10,10 @@ export interface AnalysisData {
   character?: { name: string; id?: string; level: number; element?: string };
   watermark?: { username: string; uid: number };
   weapon?: { name: string; id?: string; level: number };
-  forte?: { levels: number[] };      // length 5: [normal, skill, circuit, intro, lib] (card.py order)
-  sequences?: { sequence: number };  // 0–6
+  /** Five levels in OCR order: normal, skill, circuit, intro, liberation */
+  forte?: { levels: number[] };
+  /** Sequence node count, 0-6 */
+  sequences?: { sequence: number };
   echo1?: EchoOCRData;
   echo2?: EchoOCRData;
   echo3?: EchoOCRData;

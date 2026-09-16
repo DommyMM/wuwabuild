@@ -4,14 +4,11 @@ import { useSyncExternalStore } from 'react';
 import type { I18nString } from '@/lib/character';
 
 /**
- * The in-game glossary behind `<te href=N>` links in skill, sequence, weapon and
- * echo text. Synced by `scripts/sync_terms.py`, scoped to the terms our own text
- * actually links.
+ * One in-game glossary entry behind the `<te href=N>` links in skill, sequence, weapon and echo text
  *
- * Fetched on its own rather than through GameDataContext, which blocks the page
- * on every file it loads. The first keyword to render kicks this off in the
- * background, so the glossary is warm by the time anyone hovers one, and a page
- * with no skill text never pays for it at all.
+ * - Synced by `scripts/sync_terms.py`, scoped to the terms our own text links
+ * - Fetched on its own rather than through GameDataContext, which blocks the page on every file it loads
+ * - The first keyword to render starts the fetch, so a page with no skill text never pays for it
  */
 export interface GameTerm {
   id: number;
@@ -39,7 +36,7 @@ const subscribe = (listener: () => void): (() => void) => {
   };
 };
 
-/** Fetch once per page load; a failure is remembered so we do not retry per hover. */
+/** Fetches once per page load, remembering a failure so a hover never retries */
 export function loadTerms(): void {
   if (index || pending || failed || typeof window === 'undefined') return;
   pending = fetch('/Data/Terms.json')
@@ -69,12 +66,10 @@ const getSnapshot = (): TermIndex => index ?? EMPTY;
 const getServerSnapshot = (): TermIndex => EMPTY;
 
 /**
- * Every term in `ids` that the glossary has, in the order given.
+ * Every term in `ids` the glossary has, in the order given
  *
- * One subscription for the whole list, so a footnote block with six entries
- * costs the same as one: hooks cannot be called per id when the list length
- * changes between blocks. Reading terms is also what triggers the fetch, so
- * nothing loads until a block of text with keywords is actually rendered.
+ * - One subscription for the whole list, since hooks cannot be called per id when the list length varies
+ * - Reading terms is what starts the fetch, so nothing loads until text with keywords renders
  */
 export function useTerms(ids: readonly number[]): GameTerm[] {
   const terms = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);

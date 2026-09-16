@@ -8,15 +8,14 @@ interface BuildPaginationProps {
   page: number;
   pageCount: number;
   statusText: string;
-  /** Optional muted caption mirroring statusText on the left side. */
+  /** Muted caption on the left, mirroring statusText */
   leftText?: string;
   onPageChange: (page: number) => void;
 }
 
 export const BuildPagination: React.FC<BuildPaginationProps> = ({ page, pageCount, statusText, leftText, onPageChange }) => (
-  // Desktop: caption | controls | status on one grid row. Below md the side
-  // columns collapse to ~60px and squeeze the caption to one word per line,
-  // so the whole strip stacks instead.
+  // Caption, controls and status share one grid row on desktop, but stack below md where the side columns
+  // collapse to 60px and squeeze the caption to one word per line
   <div className="flex flex-col items-center md:grid md:grid-cols-[1fr_auto_1fr] md:items-start">
     <div className="order-2 w-full text-center text-xs text-text-primary/50 md:order-0 md:w-auto md:justify-self-start md:self-start md:text-left">
       {leftText}

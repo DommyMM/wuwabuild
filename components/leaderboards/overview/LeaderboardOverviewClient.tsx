@@ -15,12 +15,11 @@ import { getWeaponPaths } from '@/lib/paths';
 import { LeaderboardOverviewHeader } from './LeaderboardOverviewHeader';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 
-// Overview table grid: # | Character | Team | Entries | Weapon Rankings
+/** Overview table grid: # | Character | Team | Entries | Weapon Rankings */
 const OVERVIEW_GRID = 'grid-cols-[44px_280px_144px_76px_1fr]';
 
 function overviewSignature(entries: LBCharacterOverview[]): string {
-  // `display` is an SSR-only locale fallback. Everything else is rendered and
-  // must participate so owner/reign/config changes are not discarded as stale.
+  // `display` is an SSR-only locale fallback, everything else is rendered so it must count or a change reads as stale
   return JSON.stringify(entries, (key, value) => (key === 'display' ? undefined : value));
 }
 
@@ -44,7 +43,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
     isRefreshing: initialOverview.length > 0,
     error: null,
   }));
-  // Ref tracks the current signature to diff-check without adding overview to effect deps.
+  // Holds the current signature so the effect can diff without taking overview as a dep
   const overviewSigRef = useRef(overviewSignature(initialOverview));
 
   useEffect(() => {
@@ -57,13 +56,12 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
   useEffect(() => {
     let cancelled = false;
 
-    // The ISR/local cache is a fast first-paint seed, not a reason to skip the
-    // gateway. Force one deduplicated background request so Cloudflare's 10-minute
-    // cache, rather than the hourly HTML window, controls visible freshness.
+    // The ISR/local cache is a first-paint seed, not a reason to skip the gateway
+    // One deduplicated background request puts freshness on Cloudflare's 10-minute cache, not the hourly HTML window
     void getCachedLeaderboardOverview(true)
       .then((data) => {
         if (cancelled) return;
-        // Diff check: skip setState if data hasn't changed.
+        // Skip setState when the data is unchanged
         const newSig = overviewSignature(data);
         if (newSig !== overviewSigRef.current) {
           overviewSigRef.current = newSig;
@@ -149,12 +147,9 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                           ))
                         : overview.map((entry, rowIndex) => {
                             const character = getCharacter(entry.id);
-                            // Prefer the client name once game data has loaded
-                            // until then fall back to the server-resolved English display fields so SSR/pre-hydration HTML shows real names instead of `Character {id}`.
-                            // Stable server-resolved fallback (superset of `entry.display`),
-                            // read from a prop the background refresh can't drop, so the primary
-                            // never reverts to `Character {id}` when a ranking field changes.
+                            // boardDisplay survives a background refresh, so a ranking change never shows the raw id
                             const charDisplay = boardDisplay?.characters[entry.id] ?? entry.display;
+                            // Client name once the catalog loads, the server English name before it
                             const characterName = character
                               ? formatCharacterDisplayName(character, {
                                   baseName: t(character.nameI18n ?? { en: character.name }),

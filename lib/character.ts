@@ -42,19 +42,23 @@ export interface I18nString {
 
 interface CDNSkillTreeNode {
   id: number;
-  coordinate: number; // 1 = middle/lower, 2 = top/upper
+  /** 1 is the middle node, 2 the top one */
+  coordinate: number;
   parentNodes: number[];
-  name: string; // English stat name (e.g. "Crit. Rate+", "ATK+")
-  icon: string; // CDN stat icon URL
+  /** English stat name, e.g. "Crit. Rate+" or "ATK+" */
+  name: string;
+  /** CDN stat icon URL */
+  icon: string;
   value: Array<{ id: number; value: number; isRatio: boolean }>;
   valueText: string[];
 }
 
-// Preprocessed forte node for easy lookup by tree + position.
+/** Forte node flattened for lookup by tree and position */
 interface ForteNodeData {
   name: string;
   icon: string;
-  value: number;    // Parsed percentage (e.g. 1.2 for "1.20%")
+  /** Percent parsed out of valueText, 1.2 meaning "1.20%" */
+  value: number;
 }
 
 export interface CDNChainEntry {
@@ -63,7 +67,8 @@ export interface CDNChainEntry {
   description?: I18nString | string;
   icon: string;
   param?: string[];
-  bonus?: { stat: string; value: number }; // unconditional passive stat bonus (parsed at sync time)
+  /** Unconditional passive stat bonus, parsed at sync time */
+  bonus?: { stat: string; value: number };
 }
 
 interface CDNMoveValueEntry {
@@ -85,7 +90,8 @@ interface CDNMoveEntry {
 
 export interface CDNCharacter {
   id: number;
-  legacyId?: string | null; // derived from the icon URL at sync time, so it can be absent
+  /** Derived from the icon URL at sync time, so it can be absent */
+  legacyId?: string | null;
   name: I18nString;
   rarity: { id: number; color: string };
   weapon: { id: number; name: I18nString; icon: string };
@@ -100,17 +106,17 @@ export interface CDNCharacter {
   moves?: CDNMoveEntry[];
   sequenceIcon?: string;
   preferredStats?: string[];
-  inherentBonuses?: InherentBonus[]; // always-on stat bonuses from inherent skills (type=4), parsed at sync time
+  /** Parsed at sync time from the inherent skills (type 4) */
+  inherentBonuses?: InherentBonus[];
 }
 
-// Unconditional panel-stat bonus granted by an inherent skill (e.g. Mornye
-// Energy Regen +10%). Parsed at sync time; applied always-on, like a base stat.
+/** Panel-stat bonus from an inherent skill, e.g. Mornye Energy Regen +10%, applied always-on like a base stat */
 interface InherentBonus {
   stat: string;
   value: number;
 }
 
-// CDN weapon ID -> WeaponType mapping
+/** CDN weapon.id to WeaponType */
 const WEAPON_ID_MAP: Record<number, WeaponType> = {
   1: WeaponType.Broadblade,
   2: WeaponType.Sword,
@@ -119,7 +125,7 @@ const WEAPON_ID_MAP: Record<number, WeaponType> = {
   5: WeaponType.Rectifier,
 };
 
-// CDN element ID -> Element mapping
+/** CDN element.id to Element */
 const ELEMENT_ID_MAP: Record<number, Element> = {
   1: Element.Glacio,
   2: Element.Fusion,
@@ -129,7 +135,7 @@ const ELEMENT_ID_MAP: Record<number, Element> = {
   6: Element.Havoc,
 };
 
-// CDN tag ID -> Role mapping (approximate)
+/** CDN tag.id to Role, an approximation since a tag is narrower than a role */
 const ROLE_TAG_MAP: Record<number, Role> = {
   1: Role.Support,    // Coordinated Attack
   2: Role.DPS,        // Main Damage Dealer
@@ -141,36 +147,49 @@ const ROLE_TAG_MAP: Record<number, Role> = {
 export interface Character {
   name: string;
   id: string;
-  legacyId?: string; // Old sequential ID for backward compatibility
+  /** Old sequential id, mapped to `id` when an older save is loaded */
+  legacyId?: string;
   title: string;
   weaponType: WeaponType;
   element: Element;
   Role: Role;
-  Bonus1: string; // Final StatName (e.g. 'Aero DMG', 'Crit Rate', 'Healing Bonus')
-  Bonus2: string; // Final StatName (e.g. 'ATK', 'HP', 'DEF')
+  /** StatName off the tree1 middle node, e.g. 'Aero DMG' or 'Crit Rate' */
+  Bonus1: string;
+  /** StatName off the tree2 middle node, e.g. 'ATK' or 'HP' */
+  Bonus2: string;
   HP: number;
   ATK: number;
   DEF: number;
   ER: number;
-  nameI18n?: I18nString;  // I18n display names (English fallback via `name` / enums)
+  nameI18n?: I18nString;
   elementI18n?: I18nString;
   weaponI18n?: I18nString;
   cdnId?: number;
   iconRound?: string;
-  head?: string;       // Square head portrait (HeadCircle256 → Head256)
+  /** Square portrait, iconRound with HeadCircle256 swapped for Head256 */
+  head?: string;
   banner?: string;
   rarity?: number;
-  skins?: CDNCharacter['skins']; // Character skins
-  elementIcon?: string; // CDN element icon URL (element.icon["1"])
-  roleIcon?: string; // CDN role tag icon URL (from tags)
-  skillIcons?: Record<string, string>; // CDN skill icon URLs keyed by type
-  forteNodes?: Record<string, ForteNodeData>; // Keyed by "tree1.top", "tree1.middle", etc.
-  chains?: CDNChainEntry[]; // Resonance chains (S1–S6) with icon URLs
-  moves?: CDNMoveEntry[]; // Compact skill payload for tooltip rendering
-  sequenceIcon?: string; // Canonical center waveband art from grouped Item data
-  roverElementName?: Element; // For Rover's element selection (Aero | Spectro | Havoc)
-  preferredStats?: string[]; // Ordered list of preferred substats for RV calculation
-  inherentBonuses?: InherentBonus[]; // always-on stat bonuses from inherent skills (type=4)
+  skins?: CDNCharacter['skins'];
+  /** CDN element.icon["1"] */
+  elementIcon?: string;
+  /** Icon of the first tag that maps to a role, else of the first tag at all */
+  roleIcon?: string;
+  /** CDN skill icon URLs keyed by skill type */
+  skillIcons?: Record<string, string>;
+  /** Keyed "tree1.top", "tree1.middle" and so on */
+  forteNodes?: Record<string, ForteNodeData>;
+  /** Resonance chains S1 to S6 */
+  chains?: CDNChainEntry[];
+  /** Compact skill payload for tooltip rendering */
+  moves?: CDNMoveEntry[];
+  /** Center waveband art from the grouped Item data */
+  sequenceIcon?: string;
+  /** Rover's own element, undefined for everyone else */
+  roverElementName?: Element;
+  /** Preferred substats in priority order */
+  preferredStats?: string[];
+  inherentBonuses?: InherentBonus[];
 }
 
 type CharacterSkin = CDNCharacter['skins'][number];
@@ -198,7 +217,7 @@ export const hasAlternateSkin = (
 export const isRover = (character: Character): boolean =>
   character.name.startsWith("Rover");
 
-// Gender is not a field anywhere in the CDN data so we code it here
+/** Gender is nowhere in the CDN data, so it is coded here */
 const ROVER_GENDER_BY_ID: Record<string, 'M' | 'F'> = {
   '1309': 'M', '1406': 'M', '1501': 'M', '1605': 'M',
   '1310': 'F', '1408': 'F', '1502': 'F', '1604': 'F',
@@ -208,8 +227,7 @@ export const getRoverGender = (id?: string): 'M' | 'F' | undefined => (
   id ? ROVER_GENDER_BY_ID[id] : undefined
 );
 
-// Exact Rover variant for a gender + element, falling back to any variant of
-// that element when the gendered one is missing from the data.
+/** Exact Rover variant for a gender and element, falling back to any variant of that element */
 export function findRoverVariant(
   characters: Character[],
   options: { element?: string; gender?: 'M' | 'F' } = {},
@@ -255,13 +273,13 @@ export const formatCharacterDisplayName = (
   return [baseName, gender ? `(${gender})` : null, normalizedElement].filter(Boolean).join(' ');
 };
 
-// parentNodes[0] → tree key mapping
+/** parentNodes[0] to tree key */
 const PARENT_TO_TREE: Record<number, string> = {
   1: 'tree1', 2: 'tree2', 3: 'tree4', 6: 'tree5',  // coord 1 (middle)
   9: 'tree1', 10: 'tree2', 11: 'tree4', 12: 'tree5', // coord 2 (top)
 };
 
-// CDN node name → final StatName used in calculations and display.
+/** CDN node name to the StatName used in calculations and display */
 const NODE_NAME_TO_BONUS: Record<string, string> = {
   'Crit. Rate+': 'Crit Rate',
   'Crit. Rate Up': 'Crit Rate',
@@ -289,7 +307,7 @@ const NODE_NAME_TO_BONUS: Record<string, string> = {
   'Spectro DMG Bonus Up': 'Spectro DMG',
 };
 
-// Process CDN skillTrees into a lookup map keyed by "tree1.top", "tree1.middle", etc.
+/** Flattens skillTrees into a map keyed "tree1.top", "tree1.middle" and so on */
 const processForteNodes = (trees?: CDNSkillTreeNode[]): Record<string, ForteNodeData> | undefined => {
   if (!trees?.length) return undefined;
   const result: Record<string, ForteNodeData> = {};
@@ -315,7 +333,7 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
     ? Element.Rover
     : (ELEMENT_ID_MAP[cdn.element.id] ?? Element.Spectro);
 
-  // Determine role from tags (first matching tag)
+  // First tag that maps to a role wins, otherwise DPS stands and the first tag still supplies the icon
   let role = Role.DPS;
   let roleIcon: string | undefined;
   for (const tag of cdn.tags) {
@@ -327,10 +345,9 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
   }
   if (!roleIcon) roleIcon = cdn.tags[0]?.icon;
 
-  // Process forte nodes from CDN skillTrees
   const forteNodes = processForteNodes(cdn.skillTrees);
 
-  // Derive Bonus1/Bonus2 from actual skillTrees data
+  // ATK stands in when a tree's middle node is missing or its name is unmapped
   const tree1Middle = forteNodes?.['tree1.middle'];
   const tree2Middle = forteNodes?.['tree2.middle'];
   const bonus1 = (tree1Middle ? NODE_NAME_TO_BONUS[tree1Middle.name] : undefined) ?? 'ATK';

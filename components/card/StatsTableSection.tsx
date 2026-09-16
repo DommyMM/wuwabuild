@@ -55,7 +55,7 @@ export const StatsTableSection: React.FC<StatsTableSectionProps> = ({
       ordered.push(normalizedKey);
     }
 
-    // Append any context stats that are not in Stats.json as a safe fallback
+    // Context stats missing from Stats.json still get a row, at the end
     for (const key of Object.keys(valuesByKey)) {
       if (seen.has(key)) continue;
       seen.add(key);
@@ -110,7 +110,7 @@ export const StatsTableSection: React.FC<StatsTableSectionProps> = ({
               style={elementalIconFilter ? { filter: elementalIconFilter } : undefined}
             />
           )}
-          {/* fix weird snapdom spilling text into new row */}
+          {/* nowrap because snapdom otherwise spills the label onto a second row in the export */}
           <span className="min-w-0 whitespace-nowrap text-lg leading-tight">
             {formatLabel(key)}
           </span>

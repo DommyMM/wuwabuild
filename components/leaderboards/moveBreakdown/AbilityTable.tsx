@@ -6,22 +6,23 @@ import { formatDamage } from '../formatters';
 import { SkillTabDisc } from './SkillTabDisc';
 import { HEAL_COLOR, HOVER_RING, Highlight, RibbonSegment, RotationModel, RotationSlot, Subline, describeRow, foldedKeys, formatBaseMV, formatHealFormula, formatShare, rotationPositionsText, rowDomId } from './model';
 
-// Icon | name | casts | bar | share | damage | chevron. The bar lane flexes,
-// not the name: extra width goes to the one element that can use it, and the
-// cast count stays beside the name instead of drifting across a void. Below
-// 40rem of panel width the row becomes icon | name | figures, with the bar on
-// a second line.
+/**
+ * Icon | name | casts | bar | share | damage | chevron
+ *
+ * - The bar lane flexes and the name is capped, so the cast count stays beside the name and spare width goes to the bar
+ * - Under 40rem of panel width the row becomes icon | name | figures, with the bar on a second line
+ */
 const GRID = 'grid grid-cols-[32px_minmax(0,22rem)_44px_minmax(120px,1fr)_58px_104px_16px] items-center gap-x-3.5';
 const NARROW_GRID = '@max-[40rem]:grid-cols-[32px_minmax(0,1fr)_auto] @max-[40rem]:gap-x-2.5';
 const NARROW_HIDDEN = '@max-[40rem]:hidden';
 const FIGURES = 'contents @max-[40rem]:col-start-3 @max-[40rem]:row-start-1 @max-[40rem]:flex @max-[40rem]:flex-col @max-[40rem]:items-end @max-[40rem]:gap-0.5';
 const NARROW_LANE = '@max-[40rem]:col-span-2 @max-[40rem]:col-start-2 @max-[40rem]:row-start-2';
 const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60';
-/** Section eyebrow, shared with the sibling panels; the column labels use it too, so the table has one label register. */
+/** Section eyebrow shared with the sibling panels, used by the column labels too so the table has one label register */
 export const EYEBROW = LB_SECTION_HEADING;
-/** Figures in columns take the site's number face with aligned digits; counts stay mono. */
+/** Column figures take the site's number face with aligned digits, counts stay mono */
 const FIGURE = 'font-gowun tabular-nums';
-/** Empty track, the bench panel's `bg-white/8`. */
+/** Empty track, matching the bench panel's `bg-white/8` */
 const TRACK = 'rgba(255,255,255,0.08)';
 
 export type HealSource = {
@@ -74,9 +75,9 @@ const SublineView: React.FC<{ sub: Subline; showTag?: boolean }> = ({ sub, showT
 };
 
 /**
- * The whole ribbon as one full-width track with this row's casts lit, so a row
- * far below the strip still shows where it sits. No gaps: the unlit casts fuse
- * into one grey line and back-to-back casts of this row read as one span.
+ * The whole ribbon as one full-width track with this row's casts lit, so a row far below the strip shows where it sits
+ *
+ * - No gaps, so the unlit casts fuse into one grey line and back-to-back casts of this row read as one span
  */
 const MiniRibbon: React.FC<{ ribbon: RibbonSegment[]; rowKey: string }> = ({ ribbon, rowKey }) => {
   const segments = ribbon.filter((segment) => segment.group !== 'bonus');
@@ -107,7 +108,7 @@ interface AbilityRowProps {
   mainScaleStat: string;
   highlight: Highlight;
   isOpen: boolean;
-  /** The row above is open, so its card frame already separates the two. */
+  /** The row above is open, so its card frame already separates the two */
   afterOpen: boolean;
   onToggle: (key: string) => void;
   onHover: (keys: string[] | null) => void;
@@ -116,14 +117,11 @@ interface AbilityRowProps {
   elementIcon?: string;
 }
 
-// A closed row is a hairline-separated line in the list. An open row lifts out
-// of it as a card with its own frame and air above and below, so the list's
-// hairlines never run into the card's rounded corners. A linked row (hovered
-// here, or through its slots and segments in the strip) wears the strip's
-// hover ring: the outline of a closed row, the frame of an open card, so it
-// reads over the open card's gold and over everything else in it.
+/** A closed row is a hairline-separated line in the list */
 const ROW_CLOSED = 'border-t border-border/45';
+/** An open row lifts out as a card with air above and below, so the list's hairlines miss its rounded corners */
 const ROW_OPEN = 'my-2 overflow-hidden rounded-md border bg-black/15';
+/** The strip's hover mark on a closed row, an open card carries the same white on its border instead */
 const ROW_RING = 'shadow-[inset_0_0_0_1px_rgba(255,255,255,0.5)]';
 
 const AbilityRow: React.FC<AbilityRowProps> = ({
@@ -153,16 +151,13 @@ const AbilityRow: React.FC<AbilityRowProps> = ({
   const positions = isStatus ? null : rotationPositionsText(move, rotation);
   const inRibbon = ribbon.some((segment) => segment.rowKeys.includes(move.key));
   const showScaleStat = Boolean(move.scaleStat) && move.scaleStat !== mainScaleStat;
-  // Open, the bar splits by hit instead of by type: the hit rows below carry
-  // the figures and the bar shows how they add up to the row, instead of each
-  // hit redrawing the row's mark on the row's scale. A hit row and its piece
-  // are one thing, so hovering either lights both.
+  // A hit row and its bar piece are one thing, so hovering either lights both
   const [hitHover, setHitHover] = useState<string | null>(null);
+  // Open, the bar splits by hit instead of by type, so it shows how the hit rows below add up to the row
   const pieces = isOpen && move.hits.length > 1
     ? move.hits.map((hit) => ({ key: hit.key, damage: hit.damage, color: typeMeta(hit.displayType).color }))
     : move.typeSegments.map((segment) => ({ key: segment.type, damage: segment.damage, color: typeMeta(segment.type).color }));
-  // The card's frame is the open state and the ring is the link, so the open
-  // header carries no tint of its own: a third mark said nothing new.
+  // The card's frame is the open state and the ring is the link, so an open header carries no tint of its own
   const headerTone = isOpen ? '' : `rounded-md ${hovered ? `bg-white/3 ${ROW_RING}` : ''}`;
 
   return (
@@ -279,7 +274,7 @@ const AbilityRow: React.FC<AbilityRowProps> = ({
                   </div>
                 )}
                 {inRibbon && (
-                  // The sentence is the answer; the ribbon is the picture of it.
+                  // The sentence is the answer, the ribbon is the picture of it
                   <div className={`flex items-center gap-3 ${NARROW_HIDDEN}`}>
                     <span className="shrink-0">{positions ?? 'Position in the rotation'}</span>
                     <MiniRibbon ribbon={ribbon} rowKey={move.key} />
@@ -328,7 +323,7 @@ export const AbilityTable: React.FC<AbilityTableProps> = ({
   elementIcon,
 }) => {
   const maxDamage = moves.reduce((max, move) => Math.max(max, move.damage), 0);
-  // Dense kits: the long tail of sub-1% abilities folds into one summary row.
+  // Dense kits: the long tail of sub-1% abilities folds into one summary row
   const smallKeys = foldedKeys(moves, rawDamage);
   const small = moves.filter((move) => smallKeys.has(move.key));
   const folds = small.length > 0;
@@ -485,7 +480,7 @@ interface CastListProps {
   elementIcon?: string;
 }
 
-/** Narrow layout's "Rotation" tab: the strip as a vertical list, one row per slot. */
+/** Narrow layout's "Rotation" tab: the strip as a vertical list, one row per slot */
 export const CastList: React.FC<CastListProps> = ({ rotation, rawDamage, movesByKey, skillIcons, elementIcon }) => {
   const maxSlot = [...rotation.buttonSlots, ...rotation.statusSlots].reduce((max, slot) => Math.max(max, slot.damage), 0);
   const renderStep = (slot: RotationSlot) => {

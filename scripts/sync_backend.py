@@ -1,24 +1,24 @@
-"""
-Sync everything the backend OCR server needs from frontend public/Data/ + Encore.
+"""Sync everything the backend OCR server needs, from frontend public/Data/ and Encore.
 
-This is the single source of truth for the backend's Data/ directory. It does two things:
+Single source of truth for the backend's Data/ directory, doing two things.
 
-1. Transform the rich frontend public/Data/ JSONs into the simpler shapes the backend
-   uses for OCR name matching (Characters/Weapons/Echoes.json), and copy the stat files.
-2. Fetch every SIFT/template asset the backend matches against, all keyed by CDN id and
-   saved as WebP:
-     - Elements   -> backend/Data/Elements/<id>.webp     (Encore FetterGroup icons)
-     - Characters -> backend/Data/Characters/<id>.webp    (Encore FormationRoleCard splash)
-     - Weapons    -> backend/Data/Weapons/<id>.webp       (Encore weapon Icon)
-     - Echoes     -> backend/Data/Echoes/<id>.webp        (public/Data icon URL, re-encoded)
+First, transform the frontend JSONs into the simpler shapes the backend matches OCR names against,
+and copy the stat files across.
 
-Character/weapon SIFT templates load *.webp only (backend card.py _load_asset_features),
-so those are written as WebP; echo/element load png+webp but we standardize on WebP too.
-Character + weapon icons come from Encore because those are the exact images the live SIFT
-templates were validated on; echo icons follow whatever source synced public/Data.
+Second, fetch every SIFT template the backend matches against, keyed by CDN id and saved as WebP:
 
-Run after the data syncs (or just use sync_all.py, which calls this). Per-asset
---skip-*-icons / --force-*-icons flags gate each template set.
+  Elements   -> backend/Data/Elements/<id>.webp     (Encore FetterGroup icons)
+  Characters -> backend/Data/Characters/<id>.webp   (Encore FormationRoleCard splash)
+  Weapons    -> backend/Data/Weapons/<id>.webp      (Encore weapon Icon)
+  Echoes     -> backend/Data/Echoes/<id>.webp       (public/Data icon URL, re-encoded)
+
+Character and weapon templates load .webp only (backend card.py _load_asset_features), and echo and
+element load either, so everything standardizes on WebP.
+Character and weapon icons come from Encore because the live SIFT templates were validated on those exact
+images, while echo icons follow whatever source synced public/Data.
+
+Run after the data syncs, or through sync_all.py which calls this.
+The --skip-*-icons and --force-*-icons flags gate each template set.
 """
 
 from pathlib import Path
@@ -62,8 +62,6 @@ UA = {"User-Agent": "wuwabuilds-backend-sync/1.0"}
 ICON_WORKERS = 16
 WEBP_QUALITY = 95
 
-# --- Shared download helpers --------------------------------------------------
-
 def _encore_json(route: str):
     """Fetch an Encore English route, failing over between Encore hosts."""
     if requests is None:
@@ -106,9 +104,10 @@ def _source_bytes(src: str | Path) -> bytes:
 
 
 def _needs_reencode(src: str | Path) -> bool:
-    """A source that isn't already WebP (e.g. a Wuthery PNG fallback) must be
-    decoded and re-encoded; Encore URLs and mirrored /assets/ files are WebP,
-    which we pass straight through."""
+    """True when a source has to be decoded and re-encoded, as a Wuthery PNG fallback does.
+
+    Encore URLs and mirrored /assets/ files are already WebP and pass straight through
+    """
     suffix = src.suffix if isinstance(src, Path) else Path(urlparse(src).path).suffix
     return suffix.lower() != ".webp"
 
@@ -116,9 +115,8 @@ def _needs_reencode(src: str | Path) -> bool:
 def _save_webp(raw: bytes, dest: Path, reencode: bool) -> None:
     """Write image bytes to dest as WebP.
 
-    Encore icons are already WebP, so reencode=False writes the bytes straight through.
-    A non-WebP source (Wuthery PNG fallback) needs reencode=True, which decodes and
-    re-encodes via OpenCV.
+    Encore icons are already WebP, so reencode=False writes the bytes straight through
+    A non-WebP source needs reencode=True, which decodes and re-encodes through OpenCV
     """
     if not reencode:
         write_bytes_atomic(dest, raw)
@@ -138,12 +136,11 @@ def _save_webp(raw: bytes, dest: Path, reencode: bool) -> None:
 
 
 def _download_icons(tasks: list[tuple[str, str | Path, Path]], force: bool, reencode, label: str) -> int:
-    """tasks = [(id, src, dest)] where src is a URL or a mirrored local file.
-    Fetches missing (or all, if force). Returns count fetched.
+    """Fetch the missing icons, or all of them under force, and return how many were fetched.
 
-    reencode: True/False, or "auto" to decide per-source by suffix (WebP
-    passthrough, anything else re-encoded). "auto" lets echo icons take
-    Encore/mirrored WebP for free while still handling a Wuthery PNG source.
+    tasks entries are (id, src, dest) where src is a URL or a mirrored local file
+    reencode is True, False, or "auto" to decide per source by suffix
+    "auto" lets echo icons take Encore or mirrored WebP for free while still handling a Wuthery PNG
     """
     todo = [t for t in tasks if force or not t[2].exists()]
     skipped = len(tasks) - len(todo)
@@ -173,8 +170,6 @@ def _download_icons(tasks: list[tuple[str, str | Path, Path]], force: bool, reen
         raise RuntimeError(f"{label}: {errors} download(s) failed")
     return downloaded
 
-
-# --- Element templates (Encore FetterGroup icons) -----------------------------
 
 def _encore_fetter_groups() -> dict[int, dict]:
     data = _encore_json("echo")
@@ -208,17 +203,15 @@ def sync_element_templates(dry_run: bool, force: bool) -> int:
         print(f"  Element icons: {n}/{len(tasks)} to refresh -> {BACKEND_ELEMENTS}")
         return n
     BACKEND_ELEMENTS.mkdir(parents=True, exist_ok=True)
-    # Element source URLs may be non-WebP; write through in their native suffix (the
-    # element loader accepts png+webp). No re-encode to avoid a hard cv2 dependency here.
+    # Element sources may not be WebP, so they pass through in their native suffix, which the loader accepts
+    # Skipping the re-encode keeps cv2 from becoming a hard dependency here
     return _download_icons(tasks, force, reencode=False, label="Element icons")
 
-
-# --- Character / weapon / echo SIFT templates ---------------------------------
 
 def sync_character_icons(dry_run: bool, force: bool) -> int:
     ids = [str(c.get("Id", "")).strip() for c in _encore_rows(_encore_json("character"))]
     ids = [i for i in ids if i]
-    # Each splash URL is a per-character detail call, so resolve only the ids we need.
+    # Each splash URL costs a per-character detail call, so resolve only the ids we need
     needed = [i for i in ids if force or not (BACKEND_CHARACTERS / f"{i}.webp").exists()]
     if dry_run:
         print(f"  Character icons: {len(needed)}/{len(ids)} to fetch -> {BACKEND_CHARACTERS}")
@@ -288,11 +281,9 @@ def sync_echo_icons(dry_run: bool, force: bool) -> int:
         print(f"  Echo icons: {n}/{len(tasks)} to fetch -> {BACKEND_ECHOES}")
         return n
     BACKEND_ECHOES.mkdir(parents=True, exist_ok=True)
-    # Encore icon URLs are WebP (passed through); only a non-WebP Wuthery fallback needs cv2.
+    # Encore icon URLs are WebP and pass through, so only a Wuthery fallback needs cv2
     return _download_icons(tasks, force, reencode="auto", label="Echo icons")
 
-
-# --- JSON transforms ----------------------------------------------------------
 
 def sync_characters(dry_run: bool) -> int:
     data = json.loads((FRONTEND_DATA / "Characters.json").read_text(encoding="utf-8"))
@@ -300,7 +291,7 @@ def sync_characters(dry_run: bool) -> int:
     for char in data:
         out.append({
             "name": char["name"]["en"],
-            # Canonical backend/runtime ID is CDN character id.
+            # CDN character id is the canonical backend and runtime id
             "id": str(char["id"]),
             "element": char["element"]["name"]["en"],
             "weaponType": char["weapon"]["name"]["en"],
@@ -320,7 +311,7 @@ def sync_weapons(dry_run: bool) -> int:
     grouped: dict[str, list] = {}
     for weapon in data:
         type_en = weapon["type"]["name"]["en"]
-        # Keep raw CDN/frontend weapon type name (no legacy plural remapping).
+        # Raw CDN weapon type name, with no legacy plural remapping
         key = type_en
         grouped.setdefault(key, []).append({
             "name": weapon["name"]["en"],
@@ -391,14 +382,14 @@ def main() -> int:
     print(f"{'[DRY RUN] ' if args.dry_run else ''}Syncing backend Data/ from frontend public/Data/ + Encore")
 
     try:
-        # 1. JSON shapes the backend matches names against.
+        # JSON shapes the backend matches names against
         sync_characters(args.dry_run)
         sync_weapons(args.dry_run)
         sync_echoes(args.dry_run)
         copy_unchanged("EchoStats.json", args.dry_run)
         copy_unchanged("Stats.json", args.dry_run)
 
-        # 2. SIFT/template assets (all id-keyed WebP).
+        # SIFT template assets, all id-keyed WebP
         if not args.skip_element_icons:
             sync_element_templates(args.dry_run, args.force_element_icons)
         if not args.skip_character_icons:

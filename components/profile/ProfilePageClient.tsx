@@ -28,8 +28,7 @@ import { FeaturedBuildSelection, ProfileFeaturedBuild } from './ProfileFeaturedB
 import { ProfileShowcase } from './ProfileShowcase';
 import { ProfileEchoes } from './ProfileEchoes';
 
-// Profile table: no Owner column. Name gets the freed space (wider).
-// # | Name | Weapon | Seq | Sets | [CV + 4 stats]
+/** Columns are # | Name | Weapon | Seq | Sets | stats, with no Owner column so Name takes the freed space */
 const PROFILE_TABLE_GRID = 'grid-cols-[48px_220px_72px_80px_112px_minmax(0,1fr)]';
 const PROFILE_RESULTS_COLLAPSED_MAX_WIDTH_CLASS = 'max-w-360';
 const PROFILE_RESULTS_EXPANDED_MAX_WIDTH_CLASS = 'max-w-[1620px]';
@@ -45,10 +44,11 @@ interface ProfilePageClientProps {
   } | null;
 }
 
-// "Updated 17 days ago" needs a clock, and a clock read during server render
-// can disagree with the one at hydration across a day boundary. The server
-// snapshot is null (the fact is simply absent in the HTML) and the client
-// reads the clock once per page load.
+/**
+ * Clock behind "Updated 17 days ago", read once on the client per page load
+ *
+ * - Server snapshot is null, so the fact is absent from the HTML instead of crossing a day boundary before hydration
+ */
 let clientNow: number | null = null;
 const subscribeNever = () => () => {};
 const getClientNow = () => (clientNow ??= Date.now());
@@ -83,11 +83,9 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     () => parseInitialQuery(new URLSearchParams(searchParams.toString())),
     [searchParams],
   );
-  // The featured build: the card opened from a rankings tile, a `?buildId=` deep link
-  // (post-import, or "View in Profile" on a leaderboard), or the echo inventory's
-  // "Equipped by" strip. It renders above the filters, outside the build query, so
-  // sorting and paging the table never disturb it; it stays until closed. `?board=`
-  // names the board the reader was just looking at so the card opens on that number.
+  // Card opened from a rankings tile, a `?buildId=` deep link, or the echo inventory's "Equipped by" strip
+  // Renders above the filters and outside the build query, so sorting and paging leave it alone until it is closed
+  // `?board=` names the board the reader came from so the card opens on that number
   const [featured, setFeatured] = useState<FeaturedBuildSelection | null>(() => {
     const buildId = searchParams.get('buildId')?.trim() ?? '';
     if (!buildId) return null;
@@ -125,14 +123,14 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     retryBuildDetail,
     resetBuildDetailRequestState,
   } = useBuildDetails();
-  // A pasted deep link can name someone else's build; that counts as no selection.
+  // A pasted deep link can name someone else's build, which counts as no selection
   const featuredDetail = featured ? detailById[featured.buildId] : undefined;
   const activeFeatured = featuredDetail && featuredDetail.owner.uid !== uid ? null : featured;
   const featuredBuildId = activeFeatured?.buildId ?? null;
-  // Either placement widens the page and runs the settle timer.
+  // Either placement widens the page and runs the settle timer
   const hasOpenCard = hasExpandedRows || activeFeatured !== null;
-  // Best board per character, best first, once the shelf has loaded them. The
-  // header's fact row and the avatar both read from here.
+  // Best board per character, best first, once the shelf has loaded them
+  // Header fact row and avatar both read from here
   const [standings, setStandings] = useState<LBProfileStandingEntry[] | null>(null);
   const featuredStanding = standings?.[0] ?? null;
 
@@ -206,11 +204,11 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const isRefreshing = isPendingQuery && builds.length > 0;
   const error = fetchError?.queryKey === currentQueryKey ? fetchError.message : null;
 
-  // Sync URL without uid param in query (uid lives in path)
+  // uid stays out of the query because it lives in the path
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(serializeQuery({ ...querySnapshot, uid: '' }));
-    // The featured build is shareable state: keep it in the URL while it is open.
+    // Featured build is shareable state, so it stays in the URL while open
     if (activeFeatured) {
       params.set('buildId', activeFeatured.buildId);
       if (activeFeatured.standingKey) params.set('board', activeFeatured.standingKey);
@@ -291,10 +289,9 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     const id = buildId.trim();
     if (!id) return;
     if (!expandedBuildIds.has(id)) {
-      // Opening from a fully closed page starts the width transition.
+      // Opening from a fully closed page starts the width transition
       if (!hasOpenCard) setIsExpandedLayoutSettled(false);
-      // Art identity is already known from the row, so start the splash
-      // download at click, in parallel with the build-detail request.
+      // Row already names the art, so the splash download runs at click alongside the build-detail request
       const entry = buildsRef.current.find((build) => build.id === id);
       const characterRef = entry ? getCharacter(entry.character.id) : null;
       if (characterRef) {
@@ -312,8 +309,11 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     retryBuildDetail(buildId);
   }, [retryBuildDetail]);
 
-  // Opens a build in the featured region. Open rows stay open: every card
-  // closes only when the reader closes it. The detail fetch is the effect below.
+  /**
+   * Opens a build in the featured region, with the detail fetch left to the effect below
+   *
+   * - Already-expanded rows stay open because every card closes only when the reader closes it
+   */
   const openFeatured = useCallback((selection: FeaturedBuildSelection) => {
     if (!hasOpenCard) setIsExpandedLayoutSettled(false);
     setFeatured(selection);
@@ -329,7 +329,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
 
   const closeFeatured = useCallback(() => setFeatured(null), []);
 
-  // Rankings tile: the active tile toggles its card closed, any other opens.
+  /** Rankings tile click: the active tile toggles its card closed, any other tile opens its own */
   const handleSelectStanding = useCallback((entry: LBProfileStandingEntry) => {
     if (featuredBuildId === entry.buildId) {
       setFeatured(null);
@@ -343,15 +343,13 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     });
   }, [featuredBuildId, openFeatured]);
 
-  // Echo inventory's "Equipped by" strip.
+  /** Opens a build from the echo inventory's "Equipped by" strip, which knows no board */
   const handleOpenBuild = useCallback((buildId: string, characterId: string) => {
     openFeatured({ buildId, standingKey: null, characterId, topPercent: null });
   }, [openFeatured]);
 
-  // Fetch the featured build once the page's own list has settled: the list
-  // effect resets every in-flight detail request when the query changes, so a
-  // fetch started earlier would be aborted. Re-running after each settle
-  // restarts one that was, and is a cached no-op otherwise.
+  // List effect drops in-flight detail requests on a query change, so the featured fetch waits for the list to settle
+  // Re-running after each settle restarts a fetch that was dropped, and is a cached no-op otherwise
   useEffect(() => {
     if (!featuredBuildId || !settledQueryKey) return;
     loadBuildDetail(featuredBuildId);
@@ -373,7 +371,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     return (page - 1) * pageSize + 1;
   })();
 
-  // Profile header info comes from the canonical profile row; builds are only a fallback.
+  // Header reads the canonical profile row, with the build list only as a fallback
   const profileUsername = profileSummary?.username || builds[0]?.owner.username || uid;
   const profileBuildCount = profileSummary?.buildCount ?? total;
   const regionBadge = resolveRegionBadge(profileSummary?.uid || uid);
@@ -388,8 +386,8 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     ? t(featuredCharacter.nameI18n ?? { en: featuredCharacter.name })
     : null;
 
-  // Record real profile visits so search recents and /profiles can offer them
-  // back for quick re-access. Best-effort localStorage write, no state.
+  // Real visits get recorded so search recents and /profiles can offer them back
+  // Best-effort localStorage write, no state
   const hasRealProfile = Boolean(profileSummary?.username) || builds.length > 0;
   const featuredHead = featuredCharacter?.head ?? featuredCharacter?.iconRound ?? null;
   useEffect(() => {
@@ -397,12 +395,11 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     recordProfileVisit({ uid, username: profileUsername, head: featuredHead });
   }, [featuredHead, hasRealProfile, profileUsername, uid]);
 
-  // Device-local pins (unverified bookmarks, never sent anywhere), read via
-  // external store so toggling re-renders without hydration drift.
+  // Device-local pins are unverified bookmarks, never sent anywhere
+  // External store so toggling re-renders without hydration drift
   const pinnedProfiles = useSyncExternalStore(subscribeProfileHistory, getPinnedProfilesSnapshot, getProfilesServerSnapshot);
   const isPinned = pinnedProfiles.some((entry) => entry.uid === uid);
 
-  // Custom renderExpanded for profile, renders ProfileCard inside
   const renderExpanded = useCallback((props: GlobalBoardRowExpandedProps) => (
     <ProfileBuildExpanded
       key={`${props.entry.id}:${props.isExpanded ? 'open' : 'closed'}`}
@@ -457,9 +454,6 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                       </span>
                     )}
                   </div>
-                  {/* One row of facts about the profile, each in one place: the
-                      shelf below no longer repeats the character count, and the
-                      build count is no longer a slab of its own. */}
                   <ul
                     aria-label="Profile facts"
                     className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-2xs font-semibold tracking-wider text-text-primary/45 uppercase [&>li]:flex [&>li]:items-baseline [&>li]:gap-1.5 [&>li:not(:first-child)]:before:mr-0.5 [&>li:not(:first-child)]:before:text-text-primary/25 [&>li:not(:first-child)]:before:content-['·']"
@@ -549,7 +543,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                   selectedMainEntries={selectedMainEntries}
                   sequences={sequences}
                   statFilters={statFilters}
-                  // UID and username locked, not shown
+                  // uid is fixed by the route, so its filter chips stay empty and hidden
                   username=""
                   uid=""
                   setOptions={setOptions}

@@ -1,9 +1,11 @@
 import React from 'react';
 
-// skillTab → the character's skillIcons key. Inherent skills have two icons;
-// a scored inherent ability takes the first. Tune Break is a real kit button
-// with one of five weapon-type icons; the glyph below only covers data synced
-// before that key existed.
+/**
+ * skillTab → the character's skillIcons key
+ *
+ * - Inherent skills have two icons, a scored inherent ability takes the first
+ * - Tune Break is a real kit button with one of five weapon-type icons, the glyph only covers data missing that key
+ */
 const TAB_ICON_KEY: Record<string, string> = {
   'normal-attack': 'normal-attack',
   skill: 'skill',
@@ -15,8 +17,7 @@ const TAB_ICON_KEY: Record<string, string> = {
   'tune-break': 'tune-break',
 };
 
-// Neutral glyphs for damage with no kit button. Drawn on a 24 box in the
-// current text colour so every one sits at the same weight as a tab icon.
+/** Neutral glyphs for damage with no kit button, on a 24 box in text colour so each sits at a tab icon's weight */
 function Glyph({ kind }: { kind: string }) {
   const common = {
     viewBox: '0 0 24 24',
@@ -57,18 +58,18 @@ interface SkillTabDiscProps {
   merged?: boolean;
   skillIcons?: Record<string, string>;
   elementIcon?: string;
-  /** Scored-type colour, drawn as a short arc under the icon. */
+  /** Scored-type colour, drawn as a short arc under the icon */
   arcColor?: string;
-  /** Hover mark: the ring brightens to the one used on ribbon segments. */
+  /** Brightens the ring to the hover mark used on ribbon segments */
   lit?: boolean;
-  /** Size classes (the disc is square). */
+  /** Size classes, the disc is square */
   className?: string;
 }
 
 /**
- * The ability's kit button: its tab icon on a dark disc, with the scored type
- * as a short arc along the disc's underside. Status damage has no button, so it
- * gets a dashed outline around the element icon instead, with the same arc.
+ * The ability's kit button: its tab icon on a dark disc, the scored type a short arc along the disc's underside
+ *
+ * - Status damage has no button, so it gets a dashed outline around the element icon instead, with the same arc
  */
 export const SkillTabDisc: React.FC<SkillTabDiscProps> = ({
   skillTab,
@@ -81,8 +82,7 @@ export const SkillTabDisc: React.FC<SkillTabDiscProps> = ({
 }) => {
   const iconKey = TAB_ICON_KEY[skillTab];
   const icon = iconKey ? skillIcons?.[iconKey] : undefined;
-  // The arc runs from about 7 to 5 o'clock (12% to 38% of the circle,
-  // clockwise from 3 o'clock), centred on the underside.
+  // Arc runs about 7 to 5 o'clock, 12% to 38% of the circle clockwise from 3 o'clock, centred on the underside
   const arc = arcColor ? (
     <svg viewBox="0 0 36 36" className="pointer-events-none absolute inset-0 h-full w-full">
       <circle

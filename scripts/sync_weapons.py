@@ -1,8 +1,6 @@
-"""
-Sync Weapons to public/Data/Weapons.json.
+"""Sync Weapons to public/Data/Weapons.json.
 
-Fetches weapon data from CDN, transforms it using a schema (keeping all languages),
-and writes to public/Data/Weapons.json (combined or --individual).
+Fetches from CDN, transforms with a schema keeping every language, and writes combined or per-weapon files.
 
 Usage:
     python sync_weapons.py --fetch                     # Sync all → combined Weapons.json
@@ -41,21 +39,17 @@ SCHEMA = {
     "type": ["id", "name", "icon"],
     "rarity": ["id", "color"],
     "icon": True,
-    # Passive: effect template ("{0}" placeholders) + effectName + params (R1-R5 per placeholder).
-    # Params are NOT uniformly scaled, ratios vary (1.5x, 2x, 3.2x etc.), so all 5 ranks are kept.
-    # Weapons with multi-stat passives (e.g. Guardian series boosting Basic + Heavy ATK) use a
-    # single {0} param for both; there is no separate "passive2", the effect text describes it.
+    # Passive is the effect template with "{0}" placeholders, plus effectName and an R1-R5 param list per placeholder
+    # Ranks are not uniformly scaled (1.5x, 2x, 3.2x), so all five are kept
+    # A multi-stat passive (Guardian series) shares one {0} across both stats, there is no second passive field
     "effect": True,
     "effectName": True,
     "params": True,
-    # Stats: custom handler extracts lv1 base values only (statsLevel is redundant bulk).
-    # NOTE on CDN stat value formats:
-    #   - stats.first.value: flat base ATK (e.g. 47 = 47 ATK). Always isRatio=false.
-    #   - stats.second: substat. Two formats depending on isRatio:
-    #       isRatio=true:  decimal ratio, multiply by 100 for display (0.081 → "8.1%")
-    #       isRatio=false: raw int, divide by 100 for display (1080 → "10.8%")
-    #     The attribute field uses internal names: "Atk", "CritRate", "CritDamage",
-    #     "Hp", "Def", "EnergyRecover". The name field has the display-ready label per language.
+    # Stats keep lv1 base values only, since statsLevel is redundant bulk
+    #   stats.first.value  flat base ATK (47 means 47 ATK), always isRatio=false
+    #   stats.second       substat, a decimal ratio when isRatio (0.081 → "8.1%") else a raw int (1080 → "10.8%")
+    #   attribute          internal name: "Atk", "CritRate", "CritDamage", "Hp", "Def", "EnergyRecover"
+    #   name               display-ready label per language
     "stats": True,
 }
 
@@ -77,8 +71,8 @@ CONDITIONAL_TRIGGER_PATTERN = re.compile(
 PASSIVE_PATTERNS: list[tuple[re.Pattern[str], list[str]]] = [
     (re.compile(r"\b(all-attribute dmg bonus|attribute dmg bonus)\b", re.IGNORECASE), ELEMENTAL_DMG_STATS),
     (re.compile(r"\benergy regen\b", re.IGNORECASE), ["Energy Regen"]),
-    # "Max HP" and plain "HP" both appear, on either side of the verb:
-    # "Max HP is increased by X" and "Increases Max HP by X" are the same passive.
+    # "Max HP" and plain "HP" both appear, on either side of the verb
+    # "Max HP is increased by X" and "Increases Max HP by X" are the same passive
     (re.compile(r"\b(?:(?:max\s+)?hp\s+is\s+increased|increases?\s+(?:max\s+)?hp)\b", re.IGNORECASE), ["HP%"]),
     (re.compile(r"\b(increases? atk|atk is increased|atk increased by|increase atk)\b", re.IGNORECASE), ["ATK%"]),
     (re.compile(r"\b(increases? def|def is increased|def increased by|increase def)\b", re.IGNORECASE), ["DEF%"]),
@@ -175,7 +169,7 @@ def _detect_unconditional_passive_stats(sentence: str) -> list[str]:
 
 
 def extract_unconditional_passive_bonuses(raw: dict) -> dict[str, list[float]]:
-    """Extract static passive bonuses from the first unconditional sentence (scaled R1–R5)."""
+    """Static passive bonuses from the first sentence, per rank R1 to R5, empty when the sentence is conditional."""
     effect = raw.get("effect", {})
     effect_en = effect.get("en") if isinstance(effect, dict) else None
     first_sentence = _first_sentence(_sanitize_text(effect_en))
@@ -234,14 +228,10 @@ def filter_keys(obj: Any, keys: list[str]) -> Any:
 def extract_stats(stats: dict) -> dict:
     """Extract lv1 base stats from the stats object.
 
-    Input:  { first: {attribute, name, value, isRatio, icon}, second: {...} }
-    Output: { first: {attribute, value},
-              second: {attribute, name, value, isRatio} }
-
-    first is always flat ATK (value=47 means 47 ATK).
-    second is the substat, see SCHEMA comments for value format notes.
-    We keep second.name (multilingual display label) so consumers don't need
-    to map internal attribute names like "CritDamage" → "Crit. DMG".
+    Input is { first: {attribute, name, value, isRatio, icon}, second: {...} }
+    Output is { first: {attribute, value}, second: {attribute, name, value, isRatio} }
+    first is always flat ATK (47 means 47 ATK), second is the substat whose value formats SCHEMA documents
+    second.name is kept so consumers never map an internal name like "CritDamage" onto "Crit. DMG"
     """
     result = {}
     first = stats.get("first")
@@ -297,8 +287,8 @@ def extract_by_schema(data: dict, schema: dict) -> dict:
 def _sanitize_weapon_text(output: dict) -> None:
     """Resolve the game's control tokens in the player-facing passive text.
 
-    Weapon effects carry the same {Cus:Sap,...} / {Cus:Ipt,...} tokens as
-    character skills. Left in, they render literally in the weapon hover card.
+    Weapon effects carry the same {Cus:Sap,...} and {Cus:Ipt,...} tokens as character skills
+    Left in, they render literally in the weapon hover card
     """
     for field in ("effect", "effectName"):
         if field in output:
@@ -376,10 +366,8 @@ def dedupe_semantic_weapon_aliases(weapons: list[dict]) -> list[dict]:
     return kept
 
 
-# --- CDN fetch ---
-
 def _fetch_one(session, filename: str) -> tuple[str, dict | None]:
-    """Fetch a single weapon JSON from CDN."""
+    """Fetch one weapon JSON, returning a None payload when every retry fails."""
     url = f"{CDN_DOWNLOAD_BASE}/{filename}"
     try:
         data = request_json_with_retry(session, "get", url)
@@ -460,8 +448,6 @@ def fetch_cdn_weapons(single_id: str = None, workers: int | None = None) -> list
     return []
 
 
-# --- Main ---
-
 def main():
     parser = argparse.ArgumentParser(description="Sync weapon data from Wuthery CDN")
     parser.add_argument("--id", type=str, default=None,
@@ -493,7 +479,6 @@ def main():
 
     print(f"\nLoaded {len(raw_weapons)} raw weapon files")
 
-    # Transform
     weapons = []
     skipped = 0
     for data in raw_weapons:
@@ -552,7 +537,6 @@ def main():
                 print(f"\n... [{size_kb:.1f}KB total, truncated]")
 
     elif args.individual:
-        # Write per-weapon files
         args.output.mkdir(parents=True, exist_ok=True)
         for weapon in weapons:
             wid = weapon["id"]
@@ -564,7 +548,6 @@ def main():
         print(f"\nDone: {len(weapons)} weapons → {args.output}")
 
     else:
-        # Default: combined Weapons.json
         write_records_atomic(combined_path, combined_weapons, **json_kwargs)
         size_kb = combined_path.stat().st_size / 1024
         print(f"  Saved Weapons.json [{size_kb:.1f}KB] ({len(combined_weapons)} weapons)")

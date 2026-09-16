@@ -1,22 +1,13 @@
 import type { LBMoveCastEntry, LBMoveEntry, LBMoveModifierInfo } from '@/lib/lb';
 
-// Fixed move-type identity: every board colors a type the same way, so the
-// mapping is learnable across builds. Steps validated (CVD + contrast) against
-// the dark surface; the most co-occurring types hold the hues that pass
-// all-pairs colorblind checks. Red is reserved for penalties and never a type
-// color; echo is a deliberate neutral (external summon, not kit).
-//
-// The reactive/status-damage family (forte_circuit, frazzle, erosion,
-// tune_rupture, glacio_bite, fusion_burst) is a deliberate second tier: 14
-// categorical hues is past where all-pairs CVD stays airtight, so these fill
-// the open arcs of the wheel and are tuned to differ from echo-slate and from
-// the types they most plausibly co-occur with. They rarely appear together, so
-// near-neighbours within the tier are acceptable; the textual label always
-// disambiguates. Retune hexes freely.
-//
-// This lives outside the panel because the home hero renders the same profile
-// bar for a board record. One palette and one aggregation, so the two surfaces
-// can never disagree on a color or a percentage.
+/**
+ * One color per move type across every board, so the mapping is learnable build to build
+ *
+ * - Hues cleared for contrast and all-pairs colorblind separation on the dark surface
+ * - Red is reserved for penalties, and echo stays neutral because it is an external summon, not kit
+ * - The reactive family is a second tier past where 14 hues stay airtight, so near-neighbours that rarely co-occur are fine
+ * - Lives outside the panel because the home hero renders the same bar, one palette so the two surfaces cannot disagree
+ */
 const MOVE_TYPE_META: Record<string, { label: string; color: string }> = {
   basic_attack: { label: 'Basic Attack', color: '#c98500' },
   heavy_attack: { label: 'Heavy Attack', color: '#008300' },
@@ -72,7 +63,7 @@ export type ProcessedMove = {
   percentage: number;
   elemType: string;
   moveTypes: string[];
-  /** First declared move type: the row's colour identity. */
+  /** First declared move type, which sets the row's color */
   primaryType: string;
   baseMV: number;
   flatHeal: number;
@@ -80,15 +71,17 @@ export type ProcessedMove = {
   noCrit: boolean;
   bypassDmgBonus: boolean;
   hits: ProcessedHit[];
-  /** Every rotation entry folded into the row, sorted by rotation index. */
+  /** Every rotation entry folded into the row, sorted by rotation index */
   casts: LBMoveCastEntry[];
   typeSegments: TypeSegment[];
 };
 
-// Global score adjustments (ER scaling, set/echo/sub-DPS bonuses). They scale
-// or extend the whole rotation rather than being a part of it, so they render
-// as the score equation, never as rotation rows. Kept in payload order: the
-// backend applies them in sequence, each against the running score.
+/**
+ * Global score adjustment: ER scaling, set, echo and sub-DPS bonuses
+ *
+ * - Scales or extends the whole rotation rather than sitting inside it, so it renders as the score equation, not a row
+ * - Kept in payload order because the backend applies them in sequence, each against the running score
+ */
 export type ProcessedModifier = {
   key: string;
   name: string;
@@ -112,9 +105,7 @@ export type ProcessedBreakdown = {
   totalScore: number;
 };
 
-// The type a hit renders as. A dual-typed hit (Cantarella's Phantom Sting
-// coordinated stage is [basic_attack, coordinated_attack]) shows its more
-// specific type — the one that differs from the move's primary.
+/** A dual-typed hit shows whichever type differs from the move's primary, e.g. coordinated over basic on Phantom Sting */
 function hitDisplayType(hitTypes: string[], primary: string): string {
   if (hitTypes.length === 0) return primary;
   return hitTypes.find((t) => t !== primary) ?? hitTypes[0];
@@ -150,8 +141,7 @@ export function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
     modifierInfo: LBMoveModifierInfo | null;
   }>();
 
-  // The contract sends one row per ability; merging by key only guards against
-  // a repeated row, whose casts and hits then fold into the first.
+  // One row per ability by contract, so merging by key only guards a repeat, folding its casts and hits into the first
   moves.forEach((move) => {
     const key = move.key;
     const existing = grouped.get(key) ?? {
@@ -176,8 +166,7 @@ export function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
     if (Array.isArray(move.casts)) existing.casts.push(...move.casts);
 
     (move.hits ?? []).forEach((hit) => {
-      // Zero-damage hits are trigger bookkeeping (e.g. a 0-MV echo cast folded
-      // for rotation accounting), not damage, so never rows or type segments.
+      // Zero-damage hits are trigger bookkeeping like a 0-MV echo cast, never rows or type segments
       if (!(hit.damage > 0)) return;
       const existingHit = existing.hits.get(hit.key) ?? {
         key: hit.key,
@@ -197,8 +186,7 @@ export function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
     grouped.set(key, existing);
   });
 
-  // The backend Modifier flag is the single source of truth for what is a
-  // global score adjustment versus a real rotation move.
+  // The backend Modifier flag decides what is a global score adjustment and what is a real rotation move
   const entries = Array.from(grouped.entries());
   const rawDamage = entries.reduce((sum, [, move]) => (move.modifier ? sum : sum + move.damage), 0);
   if (rawDamage <= 0) {
@@ -209,10 +197,7 @@ export function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
     .filter(([, move]) => !move.modifier)
     .map(([key, move]) => {
       const primary = move.moveTypes[0] ?? 'unknown';
-      // A hit that repeats the row's own name at the row's own type carries no
-      // information (a DisplayGroup fold of extra casts of the same move, e.g.
-      // Phrolova's Fate/Finality ×3 or Hiyuki's repeated Glacio Bite lanes).
-      // Suppress since its damage flows into the remainder, so rows render as they did before the typed-hit fold
+      // A hit repeating the row's own name at its own type adds nothing, so it drops and its damage joins the remainder
       const hits: ProcessedHit[] = Array.from(move.hits.values())
         .map((hit) => ({
           key: hit.key,
@@ -238,9 +223,7 @@ export function processMoves(moves: LBMoveEntry[]): ProcessedBreakdown {
           byType.set(hit.displayType, (byType.get(hit.displayType) ?? 0) + hit.damage);
           hitsSum += hit.damage;
         }
-        // Hits may not cover the whole move; the remainder stays primary-typed
-        // so segment sums keep matching move damage (and the profile keeps
-        // matching raw damage).
+        // Hits may not cover the whole move, so the remainder stays primary-typed and segment sums still match move damage
         const remainder = move.damage - hitsSum;
         if (remainder > 0.5) byType.set(primary, (byType.get(primary) ?? 0) + remainder);
         typeSegments = Array.from(byType.entries())

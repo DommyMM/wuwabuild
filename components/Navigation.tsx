@@ -6,8 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ProfileSearch } from './home/ProfileSearch';
 
-// Pages with their own search bar: the nav icon (and ⌘/Ctrl+K) hand off to it
-// instead of opening the popover.
+/** Pages with their own search bar, where the nav icon and ⌘/Ctrl+K hand off instead of opening the popover */
 const ON_PAGE_SEARCH_SELECTOR: Record<string, string> = {
     '/': '#home-profile-search input',
     '/profiles': '#profiles-page-search input',
@@ -24,7 +23,7 @@ export function Navigation() {
     const backdropRef = useRef<HTMLDivElement>(null);
     const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-    // Close the lookup popover on outside click and after navigating.
+    // Close the lookup popover on outside click
     useEffect(() => {
         if (!isLookupOpen) return;
         const onPointerDown = (event: MouseEvent) => {
@@ -36,7 +35,7 @@ export function Navigation() {
         return () => document.removeEventListener('mousedown', onPointerDown);
     }, [isLookupOpen]);
 
-    // Close the popover when navigating (render-time state adjustment, not an effect).
+    // Close the popover when navigating (render-time state adjustment, not an effect)
     const [lookupPathname, setLookupPathname] = useState(pathname);
     if (lookupPathname !== pathname) {
         setLookupPathname(pathname);
@@ -59,14 +58,13 @@ export function Navigation() {
     const focusOnPageSearch = useCallback((selector: string) => {
         const input = document.querySelector<HTMLInputElement>(selector);
         input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // On mobile /profiles the bar already sits at the top of the page;
-        // focusing would pop the keyboard, so reveal it closed instead.
+        // On mobile /profiles the bar already sits at the top, so focusing would only pop the keyboard
         if (isMobile && pathname === '/profiles') return;
         window.setTimeout(() => input?.focus(), 180);
     }, [isMobile, pathname]);
 
-    // Ctrl/⌘+K jumps to profile search: the on-page bar where one exists,
-    // otherwise the navbar popover. Esc closes the popover.
+    // Ctrl/⌘+K jumps to profile search: the on-page bar where one exists, otherwise the navbar popover
+    // Esc closes the popover
     useEffect(() => {
         const onKey = (event: KeyboardEvent) => {
             if ((event.key === 'k' || event.key === 'K') && (event.metaKey || event.ctrlKey)) {
@@ -86,8 +84,7 @@ export function Navigation() {
         return () => document.removeEventListener('keydown', onKey);
     }, [pathname, focusOnPageSearch]);
 
-    // Treat the mobile drawer as a modal: contain focus, make the page inert,
-    // preserve scroll state, and return focus to the menu button on close.
+    // Mobile drawer behaves as a modal: focus contained, page inert, scroll preserved, menu button refocused on close
     useEffect(() => {
         if (!isOpen || !isMobile || !sidebarRef.current) return;
 
@@ -160,13 +157,11 @@ export function Navigation() {
 
     const isActive = (path: string) => {
         if (path === '/') return pathname === '/';
-        // /profiles also owns the individual /profile/[uid] pages.
+        // /profiles also owns the individual /profile/[uid] pages
         if (path === '/profiles') return pathname.startsWith('/profile');
         return pathname.startsWith(path);
     };
 
-    // Profile lookup is the navbar search icon, not a text link; the /profiles
-    // directory stays reachable via the popover and footer.
     const navLinks = [
         { href: '/import', label: 'Import' },
         { href: '/profiles', label: 'Profiles' },

@@ -14,12 +14,11 @@ interface SubstatSummaryRowProps {
 }
 
 /**
- * Renders the per-stat substat tally pills + total RV. Lives inside the BuildProvider
- * scope so it reads `state.echoPanels` directly. Designed to sit inside the cardRef
- * capture area so it gets included in the downloaded PNG (Akasha-style).
+ * Per-stat substat tally pills and the total RV
  *
- * The owning profile card passes the same selection to this row and the echo panels,
- * so the interaction stays local to the one surface that exposes these controls.
+ * - Lives inside BuildProvider scope, so it reads `state.echoPanels` directly
+ * - Sits inside the cardRef capture area, so the downloaded PNG includes it
+ * - The owning card hands the same selection to this row and the echo panels, keeping the interaction on one surface
  */
 export const SubstatSummaryRow: React.FC<SubstatSummaryRowProps> = ({
   selectedSubstats,
@@ -50,7 +49,7 @@ export const SubstatSummaryRow: React.FC<SubstatSummaryRowProps> = ({
 
   if (detailSubstatSummary.length === 0) return null;
 
-  // Stat pills plus the RV pill decide how tightly the row is set.
+  // Stat pills plus the RV pill decide how tightly the row is set
   const summaryClasses = getSummaryRowClasses(detailSubstatSummary.length + 1, 'card');
 
   return (

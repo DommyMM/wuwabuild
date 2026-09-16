@@ -111,7 +111,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
       if (!panel.id) return;
       const echo = getEcho(panel.id);
       if (!echo) return;
-      // Stored set ID wins over the echo's intrinsic set so box echoes like Hecate work.
+      // Stored set ID wins over the echo's intrinsic set so box echoes like Hecate work
       const element = activeElementForPanel(panel, echo);
       if (element) {
         const echoSetKey = `${element}:${echo.id}`;
@@ -160,8 +160,7 @@ export function StatsProvider({ children }: StatsProviderProps) {
     });
 
     const seqBonuses = getSequenceBonuses(character);
-    // Always-on inherent-skill bonuses (e.g. Mornye Energy Regen +10%). Unlike
-    // sequence bonuses these have no gate — they apply like a base-stat change.
+    // Always-on inherent-skill bonuses (Mornye Energy Regen +10%, say), ungated so they land like a base-stat change
     const inherentBonuses = character.inherentBonuses ?? [];
     // For Rover, override element DMG bonus with the user's selected element
     const isRoverChar = isRover(character);
@@ -262,9 +261,9 @@ export function StatsProvider({ children }: StatsProviderProps) {
       baseValues[stat] = result.baseValue;
     });
 
-    // Always-on kit conversions run last, because they read finished stats:
-    // Jingran's ATK is derived from his Max HP after every HP% source has
-    // landed. Mirrors stat_conversions.go on the lb side.
+    // Always-on kit conversions run last because they read finished stats
+    // Jingran's ATK derives from Max HP once every HP% source has landed
+    // Mirrors the lb engine's stat conversions
     applyStatConversions(character.id, values, updates);
 
     return {

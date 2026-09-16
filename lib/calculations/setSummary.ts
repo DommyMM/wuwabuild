@@ -5,9 +5,7 @@ interface BuildSetCount {
   count: number;
 }
 
-// Count set pieces from the current echo panel state.
-// Mirrors the duplicate-echo handling used by stats calculations:
-// the same echo can count once per selected set, but not twice within one set.
+/** An echo counts once per selected set and never twice within one set, matching the stats calculations */
 export function getBuildSetCounts(
   echoPanels: EchoPanelState[],
   getEcho: (id: string | null) => Echo | null

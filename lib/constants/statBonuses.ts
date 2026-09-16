@@ -5,9 +5,12 @@ import { StatName } from '@/lib/constants/statMappings';
 export const ROVER_ELEMENTS = ['Spectro', 'Aero', 'Electro', 'Havoc'] as const;
 const ROVER_ELEMENT_SET = new Set<string>(ROVER_ELEMENTS);
 
-// Checks whether an echo's characterCondition list matches the current character.
-// Empty/absent conditions match everyone. Named tokens match by character name;
-// element tokens (Aero/Havoc/Spectro) match Rover by active element.
+/**
+ * Whether an echo's characterCondition list matches the current character
+ *
+ * - Empty or absent conditions match everyone
+ * - A named token matches by character name, an element token matches Rover by active element
+ */
 export const matchesEchoBonusCondition = (
   conditions: string[] | undefined,
   characterName: string | undefined,
@@ -26,8 +29,6 @@ export const matchesEchoBonusCondition = (
   });
 };
 
-// First-panel conditional/unconditional stat bonuses per echo
-
 interface EchoBonus {
   stat: StatName;
   value: number;
@@ -40,19 +41,19 @@ export const getEchoBonus = (echo: Echo): ReadonlyArray<EchoBonus> | null =>
 export const hasPhantomVariant = (echo: Echo): boolean =>
   echo.phantomIconUrl !== undefined;
 
-// Unconditional passive stat bonuses from resonance chains
-
+/** Unconditional passive stat bonus from a resonance chain, `minSequence` counting from 1 */
 export interface SequenceBonus {
   minSequence: number;
   stat: StatName;
   value: number;
 }
 
-// Mirrors the backend's `_skip_sequence_bonus` (sync_lb.py): a `chain.bonus`
-// whose value disagrees with the chain's first param was authored against a
-// different (usually conditional or move-scoped) clause and must not be applied
-// as a flat panel stat. e.g. Lucy S3 parses "...its Crit. DMG is increased by
-// 100%" with param[0]=50 — the +100% scopes to the Override move, not her stat.
+/**
+ * Whether a `chain.bonus` agrees with the chain's first param, mirroring `_skip_sequence_bonus` in scripts/sync_lb.py
+ *
+ * - A disagreeing value was authored against a conditional or move-scoped clause, so it is not a flat panel stat
+ * - Lucy S3 parses "...its Crit. DMG is increased by 100%" with param[0]=50, the +100% scoping to the Override move
+ */
 const sequenceBonusMatchesHeadlineParam = (
   bonus: { value: number },
   params: string[] | undefined

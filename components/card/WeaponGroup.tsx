@@ -7,10 +7,11 @@ import { RARITY_ACCENTS } from '@/components/weapon/rarityStyles';
 import { WeaponHoverCard } from '@/components/weapon/WeaponHoverCard';
 import { StatHoverKey } from '@/lib/constants/statHover';
 
-// Design-space font sizes for the weapon name: the card's 2xl, shrinking for
-// long names down to base. Measured 2026-09-06 in Plus Jakarta: the slot beside
-// the icon is ~250px, and 9 of 122 English names (up to "Thousandfold
-// Deliverance") plus 92 of 610 Latin-script names overflow it at 24px.
+/**
+ * Design-space font sizes for the weapon name, from the card's 2xl down to base
+ *
+ * - The slot beside the icon is ~250px, which the longest English and Latin-script names overflow at 24px
+ */
 const WEAPON_NAME_MAX_PX = 24;
 const WEAPON_NAME_MIN_PX = 16;
 
@@ -48,11 +49,9 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
   const translatedWeaponName = t(weapon.nameI18n ?? { en: weapon.name });
   const displayedWeaponName = translatedWeaponName || weapon.name;
   const weaponNameRef = useRef<HTMLSpanElement>(null);
-  // Shrink the name until it fits its slot, measured on the real DOM so every
-  // face and script is exact; `truncate` on the span makes scrollWidth report
-  // the full text width. Written straight onto the node: it is a layout fact,
-  // not app state. Re-measured once web fonts land, since the first paint can
-  // be in the fallback face.
+  // Measured on the real DOM so every face and script is exact, and `truncate` makes scrollWidth report full text width
+  // Written straight onto the node because it is a layout fact, not app state
+  // Re-measured once web fonts land, since the first paint can be in the fallback face
   useLayoutEffect(() => {
     let cancelled = false;
     const measure = () => {
@@ -108,9 +107,8 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
         </div>
       </WeaponHoverCard>
       <div className="flex min-w-0 flex-col justify-center gap-1.5">
-        {/* Same weight and color as the character name in NameGroup. Long names
-            shrink to fit the slot (see WEAPON_NAME_*); `truncate` remains the
-            floor's safety net and keeps the export's no-wrap invariant. */}
+        {/* Same weight and color as the character name in NameGroup, with long names shrunk to fit the slot
+            `truncate` is the safety net at the size floor and keeps the export's no-wrap invariant */}
         <span ref={weaponNameRef} className={`-mx-2 -my-1.5 truncate px-2 py-1.5 text-2xl leading-tight text-white transition-[color,filter,opacity,transform] duration-200 ${nameInteractionClass}`}>
           {displayedWeaponName}
         </span>

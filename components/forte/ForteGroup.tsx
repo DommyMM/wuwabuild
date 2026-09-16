@@ -18,7 +18,7 @@ interface ForteGroupProps {
   className?: string;
 }
 
-// Ascending pyramid offsets: outer cols lowest, center highest
+/** Pyramid offsets: outer columns sit lowest, the center highest */
 const BRANCH_OFFSETS = ['', 'mb-8', 'mb-12', 'mb-8', ''];
 
 export const ForteGroup: React.FC<ForteGroupProps> = ({
@@ -31,24 +31,22 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
   compact = false,
   className = '',
 }) => {
-  // Bonus stats
   const { bonus1Total, bonus2Total } = useMemo(
     () => calculateForteBonus(character, forte),
     [character, forte],
   );
   const bonus1Type = character.Bonus1;
 
-  // Use CDN node icons directly (tree1 for bonus1, tree2 for bonus2)
+  // tree1 feeds bonus1, tree2 feeds bonus2
   const bonus1Icon = character.forteNodes?.['tree1.top']?.icon ?? '';
   const bonus2Icon = character.forteNodes?.['tree2.top']?.icon ?? '';
 
-  // Format bonus display, percentages get %, flat stats don't
+  // Every forte bonus is a percentage, so the type is never consulted
   const formatBonus = (type: string, value: number) => {
     if (value === 0) return `+0%`;
     return `+${value.toFixed(1)}%`;
   };
 
-  // Handlers
   const handleNodeClick = useCallback(
     (col: number, position: 'top' | 'middle') => {
       const current = forte[col];

@@ -11,9 +11,9 @@ interface ProfileSwitcherProps {
 }
 
 /**
- * Local profile tray for hopping between pinned and recently opened players.
- * This intentionally behaves like a lightweight workspace: pin keeps a player,
- * x closes a recent, and nothing here is synced or public.
+ * Device-local tray for hopping between pinned and recently opened players
+ *
+ * - Pin keeps a player, x closes a recent, and nothing here is synced or public
  */
 export function ProfileSwitcher({ currentUid }: ProfileSwitcherProps) {
   const pinned = useSyncExternalStore(subscribeProfileHistory, getPinnedProfilesSnapshot, getProfilesServerSnapshot);
@@ -72,8 +72,7 @@ export function ProfileSwitcher({ currentUid }: ProfileSwitcherProps) {
                   </span>
                 </span>
               </Link>
-              {/* Starred tabs trade the close button for a star, browser-style:
-                  starred means it stays, so there is nothing to close. */}
+              {/* Starred tabs trade the close button for a star, browser-style, since a starred tab stays anyway */}
               {entry.isPinned ? (
                 <span
                   className="mr-1 grid h-6 w-6 shrink-0 place-items-center text-accent"

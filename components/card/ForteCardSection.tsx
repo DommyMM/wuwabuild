@@ -113,9 +113,11 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
     if (!value) return '';
     return typeof value === 'string' ? value : t(value);
   };
-  // character.inherentBonuses carries no move pointer, so attribute each always-on
-  // bonus (e.g. Mornye ER +10%) to the inherent skill whose EN description names
-  // the stat — the sync parser only emits bonuses lifted verbatim from that text.
+  /**
+   * Attributes an always-on bonus (Mornye ER +10%, say) to the inherent skill whose EN description names the stat
+   *
+   * - character.inherentBonuses carries no move pointer, and the sync parser emits only bonuses lifted from that text
+   */
   const inherentHoverKeysFor = (move: MoveEntry | undefined): StatHoverKey[] => {
     const bonuses = character.inherentBonuses ?? [];
     if (!move || bonuses.length === 0) return [];
@@ -171,7 +173,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
       />
     ) : undefined;
 
-    // The level chip labels the value rows below, which are read at this level.
+    // Level chip labels the value rows below, which are read at this level
     const chips: HoverCardChipModel[] = [{ label: options.label }];
     chips.push({ label: `Lv.${level}` });
 
@@ -237,8 +239,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
         const selectedLevel = Math.max(1, Math.min(10, level));
         const topInherentMove = isCircuit ? inherentMoves[0] : undefined;
         const midInherentMove = isCircuit ? inherentMoves[1] : undefined;
-        // Stat nodes (trees 1/2/4/5) link by their own stat name; circuit nodes
-        // link by the inherent-skill bonuses attributed to their move.
+        // Stat nodes link by their own stat name, while circuit nodes link by the inherent-skill bonuses on their move
         const toHoverKeys = (key: StatHoverKey | null): StatHoverKey[] => (key ? [key] : []);
         const topNodeHoverKeys = isCircuit
           ? inherentHoverKeysFor(topInherentMove)
@@ -276,9 +277,8 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
                 <img src={skillIcon} alt={branch.skillName} className="h-5 w-5 -rotate-45 object-contain brightness-0" />
               )}
             </div>
-            {/* A <div>, not a <span>: snapdom drops `width` from text-carrying
-                inline tags and skips its min-width fallback for flex children,
-                so a span here exports as a pill collapsed to the digits. */}
+            {/* A div, not a span, because snapdom drops `width` from text-carrying inline tags
+                It also skips its min-width fallback for flex children, so a span exports as a pill collapsed to the digits */}
             <div
               className={`flex h-5 w-8 items-center justify-center rounded-full border text-xs font-bold leading-none whitespace-nowrap tabular-nums shadow-[0_1px_4px_rgba(0,0,0,0.45)] z-2 transition-[background-color,border-color,box-shadow,color,filter,opacity,transform] duration-200 ${
                 isMaxLevel

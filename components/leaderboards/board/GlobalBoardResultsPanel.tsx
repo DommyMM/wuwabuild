@@ -15,7 +15,7 @@ import { SortHeaderMenu, SortMenuOption } from '../SortHeaderMenu';
 import { StatSortKey } from '../types';
 import { useScrollportVar } from '../useScrollportVar';
 
-// The gate re-arms daily: the stored value is the date it was last dismissed.
+/** The gate re-arms daily, so the stored value is the date it was last dismissed */
 const TABLE_GATE_STORAGE_KEY = 'builds_gate_dismissed';
 const todayStamp = (): string => new Date().toISOString().slice(0, 10);
 
@@ -389,9 +389,8 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
         </div>
 
         {showBuildTableGate && (
-          /* Anchored to this viewport-width wrapper, NOT the w-max scroll
-             content: inside the scroller the card centers within ~1360px of
-             table and lands entirely off-screen on phones. */
+          /* Anchored to this viewport-width wrapper, not the w-max scroll content
+             Inside the scroller the card centres within ~1360px of table and lands off-screen on phones */
           <div
             onClick={dismissTableGate}
             className="absolute inset-0 z-30 flex cursor-pointer items-center justify-center bg-background/15 px-4 transition-colors duration-200 hover:bg-background/22"

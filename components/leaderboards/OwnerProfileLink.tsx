@@ -11,15 +11,11 @@ interface OwnerProfileLinkProps {
 }
 
 /**
- * Owner identity cell that doubles as the entry point to a player's profile.
+ * Owner identity cell that doubles as the entry point to a player's profile
  *
- * It lives inside a leaderboard row that is itself a click-to-expand button, so
- * the link stops propagation (click + keyboard) to navigate instead of toggling
- * the row. The row keeps its own hover/expand affordance; the name layers a
- * distinct accent+underline hover so the two targets read as separate intents.
- *
- * Falls back to plain, non-interactive text when there is no uid to route to
- * (anonymous / un-routable rows).
+ * - Stops click and keyboard propagation, since the surrounding row is itself a click-to-expand button
+ * - The name layers its own accent and underline hover, so the two targets read as separate intents
+ * - Falls back to plain text on a row with no uid to route to
  */
 export const OwnerProfileLink: React.FC<OwnerProfileLinkProps> = ({ uid, username, regionBadge }) => {
   const label = username || 'Anonymous';

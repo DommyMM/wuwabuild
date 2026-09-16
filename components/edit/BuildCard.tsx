@@ -33,11 +33,7 @@ interface BuildCardProps {
   onArtTransformChange: (next: CardArtTransform) => void;
   onVisualReady?: () => void;
   selectedSubstats?: ReadonlySet<string>;
-  /**
-   * Replaces the default <ForteCardSection> slot. Profile cards pass
-   * <TalentPills/> + <RankModule/> here so they share the same overall card
-   * skeleton as the editor.
-   */
+  /** Replaces the default ForteCardSection slot, letting profile cards fit a rank module into the editor's skeleton */
   forteSection?: React.ReactNode;
 }
 

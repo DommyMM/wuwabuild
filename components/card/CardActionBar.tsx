@@ -20,9 +20,9 @@ interface CardActionBarProps {
   onResetArtTransform: () => void;
   onRemoveCustomArt: () => void;
 
-  /** Extra buttons rendered after Download (e.g. ranking switcher). */
+  /** Extra buttons rendered after Download, such as the ranking switcher */
   extraActions?: React.ReactNode;
-  /** Optional wrapper className override. Default places the bar at the left. */
+  /** Overrides the wrapper class, which otherwise places the bar at the left */
   className?: string;
 }
 

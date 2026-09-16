@@ -1,20 +1,21 @@
 """Shared sanitizer for Kuro's in-game rich text.
 
-Every sync script writes the same kind of string: game description text carrying
-control tokens (``{Cus:...}``), layout tags (``<size=...>``), semantic colour
-tags (``<color=Highlight>``) and glossary links (``<te href=850008>``).
+Every sync script writes the same shape of string: description text carrying control tokens (``{Cus:...}``),
+layout tags (``<size=...>``), semantic colour tags (``<color=Highlight>``) and glossary links (``<te href=850008>``).
 
-What survives into ``public/Data`` and why:
+What survives into ``public/Data``:
 
-* ``{0}`` placeholders stay, paired with the entry's own ``param`` array, so the
-  frontend can highlight resolved values instead of baking them into the prose.
-* ``<color=...>`` stays: the renderer maps the semantic name onto our palette.
-* ``<te href=N>`` stays. ``N`` is a TermConfig id, and keeping it is what lets a
-  keyword open its glossary card. Everything downstream that wants plain text
-  (``sync_lb``, matching heuristics) strips all tags anyway.
-* ``{Cus:Ipt,...}`` resolves to its PC label, ``{Cus:Sap,...}`` to the singular
-  or plural noun, and ``<SapTag=...>`` wrappers are dropped once read. Anything
-  else in braces is a control token with no player-facing meaning.
+``{0}`` placeholders, paired with the entry's own ``param`` array, so the frontend can highlight resolved values
+``<color=...>``, because the renderer maps the semantic name onto our palette
+``<te href=N>``, because ``N`` is a TermConfig id and that is what opens a keyword's glossary card
+
+What is resolved away:
+
+``{Cus:Ipt,...}`` becomes its PC label and ``{Cus:Sap,...}`` the singular or plural noun
+``<size=...>`` and ``<SapTag=...>`` wrappers are dropped once read
+Anything else in braces is a control token with no player-facing meaning
+
+Plain-text consumers (``sync_lb``, matching heuristics) strip every tag anyway.
 """
 
 from __future__ import annotations
@@ -25,21 +26,19 @@ from typing import Any
 NUMBER_TOKEN_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
 PLACEHOLDER_PATTERN = re.compile(r"\{\d+\}")
 NON_PARAM_BRACE_TOKEN_PATTERN = re.compile(r"\{(?!\d+\})[^{}]+\}")
-# Platform-input tokens like {Cus:Ipt,Touch=Tap PC=Press Gamepad=Press}: keep the
-# PC label ("Press") instead of dropping the verb from the sentence.
+# Platform-input token {Cus:Ipt,Touch=Tap PC=Press ...}, keep the PC label so the verb stays in the sentence
 INPUT_TOKEN_PATTERN = re.compile(r"\{Cus:Ipt[^{}]*?PC=([^,}\s]+)[^{}]*\}", re.IGNORECASE)
 SIZE_TAG_PATTERN = re.compile(r"</?size(?:=[^>]+)?>", re.IGNORECASE)
 SAP_TAG_PATTERN = re.compile(r"</?SapTag[^>]*>", re.IGNORECASE)
-# Singular/plural tokens like {Cus:Sap,S=stack P=stacks SapTag=A}: the count that
-# decides the form is wrapped nearby as <SapTag=A>1</SapTag>. Dropping the token
-# leaves the noun out of the sentence ("1 of Swordlight Ward"), so resolve it.
-# Tags are usually numeric (SapTag=0) and occasionally alphabetic, so both count.
+# Singular/plural token {Cus:Sap,S=stack P=stacks SapTag=A}, deciding count wrapped nearby as <SapTag=A>1</SapTag>
+# Dropping the token leaves the noun out of the sentence ("1 of Swordlight Ward"), so resolve it instead
+# Tags are usually numeric (SapTag=0) and occasionally alphabetic, so \w has to match both
 SAP_COUNT_PATTERN = re.compile(r"<SapTag=(\w+)>(.*?)</SapTag>", re.IGNORECASE | re.DOTALL)
 SAP_TOKEN_PATTERN = re.compile(
     r"\{Cus:Sap,\s*S=(.*?)\s+P=(.*?)\s+SapTag=(\w+)\s*\}",
     re.IGNORECASE,
 )
-# Glossary links, e.g. <te href=850008>Spectro Frazzle</te>.
+# Glossary link, e.g. <te href=850008>Spectro Frazzle</te>
 TERM_LINK_PATTERN = re.compile(r"<te\s+href=(\d+)\s*>(.*?)</te>", re.IGNORECASE | re.DOTALL)
 TERM_ID_PATTERN = re.compile(r"<te\s+href=(\d+)", re.IGNORECASE)
 
@@ -47,20 +46,15 @@ TERM_ID_PATTERN = re.compile(r"<te\s+href=(\d+)", re.IGNORECASE)
 def _resolve_sap_tokens(value: str) -> str:
     """Replace {Cus:Sap,...} tokens with the singular or plural noun.
 
-    The form is chosen from the count the token points at (`<SapTag=A>1</SapTag>`
-    → singular, anything else → plural, including an unresolved `{N}` placeholder).
-    Some source strings already spell the noun out right after the token
-    ("applies 2 {Cus:Sap,S=stack P=stacks SapTag=A} stacks of ..."), so a word
-    that would immediately repeat itself is dropped instead of duplicated.
+    Form comes from the count the token points at: `<SapTag=A>1</SapTag>` is singular, anything else plural
+    Some source strings already spell the noun out after the token, so a word that would repeat is dropped
     """
     if "{Cus:Sap" not in value:
         return value
 
-    # The wrapper usually holds a placeholder rather than a literal
-    # (`<SapTag=1>{1}</SapTag>`). Stripping only the control tokens would leave
-    # the placeholder's own index behind, and `{1}` would read as the number one
-    # and pick the singular. Drop placeholders too, so an unresolved count falls
-    # through to the plural.
+    # Wrapper usually holds a placeholder rather than a literal (`<SapTag=1>{1}</SapTag>`)
+    # Stripping only control tokens leaves the index behind, and `{1}` would read as one and pick the singular
+    # So placeholders go too, letting an unresolved count fall through to the plural
     counts = {
         tag.upper(): re.sub(
             r"[^0-9.]", "",
@@ -143,16 +137,6 @@ def strip_term_links(value: str) -> str:
     return TERM_LINK_PATTERN.sub(r"\2", value or "")
 
 
-# --- Encore markup normalization -------------------------------------------
-#
-# Encore serves the same strings as Wuthery but pre-rendered for its own site:
-# `<br>` instead of newlines, inline hex spans instead of the game's semantic
-# colour names, and a stray `</span>` wherever its template closed a wrapper it
-# never opened. Left alone that costs us three things: the frontend palette only
-# understands `<color=Name>`, `sync_lb` splits move descriptions on blank lines
-# that no longer exist, and the markup does not round-trip. So anything sourced
-# from Encore is normalized back to the game's own conventions first.
-
 _ENCORE_COLOR_NAMES = {
     "#ffd12f": "Highlight",
     "#f8e56cff": "Light",    # Spectro
@@ -166,7 +150,7 @@ _ENCORE_COLOR_NAMES = {
 _ENCORE_TOKEN_PATTERN = re.compile(r"<[^<>]*>", re.DOTALL)
 _ENCORE_BR_PATTERN = re.compile(r"<br\s*/?>", re.IGNORECASE)
 _ENCORE_COLOR_VALUE_PATTERN = re.compile(r"color\s*:\s*([#\w]+)", re.IGNORECASE)
-# Section headings arrive as an oversized span; the game marks them <color=Title>.
+# Section headings arrive as an oversized span where the game marks them <color=Title>
 _ENCORE_HEADING_PATTERN = re.compile(r"font-whitney|text-3xl", re.IGNORECASE)
 
 
@@ -180,7 +164,11 @@ def _encore_color_name(tag: str) -> str:
 
 
 def normalize_encore_markup(value: str) -> str:
-    """Rewrite Encore's HTML back into the game's own markup, then sanitize."""
+    """Rewrite Encore's HTML back into the game's own markup, then sanitize.
+
+    Encore pre-renders for its own site: `<br>` for newlines, inline hex spans for the game's colour names
+    Left alone the frontend palette sees no `<color=Name>` and `sync_lb` finds no newlines to split buff text on
+    """
     if not value:
         return ""
 
@@ -198,12 +186,11 @@ def normalize_encore_markup(value: str) -> str:
             out.append(f"<color={name}>")
             open_colors.append(name)
         elif lowered.startswith("</span"):
-            # Encore emits more closers than openers; drop the surplus.
+            # Encore's template emits more closers than openers, so drop the surplus
             if open_colors:
                 name = open_colors.pop()
                 out.append("</color>")
-                # Section headings own their line in the game's text; Encore
-                # folds them into the paragraph that follows.
+                # Section headings own their line in the game's text, Encore folds them into the next paragraph
                 if name == "Title":
                     out.append("\n")
         else:
@@ -212,8 +199,7 @@ def normalize_encore_markup(value: str) -> str:
     out.append("</color>" * len(open_colors))
 
     normalized = "".join(out)
-    # A truncated payload can end mid-tag. Nothing downstream recognizes an
-    # unterminated tag, so it would render as literal "<span style=..." text.
+    # A truncated payload can end mid-tag, which nothing downstream recognizes, so it would render as literal text
     normalized = re.sub(r"<[^<>]*$", "", normalized)
     normalized = re.sub(r"[ \t]*\n[ \t]*", "\n", normalized)
     normalized = re.sub(r"\n{3,}", "\n\n", normalized)

@@ -162,21 +162,22 @@ function canonicalUpgradeSort(
   return [...ordered, ...leftovers];
 }
 
-// One row of equal-width controls under the card: the surface's action first
-// (View in Profile / Open in Editor), then the bench sections. The sections are
-// disclosures, not tabs: any number can be open, and their panels stack below
-// the row in the same left-to-right order as the buttons. An open button holds
-// the accent border so the row itself says what is open.
+/**
+ * One equal-width control in the row under the card, the surface's action first and the bench sections after
+ *
+ * - Disclosures rather than tabs, so any number can be open and their panels stack below in button order
+ * - An open button holds the accent border, so the row itself says what is open
+ */
 const CONTROL_CLASS = 'flex w-43 cursor-pointer items-center justify-center gap-2 rounded border bg-background-secondary px-4 py-2 text-xs font-semibold transition-[color,border-color,transform] duration-150 hover:border-accent/60 hover:text-text-primary active:scale-[0.98] motion-reduce:transition-none';
 const CONTROL_REST_CLASS = 'border-border text-text-primary/75';
 const CONTROL_OPEN_CLASS = 'border-accent/60 text-text-primary';
 const ACTION_BUTTON_CLASS = `${CONTROL_CLASS} ${CONTROL_REST_CLASS}`;
-// The expanded row can be wider than the viewport (its design-space content is
-// reached by the table's horizontal scroll), so a row centered in it would sit
-// half a screen off. Capping the row to the scroller's visible width
-// (--scrollport, useScrollportVar) puts its centre on screen at rest; scroll
-// sideways and the controls scroll away with everything else. Inert when the
-// table fits, where the cap is wider than the row.
+/**
+ * Caps the control row to the scroller's visible width, published as `--scrollport` by useScrollportVar
+ *
+ * - The expanded row can be wider than the viewport, so a row centred in it would rest half a screen off
+ * - Inert when the table fits, because the cap is then wider than the row
+ */
 const CONTROL_ROW_CLASS = 'w-full max-w-(--scrollport,none)';
 
 const SectionToggle: React.FC<{
@@ -210,11 +211,11 @@ interface BuildSimulationSectionProps {
   baseDamage?: number;
   globalRank?: number;
   currentScoring?: ScoringMode;
-  /** Leaderboard surfaces: hand the reader to the owner's profile, where the full card lives. */
+  /** Leaderboard surfaces hand the reader to the owner's profile, where the full card lives */
   viewProfileHref?: string;
-  /** Analytics hook for the profile link; navigation is the Link's own. */
+  /** Analytics hook only, since the Link owns the navigation */
   onViewProfile?: () => void;
-  /** Profile surface (or an anonymous build with no profile to go to): load the build into the editor. */
+  /** Loads the build into the editor, for the profile surface and for a build with no profile to go to */
   onOpenInEditor?: () => void;
 }
 
@@ -246,7 +247,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   const [selectedUpgradeTier, setSelectedUpgradeTier] = useState<UpgradeTierKey>('median');
 
   const hasBoardContext = buildId.length > 0 && activeWeaponId.length > 0 && activeTrackKey.length > 0;
-  // Moves, upgrades and the benchmark are all scoped to one build on one board.
+  // Moves, upgrades and the benchmark are all scoped to one build on one board
   const boardKey = `${buildId}:${activeWeaponId}:${activeTrackKey}`;
   const weapon = getWeapon(activeWeaponId);
   const weaponName = weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : activeWeaponId;
@@ -271,16 +272,15 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
     fetch: (signal) => getBoardOptimality(characterId, activeWeaponId, activeTrackKey, buildId, signal),
     errorMessage: transportError('Failed to load reference benchmark.'),
   });
-  // The distribution describes the board, not the build, so it keys on the board
-  // alone: every row of a board shares one payload and one cache entry.
+  // Keyed on the board alone because the distribution describes the board, so every row shares one cache entry
   const distributionResource = useKeyedResource<LBBoardDistribution | null>({
     key: hasBoardContext ? `${characterId}:${activeWeaponId}:${activeTrackKey}` : '',
     enabled: isExpanded && isDistributionOpen && hasBoardContext,
     fetch: (signal) => getBoardDistribution(characterId, activeWeaponId, activeTrackKey, signal),
     errorMessage: transportError('Failed to load board distribution.'),
   });
-  // Standings span every board this build appears on, so they key on the build
-  // alone. The transport error is swallowed for a reader-facing message.
+  // Keyed on the build alone because standings span every board it appears on
+  // The transport error is swallowed for a reader-facing message
   const standingsResource = useKeyedResource<LBStandingEntry[]>({
     key: characterId && buildId ? `${characterId}:${buildId}` : '',
     enabled: isExpanded && isStandingsOpen,
@@ -381,8 +381,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   const boardTitle = `${weaponName} \u2022 ${trackLabel}`;
 
   return (
-    // Width comes from the host shell so every section of the expanded row
-    // shares one measure; this component never sets its own max-width.
+    // Width comes from the host shell so every section of the expanded row shares one measure
     <div className="relative w-full space-y-3 font-plus-jakarta">
       <div className={CONTROL_ROW_CLASS}>
         <div className="flex flex-wrap justify-center gap-2">

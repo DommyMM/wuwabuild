@@ -3,9 +3,9 @@ import { toMainStatUrlKey } from '@/lib/mainStatFilters';
 import { normalizeSequences, STAT_OPTION_KEYS } from './constants';
 
 /**
- * Compare normalized API rows by their complete rendered payload. Partial
- * signatures can miss owner/profile/stat changes and leave a successfully
- * revalidated table showing stale data.
+ * Compares normalized API rows by their whole rendered payload
+ *
+ * - A partial signature misses owner, profile and stat changes, leaving a revalidated table showing stale data
  */
 export function createRowsSignature<T>(rows: readonly T[], total: number): string {
   return JSON.stringify({ total, rows });
@@ -57,7 +57,7 @@ export function parseEchoMainCSV(value: string | null): LBEchoMainFilter[] {
     .filter((entry): entry is LBEchoMainFilter => entry !== null);
 }
 
-/** Parse a CSV of card-sequence levels (e.g. "0,4,6") into a normalized level set. */
+/** Normalized level set from a CSV of card-sequence levels like "0,4,6" */
 export function parseSequences(value: string | null): number[] {
   if (!value) return [];
   return normalizeSequences(
@@ -65,7 +65,7 @@ export function parseSequences(value: string | null): number[] {
   );
 }
 
-// Parses dot-joined stat thresholds, each `<sortKey>:<gte|lte>:<value>`.
+/** Parses dot-joined stat thresholds, each `<sortKey>:<gte|lte>:<value>`, dropping any entry that does not parse */
 export function parseStatThresholds(value: string | null): LBStatThreshold[] {
   if (!value) return [];
   return value
@@ -81,7 +81,7 @@ export function parseStatThresholds(value: string | null): LBStatThreshold[] {
     .filter((entry): entry is LBStatThreshold => entry !== null);
 }
 
-/** Serialize stat thresholds into the dot-joined URL form used by parseStatThresholds. */
+/** Serializes stat thresholds into the dot-joined URL form parseStatThresholds reads */
 export function serializeStatThresholds(filters: LBStatThreshold[]): string {
   return filters
     .filter((entry) => STAT_OPTION_KEYS.includes(entry.stat as (typeof STAT_OPTION_KEYS)[number]))

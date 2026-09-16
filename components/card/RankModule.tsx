@@ -8,7 +8,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { WeaponHoverCard } from '@/components/weapon/WeaponHoverCard';
 
 export interface RankBoard {
-  /** Unique standing key. Used by AdjustRankingButton to identify the active board. */
+  /** Standing key `weaponId:trackKey`, which AdjustRankingButton matches to find the active board */
   key: string;
   rank: number;
   total: number;
@@ -45,19 +45,19 @@ interface RankModuleProps {
   board: RankBoard | null;
   team?: RankTeamMember[];
   loading?: boolean;
-  /** Leaderboard deep link for the shown board. Makes the grade + board identity one link. */
+  /** Leaderboard deep link for the shown board, which makes the grade and the board identity one link */
   boardHref?: string | null;
 }
 
 const formatNumber = (value: number): string => Math.round(value).toLocaleString();
-// Board totals abbreviate at five digits so the line survives boards growing 100x.
+/** Abbreviates at five digits, so the line survives boards growing 100x */
 const formatTotal = (value: number): string => {
   if (value < 10_000) return formatNumber(value);
   const thousands = value / 1000;
   const text = thousands >= 100 ? Math.round(thousands).toString() : thousands.toFixed(1).replace(/\.0$/, '');
   return `${text}k`;
 };
-// Precision scaled to real granularity (largest board ~2k builds → ~0.05% steps).
+/** Precision scaled to real granularity, since the largest board at ~2k builds moves in ~0.05% steps */
 const formatPct = (value: number): string => {
   if (value < 0.01) return '<0.01';
   if (value < 10) return value.toFixed(2);
@@ -68,8 +68,7 @@ const cleanBoardTrackLabel = (board: RankBoard): string => (
   stripLBSeqPrefix(board.trackLabel || board.trackKey).replace(/\s+S\d+$/u, '')
 );
 
-// Badges and gear sit ON the portrait (inset corner badge, icons overlapping the
-// bottom edge) so the support unit stays compact and nothing fights the module border.
+/** Badge and gear icons sit on the portrait itself, so the support unit stays compact and clear of the module border */
 const SupportAvatar: React.FC<{ member: RankTeamMember }> = ({ member }) => (
   <div
     role="img"
@@ -116,7 +115,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
   const tierStyle = board ? getRankTier(board.topPercent) : null;
   const rankColor = tierStyle?.color ?? 'rgba(224,224,224,0.4)';
   const rankGlow = tierStyle?.glow;
-  // Lead is implied by the card itself; keep this strip focused on board + supports.
+  // The card itself already names the lead, so this strip stays on board and supports
   const supports = team.filter((member) => !member.isLead);
   const empty = !loading && !board;
   const boardSeqClass = board && board.sequence > 0
@@ -124,9 +123,8 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
     : 'border-white/14 bg-black/35 text-text-primary/55';
   const boardWeapon = getWeapon(board?.weaponId ?? null);
   const boardWeaponTrigger = board?.weaponIcon ? (
-    /* <div> so the card export keeps the 44px frame: snapdom strips `width`
-       from inline tags that carry content and does not restore it on a flex
-       child, which collapsed this box to the 32px icon inside it. */
+    /* A div, not a span, so the export keeps the 44px frame
+       snapdom strips `width` from inline tags that carry content and never restores it on a flex child, collapsing this to 32px */
     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/12 bg-black/40 shadow-[0_5px_14px_rgba(0,0,0,0.35)]">
       <span
         role="img"
@@ -141,7 +139,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
     <div
       className="panel-glass relative flex h-22.5 w-fit max-w-105 items-stretch gap-2.5 overflow-visible py-2.5 pr-3.5 pl-4"
     >
-      {/* Tier-tinted glow bloom behind the hero number, reinforcing the tier-colored percentile. */}
+      {/* Tier-tinted glow bloom behind the hero number, reinforcing the tier-colored percentile */}
       {rankGlow && !loading && board && (
         <span
           className="pointer-events-none absolute top-1/2 left-4 h-14 w-14 -translate-y-1/2 rounded-full opacity-36 blur-2xl"
@@ -149,14 +147,13 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
         />
       )}
 
-      {/* The grade and the board identity are one target: the board this rank
-          was measured on. As a link it lights the track label and the rank on
-          hover and puts the board URL in the status bar; the supports stay
-          outside it since they carry their own hover cards. */}
+      {/* Grade and board identity are one target, the board this rank was measured on
+          As a link it lights the track label and rank on hover and puts the board URL in the status bar
+          Supports stay outside it because they carry their own hover cards */}
       {(() => {
         const zones = (
           <>
-      {/* Zone 1, the grade: percentile (tier color) + absolute rank. */}
+      {/* Zone 1, the grade: tier-colored percentile above the absolute rank */}
       <div className="relative flex w-20 shrink-0 flex-col justify-center">
         {empty ? (
           <span className="font-gowun text-[18px] font-bold text-text-primary/30">Not ranked</span>
@@ -190,7 +187,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
         )}
       </div>
 
-      {/* Board identity: weapon + promoted track, sequence (and ER bracket) underneath. */}
+      {/* Board identity: weapon and promoted track, with sequence and ER bracket underneath */}
       {!empty && (
         <div className="flex min-w-0 items-center gap-2.5">
           {boardWeapon && boardWeaponTrigger ? (
@@ -204,7 +201,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
             </WeaponHoverCard>
           ) : boardWeaponTrigger}
           {board && !loading && (
-            /* The module is w-fit, so this column sits at max-content and its width IS the label's width */
+            /* The module is w-fit, so this column sits at max-content and takes the label's width */
             <div className="flex min-w-fit flex-col justify-center gap-1.5">
               <div className="-mx-2 -my-1.5 max-w-44 truncate px-2 py-1.5 font-ropa text-[13px] leading-none tracking-[0.08em] text-text-primary/90 uppercase decoration-accent/70 underline-offset-4 transition-colors group-hover/board:text-accent group-hover/board:underline">
                 {cleanBoardTrackLabel(board)}
@@ -239,7 +236,7 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
         );
       })()}
 
-      {/* Supports for the active board (lead omitted). */}
+      {/* Supports for the active board, lead omitted */}
       {supports.length > 0 && (
         <div className="ml-1 flex shrink-0 items-center gap-3">
           {supports.map((member) => (

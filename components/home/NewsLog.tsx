@@ -2,7 +2,7 @@ import { CHANGELOG } from '@/lib/changelog';
 import type { ChangeKind } from '@/lib/changelog';
 import { HomeLink } from './HomeLink';
 
-// Same chip language as the /changelog page, so the voice reads identical in both places.
+/** Same chip language as the /changelog page, so both read in one voice */
 const kindStyles: Record<ChangeKind, { label: string; className: string }> = {
     new: { label: 'New', className: 'border-aero/30 bg-aero/8 text-aero' },
     improved: { label: 'Improved', className: 'border-accent/30 bg-accent/10 text-accent' },
@@ -17,10 +17,9 @@ function formatDate(iso: string): string {
     });
 }
 
-/** The akasha-news of this site: latest changelog entries verbatim, the maintainer's voice intact. */
+/** Latest changelog entries verbatim, in the maintainer's voice */
 export function NewsLog() {
-    // More than the window can show; the overflow fades out so the column height stays
-    // fixed at LOG_WINDOW regardless of how wordy recent entries are.
+    // More entries than the window shows, so the overflow fades and the column height holds however wordy they are
     const entries = CHANGELOG.slice(0, 5);
     if (entries.length === 0) return null;
 
@@ -40,7 +39,7 @@ export function NewsLog() {
                 <span className="font-mono text-2xs text-text-primary/40">from the changelog</span>
             </div>
 
-            {/* Height budget pairs with BoardIndex (VISIBLE_BOARDS 60px rows): 544 + header + link ≈ 9 rows + header + footer. */}
+            {/* Height budget pairs with BoardIndex: 544px plus header and link matches its 9 rows at 60px */}
             <div className="border-t border-border pt-5 flex flex-col gap-7 max-h-136 overflow-hidden mask-[linear-gradient(to_bottom,black_78%,transparent)]">
                 {entries.map((entry) => (
                     <article key={entry.date}>

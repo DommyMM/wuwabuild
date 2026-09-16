@@ -52,8 +52,6 @@ function resolveCharacterSplashUrl(raw: CDNCharacter): string | null {
   return candidates.find(publicAssetExists) ?? null;
 }
 
-// --- Characters ---
-
 export function loadCharacterRaw(id: string): CDNCharacter | null {
   const rawData = readJson('Characters.json');
   if (!rawData || typeof rawData !== 'object') return null;
@@ -86,11 +84,10 @@ export function loadCharacterSummary(id: string) {
 }
 
 /**
- * Map of character id → English display fields, for resolving leaderboard
- * character names/element/portrait server-side so the SSR HTML ships complete
- * instead of leaning on the client `GameDataContext` (which would flash
- * `Character {id}` until the ~6 MB client JSON fetch lands). Built once per
- * call from the same adapters the client uses, so values match exactly.
+ * Character id → English display fields, so leaderboard SSR ships names, element and portrait complete
+ *
+ * - The client `GameDataContext` would flash `Character {id}` until the ~6 MB JSON fetch lands
+ * - Built from the same adapters the client uses, so values match exactly
  */
 export function loadCharacterDisplayMap(): Record<string, LBCharacterDisplay> {
   const rawData = readJson('Characters.json');
@@ -118,8 +115,6 @@ export function loadCharacterDisplayMap(): Record<string, LBCharacterDisplay> {
   return map;
 }
 
-// --- Weapons ---
-
 function normalizeWeaponsData(data: unknown): WeaponRecord[] {
   if (Array.isArray(data)) return data as WeaponRecord[];
   if (!data || typeof data !== 'object') return [];
@@ -146,7 +141,7 @@ function getWeaponIconUrl(weapon: WeaponRecord): string | null {
   return weapon.icon.iconMiddle || weapon.icon.icon || weapon.icon.iconSmall || null;
 }
 
-/** Map of weapon id → English name, for resolving leaderboard weapon ids server-side. */
+/** Weapon id → English name, for resolving leaderboard weapon ids server-side */
 export function loadWeaponNames(): Record<string, string> {
   const map: Record<string, string> = {};
   for (const weapon of loadAllWeapons()) {
@@ -157,7 +152,7 @@ export function loadWeaponNames(): Record<string, string> {
   return map;
 }
 
-/** Map of echo-set (fetter) id → display metadata used by server-rendered insights. */
+/** Echo-set (fetter) id → display metadata used by server-rendered insights */
 export function loadFetterSummaries(): Record<string, { name: string; pieceCount: number }> {
   const raw = readJson('Fetters.json');
   const entries: unknown[] = Array.isArray(raw)
@@ -182,8 +177,6 @@ function toPositiveInteger(value: unknown, fallback: number): number {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-// --- Compact board display catalog ---
-
 let boardDisplayCatalog: LBBoardDisplay | null = null;
 
 function entriesOf(data: unknown): unknown[] {
@@ -193,16 +186,11 @@ function entriesOf(data: unknown): unknown[] {
 }
 
 /**
- * Builds the compact id → name/icon maps described by `LBBoardDisplay`.
+ * Builds the compact id → name/icon maps of `LBBoardDisplay`
  *
- * Weapons and echoes run through the same `adaptCDN*` functions the client uses
- * rather than reading icon fields directly, so an SSR icon is the identical URL
- * the client will pick after hydration. Reading `icon.iconMiddle` here (as
- * `loadWeaponSummary` does for OG images) would visibly swap the image on
- * hydration, since `adaptCDNWeapon` resolves `icon.icon`.
- *
- * Memoized for the process: the maps are derived from JSON that only changes on
- * deploy, and this runs on every dynamic leaderboard request.
+ * - Weapons and echoes go through the same `adaptCDN*` functions the client uses, so icons survive hydration unchanged
+ * - Reading `icon.iconMiddle` instead would swap the image, since `adaptCDNWeapon` picks `icon.icon`
+ * - Memoized for the process, the maps derive from deploy-time JSON while this runs on every leaderboard request
  */
 export function loadBoardDisplayCatalog(): LBBoardDisplay {
   if (boardDisplayCatalog) return boardDisplayCatalog;
@@ -229,8 +217,7 @@ export function loadBoardDisplayCatalog(): LBBoardDisplay {
     }
   }
 
-  // Fetters carry a plain icon path with no adapter transform, matching how the
-  // client reads `fetter.icon` directly.
+  // Fetters carry a plain icon path with no adapter transform, matching the client reading `fetter.icon` directly
   const sets: LBBoardDisplay['sets'] = {};
   for (const entry of entriesOf(readJson('Fetters.json'))) {
     if (!entry || typeof entry !== 'object' || !('id' in entry)) continue;

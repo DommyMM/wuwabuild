@@ -12,19 +12,21 @@ import { WeaponHoverCard } from '@/components/weapon/WeaponHoverCard';
 
 interface ProfileShowcaseProps {
   uid: string;
-  /** The ranked standings once loaded (best board per character, best first); the header reads its facts from them. */
+  /** Ranked standings once loaded, best board per character and best first, which the header reads its facts from */
   onStandingsLoaded?: (entries: LBProfileStandingEntry[]) => void;
-  /** Build currently open in the featured region, so its tile reads as selected. */
+  /** Build currently open in the featured region, so its tile reads as selected */
   activeBuildId: string | null;
-  /** Tile click: open (or, on the active tile, close) that build's card below the shelf. */
+  /** Tile click opens that build's card below the shelf, or closes it on the active tile */
   onSelectBuild: (entry: LBProfileStandingEntry) => void;
 }
 
 const TILE_W = 184;
 const TILE_GAP = 8;
-// The site's sequence ramp at a whisper: the chip says which board the number
-// is on, but on a shelf where most tiles share one sequence it must not
-// outshout the percentile or the tier edge. Same hues, lower alpha.
+/**
+ * Site's sequence ramp at lower alpha, indexed by sequence
+ *
+ * - Same hues, so the chip names the board without outshouting the percentile or the tier edge
+ */
 const PROFILE_SEQUENCE_BADGE_COLORS = [
   'border-slate-300/35 bg-slate-500/15 text-slate-200/85',
   'border-cyan-300/35 bg-cyan-500/15 text-cyan-100/85',
@@ -35,8 +37,7 @@ const PROFILE_SEQUENCE_BADGE_COLORS = [
   'border-spectro/45 bg-spectro/15 text-spectro/85',
 ] as const;
 
-// Bare percentile, scaled precision: the number is the hero, so it should read
-// cleanly whether it is 0.003 or 42.1.
+/** Two decimals below 1%, one above, so the number reads cleanly at 0.003 or 42.1 */
 function formatPercent(topPercent: number): string {
   if (topPercent < 1) return topPercent.toFixed(2);
   return topPercent.toFixed(1);
@@ -57,15 +58,13 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onStandin
     entries: [],
     loading: true,
   }));
-  // The profile header is a summary shelf by default. Players can expand it to
-  // a wrapped grid without losing the compact first read.
+  // Shelf reads as one compact row by default, expanding to a wrapped grid
   const [showAll, setShowAll] = useState(false);
   const [overflows, setOverflows] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // The controller is only an unmount flag; the shared fetch itself is not
-    // abortable (see getProfileStandings).
+    // Controller is only an unmount flag because getProfileStandings shares one cached promise and takes no signal
     const controller = new AbortController();
     getProfileStandings(uid)
       .then((result) => {
@@ -88,8 +87,7 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onStandin
     onStandingsLoaded?.(entries);
   }, [entries, loading, onStandingsLoaded]);
 
-  // The condense/expand toggle is only meaningful when the tiles can't all sit
-  // in a single row at the current width.
+  /** Flags overflow so the expand toggle shows only when the tiles cannot fit one row at the current width */
   const measure = useCallback((count: number) => {
     const el = containerRef.current;
     if (!el) return;
@@ -106,15 +104,13 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onStandin
     return () => ro.disconnect();
   }, [measure, entries.length]);
 
-  // Collapse entirely once we know there are no ranked boards.
+  // Nothing to show once the standings come back empty
   if (!loading && entries.length === 0) return null;
 
   const showToggle = !loading && overflows;
 
   return (
-    // group/shelf: the strip's scrollbar shows only while the pointer is over
-    // the shelf (or a tile has focus). The character count lives in the
-    // header's fact row, not here.
+    // group/shelf: the strip's scrollbar shows only under the pointer or when a tile has focus
     <div className="group/shelf border-b border-border/70 px-6 py-4">
       <h2 className="mb-3 text-2xs font-semibold tracking-wider text-text-primary/55 uppercase">Rankings</h2>
 
@@ -132,9 +128,8 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onStandin
               className={
                 showAll
                   ? 'flex flex-wrap gap-2 max-[560px]:grid max-[560px]:grid-cols-2'
-                  // The bar keeps its 6px so nothing shifts; only its colour
-                  // comes and goes. scrollbar-color for Chrome/Firefox, the
-                  // thumb rule for Safari (which uses overlay bars anyway).
+                  // Bar keeps its 6px so nothing shifts, only the colour comes and goes
+                  // scrollbar-color covers Chrome and Firefox, the thumb rule covers Safari
                   : 'flex snap-x snap-proximity flex-nowrap gap-2 overflow-x-auto pb-1.5 [scrollbar-color:transparent_transparent] group-hover/shelf:[scrollbar-color:rgba(191,173,125,0.6)_transparent] group-focus-within/shelf:[scrollbar-color:rgba(191,173,125,0.6)_transparent] [&::-webkit-scrollbar-thumb]:bg-transparent group-hover/shelf:[&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)] group-focus-within/shelf:[&::-webkit-scrollbar-thumb]:bg-[rgba(191,173,125,0.6)]'
               }
             >
@@ -155,12 +150,9 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onStandin
                   <img src={getWeaponPaths(weapon)} alt={weaponName} className="h-9 w-9 object-contain" />
                 </span>
               );
-              // The whole tile is one target: it opens the card beneath the
-              // shelf. The way on to the board is the rank module inside that
-              // card, so nothing here competes with the tile click. Hover is the
-              // site's gold glow and nothing more: a strip of 27 tiles is
-              // crossed by the pointer constantly, so the tile's only motion is
-              // the press. The open tile holds the glow with a firmer border.
+              // Whole tile is one target that opens the card below, leaving the board link to that card's rank module
+              // Hover is the gold glow and the press the only motion, because the pointer crosses this strip constantly
+              // The open tile holds the glow with a firmer border
               const tileClassName = `relative h-[116px] w-[184px] shrink-0 cursor-pointer overflow-hidden rounded-md border bg-background-secondary/80 text-left transition-[border-color,box-shadow,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 motion-reduce:transition-none ${
                 isActive
                   ? 'border-accent/60 shadow-[0_0_16px_rgba(166,150,98,0.35)]'
@@ -176,7 +168,7 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onStandin
                   aria-label={`${characterName}, ${weaponName} R${entry.weaponRank}, ${baseLabel} board S${entry.sequence}, top ${formatPercent(topPercent)} percent, rank ${entry.rank.toLocaleString()} of ${entry.total.toLocaleString()}. ${isActive ? 'Close build' : 'Show build'}`}
                   className={tileClassName}
                 >
-                  {/* Character face: right-anchored hero art, full color, faded into the card. */}
+                  {/* Right-anchored hero art, full color, faded into the tile */}
                   {character?.head && (
                     <img
                       src={character.head}
@@ -186,16 +178,16 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onStandin
                     />
                   )}
 
-                  {/* Scrim: darkens the text column so data stays legible over the art. */}
+                  {/* Scrim darkens the text column so data stays legible over the art */}
                   <span className="pointer-events-none absolute inset-0 bg-linear-to-r from-background-secondary from-22% via-background-secondary/48 to-transparent" />
 
-                  {/* Tier-colored top edge: the one place the tile carries its tier at rest. */}
+                  {/* Tier-colored top edge, the one place the tile carries its tier at rest */}
                   <span
                     className="pointer-events-none absolute inset-x-0 top-0 z-20 h-0.5"
                     style={{ background: tier.color, boxShadow: tier.glow ? `0 0 10px ${tier.glow}` : undefined }}
                   />
 
-                  {/* Weapon: constrained to an uploaded weapon for this summary. The hover card carries its name, refinement and Lv.90 stats. */}
+                  {/* Hover card carries name, refinement and Lv.90 stats, skipped when the weapon misses */}
                   <span className="absolute right-2 bottom-2 z-20 flex">
                     {weapon ? (
                       <WeaponHoverCard placement="top" triggerClassName="flex" weapon={weapon} weaponRank={entry.weaponRank}>
@@ -204,7 +196,7 @@ export const ProfileShowcase: React.FC<ProfileShowcaseProps> = ({ uid, onStandin
                     ) : weaponBadge}
                   </span>
 
-                  {/* Data column: character + track, percentile (hero), exact rank. */}
+                  {/* Data column: character and track, percentile, exact rank */}
                   <div className="pointer-events-none relative z-20 flex h-full flex-col justify-between p-3">
                     <div className="flex min-w-0 items-start gap-1.5">
                       <div className="min-w-0 flex-1">

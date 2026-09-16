@@ -55,8 +55,7 @@ export const EchoCostBadge: React.FC<EchoCostBadgeProps> = ({ className = '' }) 
 export const EchoGrid: React.FC<EchoGridProps> = ({ className = '' }) => {
   const { state, reorderEchoPanels } = useBuild();
 
-  // Replicate frontend sensor setup exactly
-  // Added distance activation constraint so clicks on child elements don't trigger drag
+  // 5px activation distance so a click on a child control does not start a drag
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -68,12 +67,11 @@ export const EchoGrid: React.FC<EchoGridProps> = ({ className = '' }) => {
     })
   );
 
-  // Stable panel IDs that match the frontend pattern: `panel-${index}`
+  // Panel IDs carry their index, so the drop handler reads it straight back off the id
   const panelIds = useMemo(() => {
     return state.echoPanels.map((_, index) => `panel-${index}`);
   }, [state.echoPanels]);
 
-  // Replicate frontend's handleDragEnd: parse index from ID, call reorder
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -88,7 +86,6 @@ export const EchoGrid: React.FC<EchoGridProps> = ({ className = '' }) => {
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
 
-      {/* Echo Panels Grid */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}

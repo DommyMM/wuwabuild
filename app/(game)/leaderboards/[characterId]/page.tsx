@@ -8,20 +8,18 @@ import { prefetchLeaderboard, prefetchLeaderboardOverview } from '@/lib/lbServer
 import { loadBoardDisplayCatalog, loadCharacterDisplayMap, loadCharacterRaw, loadWeaponSummary } from '@/lib/server/gameData';
 
 export const dynamic = 'force-static';
-// ISR: one canonical board per character (the default weapon/track). Weapon/track/
-// filter variants are client-side UI state under that canonical, so the route no
-// longer reads searchParams and no longer renders a Vercel function per request. The
-// client background-refreshes the board on mount through the short Cloudflare API
-// cache. `revalidate` is passed to the prefetch so no nested fetch drags the page below hourly.
+// ISR holds one canonical board per character, the default weapon and track
+// Weapon, track and filter variants are client-side state, so the route reads no searchParams
+// That keeps it off a per-request Vercel function, the client background-refreshing on mount
+// revalidate is passed to the prefetch so no nested fetch drags the page below hourly
 export const revalidate = 3600;
 
 interface Props {
   params: Promise<{ characterId: string }>;
 }
 
-// Seed every known character board during the production build. Together with
-// force-static and revalidate, this avoids a cold per-request render for known ids;
-// generateStaticParams itself does not run during ISR regeneration.
+// Seed every known character board during the production build, so a known id never cold-renders
+// generateStaticParams itself does not run during ISR regeneration
 export async function generateStaticParams(): Promise<{ characterId: string }[]> {
   const overview = await prefetchLeaderboardOverview(revalidate);
   if (overview) {
@@ -86,8 +84,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { character, characterName } = getCharacterPageCopy(characterId);
   if (!character) notFound();
 
-  // Metadata describes the default board (weapon/track variants are client-side state
-  // under this one canonical), so no searchParams are read here.
+  // Metadata describes the default board, since weapon and track variants are client-side state under it
   const initialData = await prefetchLeaderboard(characterId, {}, revalidate);
   if (initialData && !hasConfiguredLeaderboard(initialData)) notFound();
   const activeWeaponId = initialData?.activeWeaponId || initialData?.weaponIds[0] || '';
@@ -112,9 +109,8 @@ export default async function CharacterLeaderboardPage({ params }: Props) {
   const { character, characterName } = getCharacterPageCopy(characterId);
   if (!character) notFound();
 
-  // Always the default board. The client reads the URL's weapon/track/filter/buildId
-  // and fetches the requested variant on mount; it also normalizes the address bar
-  // (replacing the old server-side canonical redirect for human navigation).
+  // Always the default board, the client reading the URL's weapon/track/filter/buildId and fetching that variant on mount
+  // It also normalizes the address bar
   const initialData = await prefetchLeaderboard(characterId, {}, revalidate);
   if (initialData && !hasConfiguredLeaderboard(initialData)) notFound();
 

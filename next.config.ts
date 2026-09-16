@@ -4,14 +4,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Game data JSONs — only change on deployment, cache aggressively.
-        // s-maxage: CDN holds for 1 year, busted automatically on Vercel deploy.
-        // max-age: browser holds for 1 hour (covers tab reuse without re-downloading).
-        // stale-while-revalidate is deliberate here and must not be removed to
-        // "match" the LB service: these routes are served by Vercel, which does
-        // not implement proxy-revalidate, so s-maxage + swr is valid and is
-        // Vercel's own documented pattern. Cloudflare (which fronts api.wuwa.build)
-        // does the opposite, which is why lb emits no swr. See lb/docs/api-behaviors.md.
+        // Game data JSONs only change on deploy, so the CDN holds them a year and a Vercel deploy busts them
+        // Browser holds an hour, enough for tab reuse without re-downloading
+        // stale-while-revalidate is valid here because Vercel does not implement proxy-revalidate
+        // Cloudflare fronts api.wuwa.build and does the opposite, which is why lb emits no swr
         source: '/Data/:file*.json',
         headers: [
           {
@@ -21,15 +17,11 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Mirrored game images (public/assets). Deliberately NOT the 1-year
-        // /Data pattern: Cloudflare edge-caches images (unlike JSON) and
-        // respects s-maxage, but a Vercel deploy doesn't purge Cloudflare
-        // so keep the edge TTL short enough that an asset changed under the
-        // same path self-heals within a day without a manual CF purge.
-        // max-age here only survives while the Cloudflare zone keeps "Browser
-        // Cache TTL" on "Respect Existing Headers". Cloudflare caches this path,
-        // so any other value rewrites max-age (it was pinned to 4h until
-        // 2026-07-16). /Data below is immune only because CF doesn't cache json
+        // Mirrored game images (public/assets) take a 1-day edge TTL, not the 1-year /Data pattern
+        // Cloudflare edge-caches images and respects s-maxage, but a Vercel deploy never purges it
+        // A day is how long an asset changed under the same path takes to self-heal without a manual CF purge
+        // max-age holds only while the Cloudflare zone keeps Browser Cache TTL on "Respect Existing Headers"
+        // /Data escapes that because Cloudflare does not cache json
         source: '/assets/:path*',
         headers: [
           {

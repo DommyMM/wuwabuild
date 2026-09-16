@@ -14,12 +14,9 @@ CDN_BASE = "https://files.wuthery.com"
 DEFAULT_FETCH_ATTEMPTS = 3
 DEFAULT_RETRY_BACKOFF_SECONDS = 0.75
 
-# Encore publishes its own host list at ``GET https://api.encore.moe/`` as
-# ``apiList`` entries ordered by ``P``. Both hosts serve the same ``/{lang}/...``
-# routes and the same payload shapes; only the path prefix differs (v2 mounts
-# them under ``/api``). api-v2 is the faster primary but has been observed
-# returning 502 for hours at a time, so every Encore call falls over to the
-# legacy host instead of failing the sync.
+# Encore's own host list, ordered by the ``P`` field of ``GET https://api.encore.moe/``
+# Both hosts serve the same ``/{lang}/...`` routes and payloads, only v2 mounts them under ``/api``
+# api-v2 is the faster primary but returns 502 for hours at a time, so every call falls over to the legacy host
 ENCORE_API_BASES = (
     "https://api-v2.encore.moe/api",  # apiList P=1
     "https://api.encore.moe",         # apiList P=2
@@ -49,7 +46,7 @@ def request_json_with_retry(
             response = request(url, timeout=timeout, **request_kwargs)
             response.raise_for_status()
             return response.json()
-        except Exception as error:  # Network/HTTP/JSON failures are all retryable here.
+        except Exception as error:  # Network, HTTP and JSON failures are all retryable
             last_error = error
             if attempt + 1 < attempts:
                 time.sleep(DEFAULT_RETRY_BACKOFF_SECONDS * (attempt + 1))
@@ -87,12 +84,13 @@ def write_bytes_atomic(path: Path, data: bytes) -> None:
         temp_path.unlink(missing_ok=True)
 
 
-# Wuthery's dumper has migrated field names to camelCase in stages: Grouped/*
-# flipped first, LocalizationIndex and the nested `arrayString` / `isRatio` leaves
-# later. Reads go through `pick` so a sync survives the next stage instead of
-# silently emitting empty values; writes always use the camelCase spelling.
 def pick(node: Any, *names: str, default: Any = None) -> Any:
-    """First present key among ``names``, tolerating the source's casing drift."""
+    """First present key among ``names``, tolerating the source's casing drift.
+
+    Wuthery's dumper migrates to camelCase in stages, Grouped/* first and the LocalizationIndex leaves later
+    Reading through here lets a sync survive the next stage instead of silently emitting empty values
+    Writes always use the camelCase spelling
+    """
     if not isinstance(node, dict):
         return default
     for name in names:
@@ -105,10 +103,9 @@ def pick(node: Any, *names: str, default: Any = None) -> Any:
     return default
 
 
-# Wuthery's dumper stopped emitting Ukrainian, and Encore never had it, but the
-# site still offers `uk` and we hold 30 character + 83 weapon names for it from
-# older dumps. A record replaced wholesale would silently drop them, so every
-# sync backfills language keys the incoming payload no longer carries.
+# Wuthery stopped emitting Ukrainian and Encore never had it, but the site still offers `uk`
+# Older dumps left us 30 character and 83 weapon `uk` names, which a wholesale record replace would drop
+# So every sync backfills language keys the incoming payload no longer carries
 LANGUAGE_KEYS = frozenset({
     "de", "en", "es", "fr", "id", "ja", "ko", "pt",
     "ru", "th", "vi", "uk", "zh-Hans", "zh-Hant",
@@ -116,10 +113,10 @@ LANGUAGE_KEYS = frozenset({
 
 
 def _is_i18n_dict(node: Any) -> bool:
-    """A dict of language code -> string.
+    """A dict of language code to string.
 
-    Sibling metadata is tolerated (``Stats.json`` hangs an ``icon`` URL off the
-    same object), but every language-named key must still hold text.
+    Sibling metadata is tolerated (``Stats.json`` hangs an ``icon`` URL off the same object)
+    Every language-named key must still hold text
     """
     if not isinstance(node, dict) or not isinstance(node.get("en"), str):
         return False
@@ -145,8 +142,7 @@ def _align_lists(old: list, new: list) -> list[tuple[Any, Any]]:
 def preserve_i18n_fallbacks(old: Any, new: Any) -> Any:
     """Fill language keys that ``new`` lost but ``old`` still has.
 
-    Only empty-or-absent leaves are touched: a language the source still
-    provides always wins, so this never resurrects stale translations.
+    Only empty or absent leaves are touched, so a language the source still provides always wins
     """
     if _is_i18n_dict(new) and _is_i18n_dict(old):
         merged = dict(new)
@@ -185,9 +181,7 @@ def write_mapping_atomic(path: Path, mapping: dict[str, Any], **json_kwargs: Any
 def write_records_atomic(path: Path, records: list[dict[str, Any]], **json_kwargs: Any) -> None:
     """Write an id-keyed record list, keeping language keys the source dropped.
 
-    A full sync replaces every record, so without this pass a language the
-    dumper stopped emitting (``uk``) disappears from the shipped data even
-    though nothing upstream said it was wrong.
+    A full sync replaces every record, so without this a dropped language (``uk``) vanishes from the shipped data
     """
     previous: Any = None
     if path.exists():
@@ -251,8 +245,7 @@ def encore_request_json(
 ) -> Any:
     """Fetch an Encore ``/{lang}/{route}`` payload, failing over between hosts.
 
-    The first host that answers becomes the active one for later calls, so a
-    dead primary costs one round of retries per process rather than per call.
+    First host that answers becomes active, so a dead primary costs one round of retries per process, not per call
     """
     global _encore_active_base
 
@@ -270,7 +263,7 @@ def encore_request_json(
                 timeout=timeout,
                 **request_kwargs,
             )
-        except Exception as error:  # Host-level failure: try the next host.
+        except Exception as error:  # Host-level failure, try the next host
             last_error = error
             continue
         if base != active:

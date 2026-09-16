@@ -1,11 +1,10 @@
-"""
-Sync game data from Encore API into the existing public/Data JSON shapes.
+"""Sync game data from Encore API into the existing public/Data JSON shapes.
 
-Run via `sync_all.py --encore`, or
-directly for targeted delta syncs: `--merge` with `--character-ids/--weapon-ids/
---echo-ids`, or `--new-only` to pull the IDs from Encore's /new endpoint.
-Re-fetched entities replace their stored rows, so --merge also refreshes
-existing entries. See docs/sync-sources.md.
+Run through `sync_all.py --encore`, or directly for a targeted delta sync.
+A delta sync is `--merge` with `--character-ids`, `--weapon-ids` or `--echo-ids`, or `--new-only` to take the ids
+from Encore's /new endpoint.
+Re-fetched entities replace their stored rows, so --merge also refreshes existing entries.
+See docs/sync-sources.md.
 """
 
 from __future__ import annotations
@@ -53,8 +52,8 @@ from sync_fetters import fetch_and_build as build_wuthery_fetters  # noqa: E402
 DATA_DIR = SCRIPTS_DIR.parent / "public" / "Data"
 
 ENCORE_FETTER_ADD_PROPS: dict[int, dict[str, list[dict[str, Any]]]] = {
-    # Temporary bridge for 3.5 Encore-only sets. Wuthery carries structured AddProp
-    # for fetters, but can lag new patches; synthesize just the stable 2pc stat.
+    # Bridge for 3.5 Encore-only sets, since Wuthery carries structured AddProp for fetters but lags new patches
+    # Only the stable 2pc stat is synthesized
     33: {"2": [{"id": 11, "value": 100, "isRatio": False}]},    # Energy Regen +10%
     34: {"2": [{"id": 25, "value": 100, "isRatio": False}]},    # Aero DMG +10%
     35: {"2": [{"id": 10002, "value": 10, "isRatio": True}]},   # HP +10%
@@ -76,7 +75,7 @@ PROP_ID_TO_ATTR = {
     10: "LifeMax",
     11: "EnergyEfficiency",
     12: "Def",
-    # Weapon substat (ratio) prop IDs.
+    # Weapon substat (ratio) prop ids
     10002: "LifeMax",
     10005: "LifeMax",
     10006: "Def",
@@ -177,12 +176,12 @@ def _list_ids(route: str, list_key: str, id_key: str = "Id") -> list[int]:
 
 
 def _backfill_rover_skill_data(characters: list[dict]) -> None:
-    """Encore attaches forte/skill data to only one Rover gender per element; the
-    sibling variant (e.g. 1408 vs 1406) returns empty SkillTree/Skills. The M/F
-    Rovers share an identical kit, so copy the populated sibling's skillTrees,
-    skillIcons and moves and re-derive preferredStats. Each variant keeps its own
-    name/icon/legacyId/chains/stats/tags. Without this, the empty variant would
-    drop forte nodes (breaking the LB forte mapping) and its move list entirely.
+    """Copy forte and skill data onto the Rover variant Encore left empty.
+
+    Encore attaches it to one Rover gender per element, so the sibling (1408 vs 1406) returns empty SkillTree
+    Both share an identical kit, so skillTrees, skillIcons and moves copy across and preferredStats re-derives
+    Each variant keeps its own name, icon, legacyId, chains, stats and tags
+    Without this the empty variant drops its forte nodes, breaking the LB forte mapping, and its whole move list
     """
     by_name: dict[str, list[dict]] = {}
     for char in characters:
@@ -226,11 +225,9 @@ def sync_characters(args: argparse.Namespace) -> list[dict]:
     def _fetch_and_transform(char_id: int) -> dict:
         return transform_character(fetch_character_locales(char_id, lang_workers))
 
-    # Fan out across characters (each still fetches its languages in parallel),
-    # mirroring sync_weapons/sync_echoes. The sequential loop was the slow leg:
-    # Encore needs one request per language, so doing characters one-at-a-time
-    # serialized ~50 round-trips. The rover backfill and sort are post-passes,
-    # so completion order does not matter.
+    # Fan out across characters, each still fetching its languages in parallel
+    # Encore needs one request per language, so one character at a time serializes ~50 round-trips
+    # The rover backfill and the sort are post-passes, so completion order does not matter
     characters: list[dict] = []
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         futures = {pool.submit(_fetch_and_transform, char_id): char_id for char_id in ids}
@@ -295,11 +292,11 @@ _WEAPON_SPAN_RE = re.compile(r"<span[^>]*>(.*?)</span>", re.DOTALL)
 
 
 def _weapon_effect_to_placeholders(desc: str, desc_params: list) -> str:
-    """Convert Encore's value-substituted weapon Desc back to Wuthery's "{i}"
-    placeholder template. Encore wraps each DescParams value-group (the
-    slash-joined R1-R5 ranks) in a <span>; replacing each span with "{i}",
-    matched by its content to the DescParams index, restores the template that
-    extract_unconditional_passive_bonuses and sync_lb's per-rank resolver expect.
+    """Convert Encore's value-substituted weapon Desc back to Wuthery's "{i}" placeholder template.
+
+    Encore wraps each DescParams value-group, the slash-joined R1-R5 ranks, in a <span>
+    Each span becomes "{i}", matched to its DescParams index by content
+    That restores the template extract_unconditional_passive_bonuses and sync_lb's per-rank resolver expect
     """
     if not desc:
         return desc
@@ -401,8 +398,8 @@ def _echo_name_i18n(locales: dict[str, dict]) -> dict[str, str]:
     return i18n(locales, lambda data: data.get("MonsterName", ""))
 
 
-# Encore exposes no direct echo cost field; the main-stat random pool
-# (MainProp.RandGroupId) is cost-specific. Verified 1:1 across all 5-star echoes.
+# Encore exposes no echo cost field, but the main-stat random pool MainProp.RandGroupId is cost-specific
+# Verified 1:1 across all 5-star echoes
 ECHO_RANDGROUP_TO_COST = {501: 4, 502: 3, 503: 1}
 
 _ECHO_BR_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
@@ -418,15 +415,12 @@ def _echo_cost(en: dict) -> int:
 
 
 def _echo_desc_to_placeholders(desc: str, max_params: list) -> str:
-    """Convert Encore's value-substituted echo DescriptionEx back to Wuthery's
-    "{i}" placeholder template. Encore substitutes the MAX-level values
-    (LevelDescStrArray[-1]) and uses <br> where Wuthery uses newlines.
-    Placeholders are assigned in text order while each value's indices are
-    consumed in index order, so repeated and out-of-order values map correctly
-    (e.g. Nightmare echoes that reference the same multiplier twice, bracketing
-    the main-slot bonus values). Restoring placeholders keeps
-    extract_main_slot_bonuses source-agnostic and lets sync_lb re-resolve the
-    description at the level it wants (it resolves with params[0]).
+    """Convert Encore's value-substituted echo DescriptionEx back to Wuthery's "{i}" placeholder template.
+
+    Encore substitutes the max-level values (LevelDescStrArray[-1]) and uses <br> where Wuthery uses newlines
+    Placeholders are assigned in text order while each value's indices are consumed in index order
+    That maps repeated and out-of-order values correctly, as in Nightmare echoes that reuse one multiplier
+    Restoring placeholders keeps extract_main_slot_bonuses source-agnostic and lets sync_lb resolve at params[0]
     """
     desc = _ECHO_BR_RE.sub("\n", desc or "")
     queues: dict[str, deque] = defaultdict(deque)
@@ -435,8 +429,8 @@ def _echo_desc_to_placeholders(desc: str, max_params: list) -> str:
             queues[str(value)].append(index)
     if not queues:
         return desc
-    # Longest values first so "12.00%" wins over a bare "12"; the boundary
-    # guards keep a bare "15" from matching inside "150" or "1.5".
+    # Longest values first so "12.00%" wins over a bare "12"
+    # Boundary guards keep a bare "15" from matching inside "150" or "1.5"
     alternation = "|".join(re.escape(v) for v in sorted(queues, key=len, reverse=True))
     pattern = re.compile(r"(?<![\d.%])(" + alternation + r")(?!\d)")
 
@@ -526,9 +520,8 @@ def sync_echoes(args: argparse.Namespace) -> list[dict]:
                 continue
             echo = _transform_echo(locales)
             if echo:
-                # Re-fetched echoes replace the stored entry (so --merge --echo-ids
-                # refreshes data), but keep a previously merged phantom skin icon
-                # when this run doesn't also fetch the skin.
+                # A re-fetched echo replaces the stored entry, so --merge --echo-ids refreshes data
+                # A previously merged phantom skin icon survives when this run does not fetch the skin
                 echo_id = str(echo.get("id"))
                 previous = existing_by_id.get(echo_id)
                 if previous and previous.get("phantomIcon") and not echo.get("phantomIcon"):
@@ -547,9 +540,8 @@ def sync_echoes(args: argparse.Namespace) -> list[dict]:
     for skin in phantom_skins:
         base_name = str(skin.get("MonsterName") or "")[len("Phantom: "):]
         if base_name not in echoes_by_name:
-            # The skin name doesn't always spell the base name the same way
-            # (e.g. "Phantom: Nightmare Crownless" -> "Nightmare: Crownless",
-            # "Phantom: Twin Nova - Collapsar Blade" -> "Twin Nova: Collapsar Blade").
+            # A skin name does not always spell the base name the same way
+            # "Phantom: Nightmare Crownless" is "Nightmare: Crownless", "Twin Nova - X" is "Twin Nova: X"
             for attempt in (
                 base_name.replace("Nightmare ", "Nightmare: "),
                 base_name.replace("Reminiscence ", "Reminiscence: "),
@@ -570,11 +562,9 @@ def sync_echoes(args: argparse.Namespace) -> list[dict]:
 
 
 def sync_fetters(args: argparse.Namespace) -> list[dict]:
-    # Encore's echo FetterGroups expose set bonuses only as free text (no
-    # structured AddProp/pieceCount), so the LB-critical 2pc/3pc stat bonuses
-    # can't be derived reliably from them. Sonata sets are a small, stable
-    # dataset and Wuthery serves them as three localization-index files (not the
-    # flaky large-parallel fetch), so we reuse Wuthery's structured builder here.
+    # Encore's echo FetterGroups carry set bonuses as free text only, with no AddProp or pieceCount
+    # The LB-critical 2pc and 3pc stat bonuses cannot be derived from that reliably
+    # Wuthery serves sonata sets as three localization-index files, so its structured builder is reused here
     print("Building Fetters.json from Wuthery localization index (structured addProp)...")
     fetters = build_wuthery_fetters()
     existing_ids = {int(f.get("id")) for f in fetters if isinstance(f.get("id"), int)}

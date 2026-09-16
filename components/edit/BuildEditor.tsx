@@ -104,7 +104,7 @@ export const BuildEditor: React.FC = () => {
 
   useEffect(() => {
     if (isCardGenerated) {
-      // Scroll to bottom of page where card is generated
+      // Card renders at the bottom of the page, so the view follows it down
       setTimeout(() => {
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
       }, 100);
@@ -122,9 +122,8 @@ export const BuildEditor: React.FC = () => {
   const { t } = useLanguage();
   const { success: toastSuccess, error: toastError } = useToast();
   const selected = useSelectedCharacter();
-  // The same highlight the profile card and leaderboard expansions apply: the
-  // character's preferred substats, gold on the echo chips. Fixed here on
-  // purpose; the editor has no summary row to retune the selection.
+  // Same gold echo-chip highlight the profile card and leaderboard expansions apply to a character's preferred substats
+  // Fixed here because the editor has no summary row to retune the selection
   const selectedSubstats = useMemo(
     () => getAvailablePreferredSubstats(
       state.echoPanels,
@@ -244,7 +243,7 @@ export const BuildEditor: React.FC = () => {
     state.characterId,
   ]);
 
-  // Reset weapon when switching to a character with a different weapon type
+  // Switching to a character of another weapon type clears the weapon, since the equipped one cannot carry over
   useEffect(() => {
     if (!selectedWeapon || !selected) return;
     if (selectedWeapon.type !== selected.character.weaponType) {
@@ -283,7 +282,7 @@ export const BuildEditor: React.FC = () => {
     try {
       const charName = selected?.character.name?.replace(/\s+/g, '-') || 'build';
 
-      // Format: YYYY-MM-DD_HH-mm-ss (ISO-like, easy to read/sort)
+      // YYYY-MM-DD_HH-mm-ss, so downloads sort by name
       const now = new Date();
       const dateStr = now.toISOString().split('T')[0];
       const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
@@ -721,7 +720,7 @@ export const BuildEditor: React.FC = () => {
             )}
       </div>
 
-      {/* Rank Simulation — on-demand theoretical rank for the current build, never submitted */}
+      {/* On-demand theoretical rank for the current build, never submitted */}
       <SimulateRankPanel />
 
       <SaveBuildModal

@@ -2,7 +2,6 @@ import { SavedBuild, SavedBuilds, SavedState, ForteState, ForteEntry, createDefa
 import { getLocalStorageItem, removeLocalStorageItem, setLocalStorageItem, setLocalStorageJSON } from '@/lib/clientStorage';
 import { convertLegacyBuilds, LegacyIdMaps } from '@/lib/legacyMigration';
 
-// Storage keys
 const SAVED_BUILDS_STORAGE_KEY = 'wuwabuilds_saves';
 export const DRAFT_BUILD_STORAGE_KEY = 'wuwa_draft_build';
 const DRAFT_BASELINE_HASH_KEY = 'wuwa_draft_baseline_hash';
@@ -13,7 +12,7 @@ const IDENTITY_LEGACY_MAPS: LegacyIdMaps = {
   echoIds: new Map(),
 };
 
-// Convert old nodeStates+forteLevels into a ForteState array.
+/** Folds the legacy nodeStates and forteLevels maps into one ForteState */
 function migrateForte(raw: Record<string, unknown>): ForteState {
   if (Array.isArray(raw.forte) && raw.forte.length === 5) return raw.forte as ForteState;
 
@@ -29,7 +28,7 @@ function migrateForte(raw: Record<string, unknown>): ForteState {
   ] as ForteEntry) as ForteState;
 }
 
-// Migrate a single SavedState from the old nested shape to the new flat shape.
+/** Takes the compressed backup, the nested or the current flat shape and returns the current one */
 function migrateSavedState(raw: Record<string, unknown>): SavedState {
   const defaults = createDefaultSavedState();
 
@@ -41,12 +40,12 @@ function migrateSavedState(raw: Record<string, unknown>): SavedState {
     return converted.builds[0]?.state ?? defaults;
   }
 
-  // Already new flat shape
+  // Already flat
   if ('characterId' in raw) {
     return { ...defaults, ...raw, forte: migrateForte(raw) } as SavedState;
   }
 
-  // Legacy nested shape, flatten
+  // Legacy nested shape
   const cs = (raw.characterState as Record<string, unknown>) ?? {};
   const ws = (raw.weaponState as Record<string, unknown>) ?? {};
 
@@ -67,23 +66,21 @@ function migrateSavedState(raw: Record<string, unknown>): SavedState {
 }
 
 
-// Legacy releases stored URI-encoded JSON as base64. Keep read compatibility,
-// but write plain JSON: the old encoding expanded saves instead of compressing
-// them and therefore reached localStorage quotas sooner.
+/** Legacy saves are URI-encoded JSON in base64, still read but never written since that encoding hit the quota sooner */
 function decompress(data: string): string {
   try {
-    // Check if data looks like base64
+    // Plain JSON always has braces and quotes, neither in the base64 alphabet, so a full match means the legacy shape
     if (/^[A-Za-z0-9+/=]+$/.test(data)) {
       return decodeURIComponent(atob(data));
     }
     return data;
   } catch {
-    // If decompression fails, assume it's uncompressed JSON
+    // A decode failure means it was plain JSON all along
     return data;
   }
 }
 
-// Load all saved builds from localStorage.
+/** Reads the saves, decoding the legacy base64 shape and migrating to the current version on the way */
 export function loadBuilds(): SavedBuilds {
   try {
     const stored = getLocalStorageItem(SAVED_BUILDS_STORAGE_KEY);
@@ -91,7 +88,6 @@ export function loadBuilds(): SavedBuilds {
       return { builds: [], version: CURRENT_VERSION };
     }
 
-    // Try to parse, handling both compressed and uncompressed data
     let parsed: SavedBuilds;
     try {
       parsed = JSON.parse(decompress(stored));
@@ -99,7 +95,6 @@ export function loadBuilds(): SavedBuilds {
       parsed = JSON.parse(stored);
     }
 
-    // Migrate old data format if needed
     if (!parsed.version || parsed.version !== CURRENT_VERSION) {
       parsed = migrateData(parsed);
     }
@@ -111,10 +106,12 @@ export function loadBuilds(): SavedBuilds {
   }
 }
 
-// Save all builds as plain JSON. loadBuilds still reads the legacy base64 shape.
-// Critical write: SaveBuildModal surfaces this error to the user, so a quota
-// failure must throw rather than drop the save silently. The SSR guard stays
-// so a server-side call still no-ops instead of throwing.
+/**
+ * Writes plain JSON, while decompress keeps the legacy base64 shape readable
+ *
+ * - A quota failure throws because SaveBuildModal surfaces it, and a dropped save must never look like a success
+ * - A server-side call no-ops rather than throwing
+ */
 function saveBuilds(data: SavedBuilds): void {
   if (typeof window === 'undefined') return;
 
@@ -135,8 +132,7 @@ export function loadDraftBuild(): SavedState | null {
   }
 }
 
-// Serialize with recursively sorted keys so content hashes stay stable across
-// objects assembled in different key orders (import convert vs editor reducer).
+/** Recursively sorted keys so a content hash is stable however the object was assembled */
 function stableStringify(value: unknown): string {
   if (value === undefined) return 'null';
   if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
@@ -147,7 +143,7 @@ function stableStringify(value: unknown): string {
   return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`).join(',')}}`;
 }
 
-// djb2 over the migrated, canonically serialized state.
+/** djb2 over the migrated, canonically serialized state */
 function hashSavedState(state: SavedState): string {
   const json = stableStringify(migrateSavedState(state as unknown as Record<string, unknown>));
   let hash = 5381;
@@ -163,32 +159,27 @@ export function saveDraftBuild(state: SavedState): void {
   }
 
   const migrated = migrateSavedState(state as unknown as Record<string, unknown>);
-  // Critical write: callers gate navigation to /edit on this succeeding (the
-  // saves list reports "Failed to load build."), so a quota failure must throw
-  // rather than silently hand the editor a stale draft.
+  // Callers gate navigation to /edit on this, so a quota failure throws rather than hand the editor a stale draft
   if (!setLocalStorageJSON(DRAFT_BUILD_STORAGE_KEY, migrated)) {
     throw new Error('Failed to save draft. Storage may be full.');
   }
 
-  // Baseline for edit detection: programmatic draft loads (import, saves,
-  // leaderboard "open in editor") all come through here, while manual editing
-  // in /edit writes the draft key directly from BuildContext. A draft whose
-  // content drifted from this baseline therefore carries manual edits.
+  // Every programmatic draft load comes through here, while editing in /edit writes the draft key from BuildContext
+  // So a draft whose hash has drifted from this baseline carries hand edits
   try {
     setLocalStorageItem(DRAFT_BASELINE_HASH_KEY, hashSavedState(migrated));
   } catch {
-    // Guards hashSavedState (the write cannot throw). Non-critical: a missing
-    // baseline just means the draft counts as edited.
+    // Guards hashSavedState since the write cannot throw, and a missing baseline just counts the draft as edited
   }
 }
 
-// True when the draft's content no longer matches the last programmatic load,
-// i.e. the user hand-edited it in /edit. A missing baseline (hand-built draft,
-// clients from before the marker existed) counts as edited so replacement
-// flows err toward preserving it.
+/**
+ * True when the draft's content no longer matches the last programmatic load, so the user hand-edited it in /edit
+ *
+ * - A missing baseline counts as edited, so replacement flows err toward preserving the draft
+ */
 export function isDraftBuildEdited(draft: SavedState): boolean {
-  // SSR guard stays: on the server this must report false, whereas in the
-  // browser a missing baseline means "edited" (true).
+  // On the server this reports false, while in the browser a missing baseline means edited
   if (typeof window === 'undefined') return false;
 
   try {
@@ -200,8 +191,7 @@ export function isDraftBuildEdited(draft: SavedState): boolean {
   }
 }
 
-// Auto-save a displaced draft into saves unless an identical build is already
-// stored. Returns the created save, or null when skipped as a duplicate.
+/** Saves a displaced draft unless an identical build is already stored, returning null when skipped as a duplicate */
 export function snapshotBuildToSaves(state: SavedState, name: string): SavedBuild | null {
   const contentHash = hashSavedState(state);
   const existing = loadBuilds();
@@ -212,7 +202,7 @@ export function snapshotBuildToSaves(state: SavedState, name: string): SavedBuil
   return saveBuild({ name, state });
 }
 
-// Save a new build or update existing build.
+/** Updates in place when the id already exists, otherwise appends under a fresh id */
 export function saveBuild(build: Omit<SavedBuild, 'id' | 'date'> & { id?: string }): SavedBuild {
   const data = loadBuilds();
 
@@ -223,7 +213,6 @@ export function saveBuild(build: Omit<SavedBuild, 'id' | 'date'> & { id?: string
     state: migrateSavedState(build.state as unknown as Record<string, unknown>)
   };
 
-  // Check if updating existing build
   const existingIndex = data.builds.findIndex(b => b.id === savedBuild.id);
   if (existingIndex >= 0) {
     data.builds[existingIndex] = savedBuild;
@@ -235,7 +224,7 @@ export function saveBuild(build: Omit<SavedBuild, 'id' | 'date'> & { id?: string
   return savedBuild;
 }
 
-// Merge externally prepared builds into storage while preserving date/name/state.
+/** Appends builds keeping their name and state, regenerating any id that collides and stamping an unparseable date */
 export function mergeBuilds(builds: SavedBuild[]): SavedBuild[] {
   if (!builds.length) return [];
 
@@ -269,7 +258,7 @@ export function mergeBuilds(builds: SavedBuild[]): SavedBuild[] {
   return merged;
 }
 
-// Delete a build by ID.
+/** False when no build carried that id */
 export function deleteBuild(id: string): boolean {
   const data = loadBuilds();
   const initialLength = data.builds.length;
@@ -282,7 +271,7 @@ export function deleteBuild(id: string): boolean {
   return false;
 }
 
-// Rename an existing build without changing date/state.
+/** Leaves date and state alone, returning null when the id is unknown */
 export function renameBuild(id: string, newName: string): SavedBuild | null {
   const trimmedName = newName.trim();
   if (!trimmedName) {
@@ -308,12 +297,11 @@ export function renameBuild(id: string, newName: string): SavedBuild | null {
   return updatedBuild;
 }
 
-// Clear all saved builds.
 export function clearAllBuilds(): void {
   removeLocalStorageItem(SAVED_BUILDS_STORAGE_KEY);
 }
 
-// Export all builds to a downloadable JSON file.
+/** Downloads every build as JSON, stamped with the current version and an export date */
 export function exportAllBuilds(): void {
   const data = loadBuilds();
   const exportData = {
@@ -335,8 +323,7 @@ export function exportAllBuilds(): void {
   URL.revokeObjectURL(url);
 }
 
-// Import builds from a JSON file.
-// Returns the imported builds.
+/** Takes either a single-build or a multi-build export, giving every build a fresh id and date */
 export async function importBuild(file: File): Promise<SavedBuild[]> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -346,14 +333,12 @@ export async function importBuild(file: File): Promise<SavedBuild[]> {
         const content = event.target?.result as string;
         const imported = JSON.parse(content);
 
-        // Validate imported data
         if (!imported || typeof imported !== 'object') {
           throw new Error('Invalid file format');
         }
 
         let builds: SavedBuild[] = [];
 
-        // Handle single build export
         if (imported.build) {
           if (validateBuild(imported.build)) {
             builds = [imported.build];
@@ -361,7 +346,6 @@ export async function importBuild(file: File): Promise<SavedBuild[]> {
             throw new Error('Invalid build data');
           }
         }
-        // Handle multiple builds export
         else if (imported.builds && Array.isArray(imported.builds)) {
           builds = imported.builds.filter(validateBuild);
         }
@@ -389,12 +373,10 @@ export async function importBuild(file: File): Promise<SavedBuild[]> {
   });
 }
 
-// Generate a unique ID for builds.
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
-// Validate that an object is a valid SavedBuild.
 function validateBuild(build: unknown): build is SavedBuild {
   if (!build || typeof build !== 'object') return false;
 
@@ -409,7 +391,7 @@ function validateBuild(build: unknown): build is SavedBuild {
   );
 }
 
-// Migrate old data format to current version.
+/** Backfills a missing id and re-runs the state migration on every build */
 function migrateData(data: SavedBuilds): SavedBuilds {
   const migratedBuilds = data.builds.map(build => ({
     ...build,

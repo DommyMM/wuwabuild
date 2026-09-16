@@ -75,8 +75,7 @@ const calculateSubstatQuality = (
   return Math.max(0, Number(value) / max);
 };
 
-// Full-sheet echo RV: missing substat lines count as zero because echo levels
-// deterministically unlock all five lines at max level.
+/** Missing substat lines count as zero because a max-level echo deterministically unlocks all five */
 export function calculateEchoRV(
   subStats: ReadonlyArray<SubstatLike>,
   getSubstatValues: (stat: string) => number[] | null,
@@ -88,8 +87,7 @@ export function calculateEchoRV(
   return (sum / 5) * 100;
 }
 
-// Preferred-stat RV answers a different question from full-sheet RV:
-// "How good are the selected/relevant stat types that appeared?"
+/** Quality of the selected stat types that actually rolled, where full-sheet RV averages all five lines */
 export function calculateSelectedStatsRV(
   selectedSubstats: Map<string, { total: number; count: number }>,
   getSubstatValues: (stat: string) => number[] | null,
@@ -141,14 +139,12 @@ export const getAvailablePreferredSubstats = (
   return selected;
 };
 
-// Individual echo CV is substats only. Main stats are deterministic and are not
-// part of single-echo roll quality.
+/** Single-echo roll quality is substats only, since main stats are deterministic */
 export const calculateEchoSubstatCV = (panel: EchoPanelState): number => (
   panel.stats.subStats.reduce((sum, stat) => sum + critCV(stat.type, stat.value), 0)
 );
 
-// Total build CV keeps the existing WuwaBuilds value model: all echo substat CV
-// plus the best 4-cost crit main only. Extra 4-cost crit mains are penalized.
+/** Every echo substat CV plus the best 4-cost crit main, further 4-cost crit mains subtracted back out */
 export const calculateCV = (
   echoPanels: EchoPanelState[],
   getEchoCost: (panel: EchoPanelState) => number | null | undefined,
@@ -185,10 +181,12 @@ const calculateBuildSubstatCV = (
 
 export const getEchoCVTierStyle = (cv: number): QualityTier => getQualityTierStyle(pctOf(cv, ECHO_SUBSTAT_CV_MAX));
 
-// RV averages all five substat lines against their max roll, so reaching a given
-// percentile is rarer than the same CV percentile — grade RV one quality tier more
-// generously (e.g. a "High"/green CV band shows as "Excellent"/cyan for RV). The MAX
-// glow still requires a literal 100 (every line maxed); a genuinely low RV stays Bad.
+/**
+ * Grades RV one quality tier more generously than the same CV percentile
+ *
+ * - RV averages all five lines against their max roll, so reaching a given percentile is rarer
+ * - MAX still needs a literal 100 with every line maxed, and a genuinely low RV stays Bad
+ */
 export const getEchoRVTierStyle = (rv: number): QualityTier => {
   const normalized = Math.max(0, Math.min(100, Number.isFinite(rv) ? rv : 0));
   if (normalized >= 100) return { ...QUALITY_TIERS[0] };

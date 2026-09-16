@@ -1,8 +1,6 @@
-"""
-Prototype character sync from Encore API v2.
+"""Prototype character sync from Encore API v2.
 
-This script intentionally mirrors the public/Data/Characters.json shape emitted by
-sync_characters.py while leaving the existing Wuthery sync untouched.
+Mirrors the public/Data/Characters.json shape sync_characters.py emits, leaving the Wuthery sync untouched.
 
 Usage:
     py sync_characters_encore.py --id 1608 --pretty
@@ -125,12 +123,10 @@ SKILL_ICON_TYPE_KEYS = {
     "Forte Circuit": "circuit",
 }
 
-# Forte stat nodes map to coordinate/parentNodes by sorting on node Id: the four
-# lowest-Id nodes are the inner (coordinate 1) nodes for branches [1, 2, 3, 6];
-# the four highest-Id nodes are the outer (coordinate 2) nodes for branches
-# [9, 10, 11, 12]. This invariant reproduces Wuthery's coordinate/parentNodes for
-# every character — Encore's SkillTree array order is itself inconsistent (some
-# characters list the outer group first, others the inner group).
+# Forte stat nodes map onto coordinate and parentNodes by sorting on node Id
+# The four lowest Ids are the inner (coordinate 1) nodes, the four highest the outer (coordinate 2) nodes
+# Sorting is needed because Encore's SkillTree array order varies, some characters listing the outer group first
+# The Id order reproduces Wuthery's coordinate and parentNodes for every character
 FORTE_INNER_PARENTS = [1, 2, 3, 6]
 FORTE_OUTER_PARENTS = [9, 10, 11, 12]
 
@@ -144,9 +140,9 @@ STAT_NAME_MAP = {
     "Tune Break Boost": "DamageChangeNormalSkill",
 }
 
-# (stat_id, is_ratio, divisor) per forte node name. The stat IDs are aligned to
-# Wuthery's canonical forte value IDs so skillTrees[].value[].Id matches across
-# sources. Ratio stats (HP/ATK/DEF) store a fraction; the rest store value*100.
+# (stat_id, is_ratio, divisor) per forte node name
+# Stat ids match Wuthery's canonical forte value ids, so skillTrees[].value[].Id lines up across sources
+# A ratio stat (HP, ATK, DEF) stores a fraction while the rest store value*100
 STAT_ID_BY_NODE_NAME = {
     "Crit. Rate+": (8, False, 100),
     "Crit. Rate Up": (8, False, 100),
@@ -229,9 +225,8 @@ def asset_url(value: Any) -> Any:
     if url.startswith("/Game/"):
         url = f"{ENCORE_RESOURCE_BASE}{url}"
     if url.startswith("http://") or url.startswith("https://"):
-        # Encore sometimes returns Unreal object paths rather than file paths:
-        # .../T_IconWeapon21040066_UI.T_IconWeapon21040066_UI
-        # The actual resource URL is the package path with .webp.
+        # Encore sometimes returns an Unreal object path, ".../T_IconWeapon21040066_UI.T_IconWeapon21040066_UI"
+        # The resource URL is that package path with .webp
         if not re.search(r"\.(?:webp|png|jpg|jpeg|gif|mp4|mp3)(?:$|\?)", url, re.IGNORECASE):
             head, tail = url.rsplit("/", 1)
             package_name = tail.split(".", 1)[0]

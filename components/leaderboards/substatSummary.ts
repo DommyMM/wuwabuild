@@ -13,15 +13,10 @@ export type SubstatSummaryEntry = {
 };
 
 /**
- * Tally every substat across a build's five echoes into one `xN · total` entry
- * per stat, ordered crits → everything else → flat base stats.
+ * Tallies every substat across a build's five echoes into one entry per stat, crits first, then the rest, then flat base stats
  *
- * One implementation because three surfaces render this same row and they must
- * agree pill for pill: the expanded leaderboard row, the profile card, and the
- * reference benchmark's Echo blueprint. The blueprint is the reason it is worth
- * extracting — it sits directly under the player's own row, so a stat that
- * tallied or ordered differently between the two would read as a real
- * difference between the build and the reference.
+ * - One implementation because the expanded row, the profile card and the benchmark blueprint must agree pill for pill
+ * - The blueprint sits directly under the player's own row, so a different tally or order there reads as a real difference
  */
 export function buildSubstatSummary(
   panels: EchoPanelState[],
@@ -49,8 +44,7 @@ export function buildSubstatSummary(
     }
   }
 
-  // Registry order first, so the row is stable across builds rather than
-  // ordered by whichever echo happened to roll a stat first.
+  // Registry order, so the row is stable across builds rather than following whichever echo rolled a stat first
   const statOrder: string[] = [];
   if (statTranslations) {
     const seen = new Set<string>();

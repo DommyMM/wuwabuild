@@ -276,8 +276,8 @@ export const useAdaptiveCardColors = (
     if (!artUrl) return;
 
     let cancelled = false;
-    // Sample initial art immediately. Only debounce subsequent transform
-    // changes, which can update every pointer-move while dragging.
+    // First art sample runs immediately
+    // Later transform changes debounce because they fire on every pointer-move while dragging
     const delay = hasCompletedInitialSampleRef.current ? SAMPLE_DEBOUNCE_MS : 0;
     const timeoutId = window.setTimeout(() => {
       void sampleImageCached(

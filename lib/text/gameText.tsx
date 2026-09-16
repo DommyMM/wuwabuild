@@ -14,16 +14,19 @@ const TEXT_ENTRY_ID_SCAN = /<te\s+href=(\d+)/giu;
 
 export type TermMode = 'mark' | 'plain';
 
-// A resolved parameter is content, not decoration: it lifts to full white
-// against the body's 82% and nothing else, so the only coloured text in a
-// description is the game's own element markup and the gold glossary terms.
-// (Ropa loads at one weight, so a weight step here would be synthesised.)
+/**
+ * A resolved parameter is content, so it lifts to full white against the body's 82% and nothing else
+ *
+ * - Leaves the game's own element markup and the gold glossary terms as the only coloured text in a description
+ * - Ropa loads at one weight, so a weight step here would be synthesised
+ */
 export const PARAM_HIGHLIGHT_CLASS = 'text-white';
 
-// Move scaling values arrive in the game's own notation, sometimes already
-// compact ("4.92%*5+98.37%"), sometimes spelled out hit by hit
-// ("29.93%+29.93%+29.93%+29.93%+29.93%"). Runs of identical terms fold into
-// the compact form so both read the same way, and the multiplier shows as ×.
+/**
+ * Folds runs of identical move-scaling terms into the game's compact notation, multiplier shown as ×
+ *
+ * - Values arrive compact ("4.92%*5+98.37%") or spelled out hit by hit, so both read alike after folding
+ */
 export const compactMoveValue = (value: string | null | undefined): string => {
   if (!value) return '';
   const terms = value.split('+').map((term) => term.trim()).filter(Boolean);
@@ -38,10 +41,10 @@ export const compactMoveValue = (value: string | null | undefined): string => {
   return folded.join('+').replace(/\*/gu, '×');
 };
 
-// The underline is what says "this word is defined below".
+/** The underline is what says "this word is defined below" */
 export const TERM_UNDERLINE_CLASS = 'underline decoration-dotted decoration-current/45 underline-offset-3';
 
-/** Glossary ids referenced by a template, in the order they are first mentioned. */
+/** Glossary ids referenced by a template, in the order they are first mentioned */
 export const collectTemplateTermIds = (template: string): number[] => {
   if (!template) return [];
   const seen = new Set<number>();
@@ -69,9 +72,9 @@ const GAME_COLOR_STYLES: Record<string, React.CSSProperties> = {
 interface MarkupState {
   colorName?: string;
   sizePx?: number;
-  // TermConfig id from a <te href=N> glossary link wrapping this run of text.
+  /** TermConfig id from the `<te href=N>` glossary link wrapping this run */
   termId?: number;
-  // A Title-coloured run that starts a line: rendered as a block sub-heading.
+  /** Title-coloured run that starts a line, rendered as a block sub-heading */
   heading?: boolean;
 }
 
@@ -87,17 +90,11 @@ interface RenderTemplateWithHighlightsArgs {
   keepUnknownPlaceholders?: boolean;
   unknownPlaceholderClassName?: string;
   /**
-   * How a glossary keyword is presented.
+   * How a glossary keyword is presented
    *
-   * - `mark` underlines it, pointing at the glossary printed under the text.
-   * - `plain` leaves it as ordinary text, for a definition that is already
-   *   inside a glossary block: an underline there would promise a footnote to
-   *   a footnote.
-   *
-   * Keywords never open a card of their own. Hover panels on this site do not
-   * survive the pointer leaving their trigger, so a definition reached that way
-   * could not be read, and a card opened over a neighbouring trigger flickers
-   * between the two. The glossary block underneath is the definition surface.
+   * - `mark` underlines it, pointing at the glossary printed under the text
+   * - `plain` leaves it plain inside a glossary block, where an underline would promise a footnote to a footnote
+   * - Never a hover card: a panel dies when the pointer leaves its trigger, so the glossary block defines the term
    */
   termMode?: TermMode;
 }
@@ -142,11 +139,13 @@ export const stripGameMarkup = (input: string): string => {
 
 const cloneState = (state: MarkupState): MarkupState => ({ ...state });
 
-// WuWa skill text marks its sections ("Basic Attack - Present Self") with the
-// Title colour and spaces them with blank lines. A Title run that starts a
-// line becomes a block heading so a long description sections itself; the
-// newlines around it are dropped because the block carries its own margin.
-// A Title run inside a sentence stays inline.
+/**
+ * Promotes a Title-coloured run that starts a line into a block heading, so a long description sections itself
+ *
+ * - WuWa skill text marks its sections ("Basic Attack - Present Self") with the Title colour and blank lines
+ * - Newlines around a heading are dropped because the block carries its own margin
+ * - A Title run inside a sentence stays inline
+ */
 const sectionTitleRuns = (segments: TextSegment[]): TextSegment[] => {
   const flagged = segments.map((segment, index) => {
     const startsLine = index === 0 || segments[index - 1].text.endsWith('\n');
@@ -225,7 +224,7 @@ const parseGameMarkupSegments = (input: string): TextSegment[] => {
       } else if (CLOSE_SIZE_PATTERN.test(rawTag)) {
         state.sizePx = sizeStack.pop();
       } else if (OPEN_TEXT_ENTRY_PATTERN.test(rawTag)) {
-        // Keep the glossary link: the id is what the footnote block resolves.
+        // Record the id rather than drop the tag, because the footnote block resolves by id
         termStack.push(state.termId);
         const parsedTerm = Number(rawTag.match(TEXT_ENTRY_ID_PATTERN)?.[1]);
         state.termId = Number.isFinite(parsedTerm) ? parsedTerm : state.termId;
@@ -254,8 +253,7 @@ const renderTextSegmentWithHighlights = (
   const isTerm = segment.state.termId != null;
   const renderChunk = (content: ReactNode, key: string): ReactNode => {
     const styled = style ? <span style={style}>{content}</span> : content;
-    // A glossary keyword is one run of text, so the treatment wraps the whole
-    // segment rather than each placeholder-split chunk inside it.
+    // A glossary keyword is one run of text, so the mark wraps the whole segment, not each placeholder-split chunk
     const marked = isTerm && (options.termMode ?? 'mark') === 'mark'
       ? <span className={TERM_UNDERLINE_CLASS}>{styled}</span>
       : styled;

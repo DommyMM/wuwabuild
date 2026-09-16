@@ -22,13 +22,13 @@ interface ImportResultsProps {
   onReportIssue?: () => void;
 }
 
-/** What the player controls at import: the display name, and whether the card's UID is shown publicly. */
+/** The two things the player controls at import: display name, and whether the card's UID shows publicly */
 export interface ImportWatermark {
   username: string;
   hideUid: boolean;
 }
 
-// Single pulsing skeleton block.
+/** One pulsing skeleton block */
 function Sk({ className }: { className: string }) {
   return <div className={`animate-pulse rounded bg-text-primary/10 ${className}`} />;
 }
@@ -153,8 +153,7 @@ export function ImportResults({
   const fortePending = progress.forte === 'pending';
 
   const charObj = char?.name ? getCharacterByName(char.name) : null;
-  // Mirror convert's signature-weapon fallback so the preview shows what will
-  // actually be submitted, not the blank weapon the OCR returns when unreadable.
+  // Mirrors convert's signature-weapon fallback, so the preview shows what gets submitted and not OCR's blank weapon
   const weaponFallback = resolveImportWeaponFallback(data, charObj?.id ?? char?.id ?? null);
   const weaponName = weaponFallback?.name ?? weapon?.name ?? null;
   const weaponObj = weaponFallback

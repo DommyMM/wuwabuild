@@ -13,31 +13,28 @@ import { DISABLED_CHARACTER_IDS } from '@/lib/constants/disabledEntries';
 
 const FALLBACK_FACE = '/images/Resources/Resonator.png';
 
-// Rarity id -> default border color
 const RARITY_CARD_BORDER: Record<number, string> = {
   4: 'border-rarity-4/50',
   5: 'border-rarity-5/60',
 };
 
-// Rarity id -> hover: brighten border + soft glow
 const RARITY_HOVER: Record<number, string> = {
   4: 'hover:border-rarity-4 hover:shadow-[0_0_10px_var(--color-rarity-4)]',
   5: 'hover:border-rarity-5 hover:shadow-[0_0_10px_var(--color-rarity-5)]',
 };
 
-// Rarity id -> selected: solid bright border + glow
 const RARITY_SELECTED: Record<number, string> = {
   4: 'border-rarity-4 shadow-[0_0_10px_var(--color-rarity-4)]',
   5: 'border-rarity-5 shadow-[0_0_10px_var(--color-rarity-5)]',
 };
 
-// Derive face1 (square head) CDN URL from iconRound URL
+/** Square head CDN URL derived from the character's iconRound */
 const getHeadUrl = (character: Character | null): string => {
   if (!character?.iconRound) return FALLBACK_FACE;
   return character.iconRound.replace(/HeadCircle256/g, 'Head256');
 };
 
-// Keep one Rover per gender
+/** Keeps one Rover per gender */
 const deduplicateRovers = (chars: Character[]): Character[] => {
   const seen = new Set<string>();
   return chars.filter((c) => {
@@ -52,8 +49,7 @@ const deduplicateRovers = (chars: Character[]): Character[] => {
 interface CharacterSelectorProps {
   className?: string;
   inline?: boolean;
-  /** Tighter trigger (smaller portrait + name, dropdown caret) for use inside a
-   *  control strip rather than as a standalone hero chip. */
+  /** Tighter trigger (smaller portrait and name, dropdown caret) for a control strip rather than a standalone hero chip */
   compact?: boolean;
   onSelect?: (character: Character) => void;
 }
@@ -83,7 +79,6 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
     });
   }, [characters]);
 
-  // Apply element + rarity filters
   const filteredCharacters = useMemo(() => {
     let filtered = processedCharacters;
 

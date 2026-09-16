@@ -17,11 +17,10 @@ import { HoverCard, HoverCardDescription } from '@/components/ui/HoverCard';
 const POSITIVE_COLOR = STATUS_POSITIVE_COLOR;
 const NEGATIVE_COLOR = STATUS_NEGATIVE_COLOR;
 
-// Scores print in full: the tiers sit within a few percent of each other and of
-// the build, and a compact 12.35M hides exactly the digits being compared.
+/** Scores print in full because the tiers sit within a few percent, and a compact 12.35M hides the digits compared */
 const SCORE_FORMATTER = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
-// Modifier deltas are read one at a time; padding them adds noise.
+/** Modifier deltas are read one at a time, so padding them adds noise */
 const DELTA_FORMATTER = new Intl.NumberFormat('en-US', {
   notation: 'compact',
   maximumFractionDigits: 2,
@@ -35,8 +34,7 @@ function fmtDelta(value: number): string {
   return DELTA_FORMATTER.format(value);
 }
 
-// Backend layout keys are echo cost strings ("43311"). Hyphenate so they read
-// as a cost split rather than an opaque id; anything else passes through.
+/** Hyphenates the backend's echo cost string ("43311") so it reads as a cost split, passing anything else through */
 function formatLayoutLabel(layout: string): string {
   return /^\d+$/.test(layout) ? layout.split('').join('-') : layout;
 }
@@ -45,21 +43,14 @@ const SECTION_HEADING = LB_SECTION_HEADING;
 
 type OptimalityTier = 'ceiling' | 'standardized' | 'low_roll';
 
-// Tiers are differentiated by label and order, not by hue. Selection is the
-// only accent, matching the Min/Mid/Max precedent in BuildSubstatUpgrades where
-// the active tier alone carries the gold accent.
-//
-// Three colour channels, deliberately non-overlapping:
-//   gold  = the tier you selected (card chrome and its tick on the track)
-//   white = this build (the track fill and its score)
-//   teal  = this build clears that reference (the card's ratio)
-// Every tier is a searched-optimal build; they differ in roll quality and in how
-// many substat lines do anything. Keys are the stored tier names. Standard (16
-// useful lines at median rolls on a damage board) lands on the live population
-// median; Optimal (every usable line at median rolls) is a top ~0.3% build, so
-// never call it "Median". The line count comes from the reference, because a
-// healer can use only 15 lines and its Standard spends 10; `lines` is the
-// damage-board count for references stored before the API sent it.
+/**
+ * Display text per stored tier name, told apart by label and order rather than hue
+ *
+ * - Every tier is a searched-optimal build, differing in roll quality and in how many substat lines do anything
+ * - Standard lands on the live population median while Optimal is a top 0.3% build, so Optimal is never "Median"
+ * - Three non-overlapping channels: gold is the selected tier, white is this build, teal is this build clearing a reference
+ * - `lines` is the damage-board count, only a fallback since a healer reference uses 15 and spends 10 on Standard
+ */
 const TIER_META: Record<OptimalityTier, { label: string; rolls: string; lines: number }> = {
   ceiling: { label: 'Ceiling', rolls: 'max rolls', lines: 25 },
   standardized: { label: 'Optimal', rolls: 'median rolls', lines: 25 },
@@ -71,7 +62,7 @@ const TICK_RING = '0 0 0 2px #1a1a1a';
 
 interface TierRowProps {
   ref_: LBOptimalityReference;
-  /** This build's score as a fraction of this tier's; undefined without a build score. */
+  /** This build's score over this tier's, undefined when the build has no score */
   ratio?: number;
   isActive: boolean;
   onClick: () => void;
@@ -91,7 +82,7 @@ const EMPTY_REFERENCE: LBOptimalityReference = {
   usefulLines: 0,
 };
 
-// Beating a reference is worth marking; falling short of one is not a failure, so the low side is neutral
+/** Beating a reference is worth marking while falling short is not a failure, so the low side stays neutral */
 function ratioTextColor(ratio: number | undefined): string {
   if (ratio === undefined) return 'rgba(224,224,224,0.7)';
   return ratio >= 1 ? POSITIVE_COLOR : 'rgba(224,224,224,0.7)';
@@ -104,19 +95,13 @@ interface BenchmarkTrackProps {
 }
 
 /**
- * One scale for the whole benchmark: the track runs 0 → ceiling, the fill is
- * this build, and each reference tier is a tick on the same ruler.
+ * One ruler for the whole benchmark: the track runs 0 to ceiling, the fill is this build, each tier is a tick
  *
- * This replaces three per-card meters that each used their own tier as the
- * denominator and clamped at 100%. Any build that cleared the two lower tiers
- * therefore rendered two identical full bars, so the graphic said less the
- * better the build got, and no two of the three bar lengths were comparable.
- * The ratios live on the tier cards as text, one per tier beside the score it
- * divides by; text has none of the clamping problem the meters had.
+ * - One scale so the three bar lengths are comparable, unlike a per-tier meter clamped at its own 100%
+ * - Per-tier ratios live on the cards as text, which does not clamp
  */
 function BenchmarkTrack({ currentDamage, marks, selectedTier }: BenchmarkTrackProps) {
-  // A build can in principle land past the ceiling (rounding, or an off-model
-  // loadout); extend the ruler rather than clamp, so that stays visible.
+  // A build can land past the ceiling on rounding or an off-model loadout, so extend the ruler rather than clamp
   const trackMax = Math.max(currentDamage, ...marks.map((m) => m.damage));
   if (!(trackMax > 0)) return null;
   const pct = (value: number) => (value / trackMax) * 100;
@@ -137,9 +122,8 @@ function BenchmarkTrack({ currentDamage, marks, selectedTier }: BenchmarkTrackPr
           return (
             <span
               key={mark.tier}
-              // Every tick overhangs the track so all three read as fixed marks
-              // over the fill and over the empty track alike; the dark ring
-              // separates them from the fill. Selection adds length and gold.
+              // Every tick overhangs the track so it reads the same over the fill and over the empty part,
+              // with the dark ring holding it off the fill. Selection adds length and gold.
               className={`absolute w-0.5 -translate-x-1/2 rounded-full transition-colors duration-150 ${isSelected ? '-top-1.5 -bottom-1.5' : '-top-0.5 -bottom-0.5'}`}
               style={{
                 left: `${pct(mark.damage)}%`,
@@ -221,7 +205,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
   const { t } = useLanguage();
   const { fetters, getEcho, getSubstatValues, statIcons, statTranslations } = useGameData();
   const panelId = useId();
-  // Standard leads so the headline ratio reads against a typical build.
+  // Standard leads so the headline ratio reads against a typical build
   const [selectedTier, setSelectedTier] = useState<OptimalityTier>('low_roll');
 
   const selectedRef = useMemo<LBOptimalityReference>(() => {
@@ -245,19 +229,15 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
   const topLevelStats = useMemo(() => {
     const stats = selectedRef.topLevelStats;
 
-    // Scaling stat drives which flat stat is worth showing: ATK/DEF are noise on
-    // an HP scaler like Cartethyia, so only the character's own scaling flat is
-    // kept (the other two flats are never in the order list below, so they drop).
+    // Only the character's own scaling flat is worth a row, since ATK and DEF are noise on an HP scaler like Cartethyia
     const scaling = resolveCharacterBaseScaling(character);
     const scalingKey = scaling === 'HP' ? 'hp' : scaling === 'DEF' ? 'def' : 'atk';
     const elementKey = character?.element && character.element !== Element.Rover
       ? `${character.element.toLowerCase()}_dmg`
       : null;
 
-    // Same priority the build-row stat columns use (statColumns.ts), adapted for a
-    // full sheet: crits lead (the row folds them into CV), then scaling stat,
-    // element, offensive move-type bonuses, ER, healing. Off-element DMG and the
-    // non-scaling flats are intentionally absent.
+    // Same priority statColumns.ts gives a build row, widened to a full sheet: crits (which the row folds into CV),
+    // scaling stat, element, move-type bonuses, ER, healing. Off-element DMG and the non-scaling flats stay out.
     const order: string[] = [
       'crit_rate', 'crit_dmg',
       scalingKey,
@@ -279,9 +259,8 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
     });
   }, [character, selectedRef.topLevelStats, statIcons]);
 
-  // The reference's substat list names only the useful stats. Standard fills its
-  // unused lines with stats the character ignores; those stay out of this set,
-  // so the echo cards render them dimmed and the tally leaves them out.
+  // The reference names only its useful stats, so the lines Standard spends on stats the character ignores stay out
+  // of this set and the echo cards render them dimmed
   const highlightedSubstats = useMemo(
     () => new Set(selectedRef.substats.flatMap((value) => {
       const key = value ? normalizeSubstatKey(value) : null;
@@ -289,17 +268,14 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
     })),
     [selectedRef.substats],
   );
-  // Same tally, same order, same pills as the build's own row above, so the two
-  // can be read chip against chip.
+  // Same tally, order and pills as the build's own row above, so the two read chip against chip
   const blueprintSubstats = useMemo(
     () => buildSubstatSummary(selectedRef.echoPanels, statIcons, statTranslations)
       .filter((summary) => highlightedSubstats.size === 0 || highlightedSubstats.has(summary.type)),
     [highlightedSubstats, selectedRef.echoPanels, statIcons, statTranslations],
   );
-  // Roll Value counts the same substats the build's own row selects by default
-  // (the character's preferred stats), so the two RV pills compare directly. It
-  // does not restate the tier: RV is lines x roll quality, which is exactly what
-  // separates Standard (16 lines) from Optimal (25) and Optimal from Ceiling.
+  // Counts the character's preferred stats, the same default the build's own row uses, so the two RV pills compare directly
+  // RV is lines x roll quality, which is what separates Standard from Optimal and Optimal from Ceiling
   const rvSelection = useMemo(
     () => getAvailablePreferredSubstats(selectedRef.echoPanels, character?.preferredStats ?? DEFAULT_PREFERRED_STATS),
     [character?.preferredStats, selectedRef.echoPanels],
@@ -314,9 +290,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
     }
     return { rolls, value: rolls * calculateSelectedStatsRV(selected, getSubstatValues) };
   }, [blueprintSubstats, getSubstatValues, rvSelection]);
-  // Stat pills plus the RV pill. The bench renders under both hosts without
-  // knowing which; the expansion ladder is the narrower one and is safe in the
-  // card's frame too.
+  // Stat pills plus the RV pill, on the expansion ladder because the bench does not know its host and that ladder is narrower
   const blueprintClasses = getSummaryRowClasses(blueprintSubstats.length + 1, 'expansion');
   const syntheticDetail = useMemo<LBBuildDetailEntry>(() => ({
     ...buildDetail,
@@ -334,8 +308,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
 
   if (loading) {
     return (
-      // Mirrors the real layout (track, tier selector, summary, stat sheet) so
-      // the panel does not jump when the data lands.
+      // Mirrors the real layout so the panel does not jump when the data lands
       <div className="animate-pulse overflow-hidden rounded-lg border border-border/45 bg-background-secondary/20">
         <div className="border-b border-border/45 px-3 py-3 sm:px-4">
           <div className="h-3 w-40 rounded bg-white/8" />
@@ -432,18 +405,12 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
         </div>
       </div>
 
-      {/* Keyed on the tier so switching crossfades the summary, stat sheet and
-          Echo blueprint together. Blur bridges the two states: without it the
-          old and new stat sheets read as two objects overlapping rather than
-          one sheet changing. */}
+      {/* Keyed on the tier so switching crossfades summary, stat sheet and blueprint together, with blur bridging
+          the two states, or the old and new sheets read as two objects overlapping rather than one sheet changing */}
       <div key={selectedTier} className="lb-tier-swap space-y-4 px-3 py-3 sm:px-4">
-        {/* One line, not a card: the selected card already names the tier and
-            its score, so what is left is the loadout's shape and what adjusted
-            its score. The score is always the full scored rotation, so the line
-            lists only what varies: the ER target the tier reaches (red below it,
-            where ER scaling costs score; green at or above, where surplus costs
-            nothing) and any team-facing score modifiers (Danjin's Moonlit/Heron,
-            healers, Cantarella). Set chips sit at the far end. */}
+        {/* One line, since the selected card already names the tier and its score, leaving only what varies:
+            the ER target (red below it where ER scaling costs score, green at or above where surplus costs nothing),
+            any team-facing score modifiers, and the set chips at the far end */}
         <section aria-labelledby={`${panelId}-summary`} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <h4 id={`${panelId}-summary`} className="sr-only">{TIER_META[selectedTier].label} loadout</h4>
           <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
@@ -491,20 +458,15 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
 
         <section aria-labelledby={`${panelId}-stats`}>
           <h4 id={`${panelId}-stats`} className={SECTION_HEADING}>Final Build Stats</h4>
-          {/* flex-auto lets each badge start at its own content width and then grow
-              to share the row: short stats (Crit Rate, ATK) stay compact while a long
-              one (Resonance Liberation DMG Bonus) keeps its label on one line via
-              whitespace-nowrap, instead of every badge being forced to a single width
-              and wrapping the long label. At realistic stat counts the whole sheet
-              fits one row (~1264px inner); it wraps only when it genuinely can't. */}
+          {/* flex-auto starts each badge at its content width and then grows it, so short stats stay compact while
+              "Resonance Liberation DMG Bonus" keeps its label on one line, and the sheet wraps only when it must */}
           <dl className="mt-2 flex flex-wrap gap-1.5">
             {topLevelStats.map((entry) => (
               <div
                 key={`${selectedTier}-tls-${entry.key}`}
                 className="flex flex-auto flex-col rounded-md border border-border/45 bg-black/15 px-2.5 py-2"
               >
-                {/* Value + icon lead so the number line is the aligned anchor across a
-                    row; the label rides below as a single-line caption. */}
+                {/* Value and icon lead so the number line is the anchor across a row, with the label below as a caption */}
                 <dd className="flex items-center gap-1.5 text-sm font-semibold tabular-nums text-white/85">
                   {entry.icon && <img src={entry.icon} alt="" width={16} height={16} className="h-4 w-4 shrink-0 object-contain opacity-80" loading="lazy" />}
                   {entry.kind === 'percent' ? formatPercentStat(entry.value) : formatFlatStat(entry.value)}
@@ -524,17 +486,12 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
         </section>
 
         <section aria-labelledby={`${panelId}-echoes`} className="pt-1">
-          {/* Visually hidden. Each echo card's set icon is absolutely positioned
-              above its own top edge, so the first card's icon sat on top of this
-              heading. The row is unmistakable without it: it renders the same
-              echo cards as the build row, under a stat sheet that already names
-              the tier. The label stays for the section's accessible name. */}
+          {/* Hidden because each echo card's set icon is positioned above its own top edge and would land on this
+              heading, and the row is unmistakable anyway, but the label stays as the section's accessible name */}
           <h4 id={`${panelId}-echoes`} className="sr-only">Echo Blueprint</h4>
           <div className="w-full space-y-4 font-ropa tracking-wide">
-            {/* Identical to the build's own row, because the two are read slot
-                against slot. The per-echo substats stay: the tally below is an
-                aggregate, and an aggregate does not tell you what one echo has
-                to look like when you go farming for it. */}
+            {/* Identical to the build's own row, because the two are read slot against slot, and the per-echo
+                substats stay because the aggregate below cannot say what one echo has to look like to farm for */}
             <BuildExpandedEchoPanels
               detail={syntheticDetail}
               character={character}
@@ -548,8 +505,7 @@ export const BuildOptimalityPanel: React.FC<BuildOptimalityPanelProps> = ({
               showHeader={false}
             />
 
-            {/* Pills outside the Roll Value selection dim exactly as in the
-                build's own row, so the two rows read chip against chip. */}
+            {/* Pills outside the Roll Value selection dim as in the build's own row, so the two read chip against chip */}
             {blueprintSubstats.length > 0 && (
               <div className={blueprintClasses.row}>
                 {blueprintSubstats.map((summary) => (

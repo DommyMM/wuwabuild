@@ -1,24 +1,22 @@
 import { isLBPercentStatSortKey, LBSortKey } from '@/lib/lb';
 import { REGION_BADGES, RegionBadge } from './constants';
 
-// getSortLabel lives in lib/lb as getLBSortLabel (the single label source);
-// re-exported here for the leaderboard components that import it from formatters.
+// Re-exported under its old name for the leaderboard components that reach for it here
 export { getLBSortLabel as getSortLabel } from '@/lib/lb';
 
 export function formatFlatStat(value: number): string {
   return Number(value).toFixed(0);
 }
 
-/** Rounded, thousands-separated score/damage figure. */
+/** Rounded, thousands-separated score or damage figure */
 export function formatDamage(value: number): string {
   return Math.round(value).toLocaleString();
 }
 
 /**
- * Canonical substat key, or null when the slot is unset. Substat types arrive
- * from several sources (stored builds, OCR imports, optimality references), so
- * every surface that buckets substats normalizes through here rather than
- * trusting the raw string.
+ * Canonical substat key, null when the slot is unset
+ *
+ * - Every surface that buckets substats goes through here, since the types arrive from stored builds, OCR imports and references
  */
 export function normalizeSubstatKey(type: string | null | undefined): string | null {
   const trimmed = type?.trim();
@@ -55,7 +53,7 @@ export function formatReignHoldLabel(reignSince: string): string | null {
   return `${days}d`;
 }
 
-// Locale short date ("Mar 4, 2026") from an RFC3339 timestamp, or null when unparseable.
+/** Locale short date like "Mar 4, 2026" from an RFC3339 timestamp, null when it does not parse */
 export function formatDateLabel(iso: string | null | undefined): string | null {
   if (!iso) return null;
   const date = new Date(iso);

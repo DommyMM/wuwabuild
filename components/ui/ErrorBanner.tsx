@@ -6,11 +6,7 @@ interface ErrorBannerProps {
   className?: string;
 }
 
-/**
- * Inline red error strip with an optional Retry action. Single implementation
- * for the banners that were previously copy-pasted (with drifting paddings and
- * red shades) across the board, breakdown, upgrades and profile surfaces.
- */
+/** Inline red error strip with an optional Retry action, shared by the board, breakdown, upgrades and profile surfaces */
 export const ErrorBanner: React.FC<ErrorBannerProps> = ({ children, onRetry, className = '' }) => (
   <div
     role="alert"

@@ -38,9 +38,8 @@ export function useBuildDetails() {
     detailLoadingByIdRef.current = {};
   }, [abortAllBuildDetailRequests]);
 
-  // The row's character id is the authoritative Rover identity; historical
-  // buildState JSON may carry a stale element, so expanded rows and editor
-  // handoff re-derive both fields from the character data.
+  // The row's character id is the Rover identity, so both fields are re-derived from character data because
+  // historical buildState JSON can carry a stale element
   const normalizeRoverDetail = useCallback((detail: LBBuildDetailEntry): LBBuildDetailEntry => {
     const character = getCharacter(detail.character.id);
     if (!character || !isRover(character) || !character.roverElementName) return detail;

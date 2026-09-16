@@ -23,10 +23,9 @@ interface ProfileRankSectionProps {
 }
 
 /**
- * The variant slot that replaces <ForteCardSection> in the profile flow.
- * Renders the condensed forte chips above a RankModule. Designed to occupy
- * roughly the same vertical space (~124px) as the original ForteCardSection
- * so the rest of the card layout (echoes, stats) stays put.
+ * Replaces ForteCardSection in the profile flow, with condensed forte chips above a RankModule
+ *
+ * - Holds roughly the same ~124px of height, so echoes and stats below it stay put
  */
 export const ProfileRankSection: React.FC<ProfileRankSectionProps> = ({
   availableBoards,

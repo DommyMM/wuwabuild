@@ -1,9 +1,8 @@
 import { loadCharacterDisplayMap, loadWeaponNames } from '@/lib/server/gameData';
 
-// Internal gallery for eyeballing every OG embed in one place, at Discord-ish
-// render width. Never cached, never indexed; image URLs get a ?v= cache-buster
-// so edits show up without fighting the edge cache.
-// Dev-only: production builds always 404.
+// Internal gallery for eyeballing every OG embed in one place, at Discord-ish render width
+// Never cached, never indexed, and image URLs carry a ?v= cache-buster so edits show up past the edge cache
+// Dev-only: production returns 404
 export const dynamic = 'force-dynamic';
 
 const STATIC_CARDS: Array<{ label: string; url: string }> = [

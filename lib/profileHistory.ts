@@ -1,27 +1,25 @@
-// Client-side profile history: recently opened profiles plus starred pins.
-// Powers the profile switcher strip, search recents, and the /profiles
-// directory. localStorage only: nothing here is verified, sent to the
-// backend, or visible to anyone else.
+// Recently opened profiles and starred pins behind the switcher strip, search recents and /profiles
+// localStorage only: nothing here is verified, sent to the backend, or visible to anyone else
 
 import { getLocalStorageItem, removeLocalStorageItem, setLocalStorageJSON } from '@/lib/clientStorage';
 
 export interface StoredProfile {
   uid: string;
   username: string;
-  /** Featured character portrait at save time. */
+  /** Featured character portrait as it stood at save time */
   head?: string | null;
   savedAt: number;
 }
 
 const RECENTS_KEY = 'wuwabuilds_recent_profiles';
 const PINNED_KEY = 'wuwabuilds_pinned_profiles';
-/** Cap for both pinned and recent lists. */
+/** Caps the pinned and the recent list alike */
 const MAX_PROFILES = 8;
 
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((listener) => listener());
 
-/** Subscribe to any profile-history change (recents or pins). */
+/** Fires on any change to recents or pins */
 export function subscribeProfileHistory(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
@@ -52,14 +50,14 @@ function readProfiles(key: string, cap: number): StoredProfile[] {
 }
 
 function writeProfiles(key: string, profiles: StoredProfile[]): void {
-  // Quota or privacy mode is tolerated; history is best-effort.
+  // Write failure from quota or private mode is ignored because history is best-effort
   setLocalStorageJSON(key, profiles);
   emit();
 }
 
-// Cached snapshots for useSyncExternalStore (stable reference per raw value).
 const EMPTY: StoredProfile[] = [];
 
+/** useSyncExternalStore snapshot that reparses only when the raw string changes, so the reference stays stable */
 function makeSnapshot(key: string, cap: number): () => StoredProfile[] {
   let cacheRaw: string | null = null;
   let cache: StoredProfile[] = EMPTY;
@@ -100,13 +98,13 @@ export function clearRecentProfiles(): void {
   emit();
 }
 
-/** Remove one profile from recents. Pins are left alone. */
+/** Pins are left alone */
 export function removeRecentProfile(uid: string): void {
   if (!uid) return;
   writeProfiles(RECENTS_KEY, getRecentProfiles().filter((entry) => entry.uid !== uid));
 }
 
-/** Pin or unpin a profile. Pins are device-local bookmarks, newest first. */
+/** Pins are device-local bookmarks, newest first */
 export function togglePinnedProfile(profile: { uid: string; username: string; head?: string | null }): void {
   if (!profile.uid) return;
   const pinned = getPinnedProfiles();

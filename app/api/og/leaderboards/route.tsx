@@ -7,8 +7,8 @@ export const revalidate = 86400;
 export async function GET() {
   const overview = await prefetchLeaderboardOverview();
 
-  // Top base boards (S0), one per character, biggest first — mirrors what the
-  // overview page leads with. Falls back to the centered card when the API is out.
+  // Top base boards (S0), one per character, biggest first, mirroring what the overview page leads with
+  // Falls back to the centered card when the API is out
   const seen = new Set<string>();
   const boards = (overview ?? []).filter((board) => {
     if (!board.display?.name || parseLBSeqLevel(board.trackKey) !== 0) return false;

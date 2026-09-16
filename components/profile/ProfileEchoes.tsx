@@ -18,14 +18,12 @@ import { EchoInventoryDetail } from './EchoInventoryDetail';
 const PAGE_SIZE = 20;
 const ECHO_COSTS = [4, 3, 1] as const;
 
-// # | Name (echo art + set badge + name) | Main Stat | [CV/RV + 5 flexed substats]
+/** Columns are # | Name | Main Stat | stat group, the group itself holding CV and 5 substats */
 const ECHO_TABLE_GRID = 'grid-cols-[48px_384px_96px_minmax(0,1fr)]';
 const ECHO_STAT_GROUP_GRID = 'grid-cols-[128px_repeat(5,minmax(0,1fr))]';
 const ECHO_STAT_GROUP_MIN_W = 'min-w-[640px]';
 
-// Quality column: CV only, with the tier ramp (the one deliberately colored data
-// column, like element tints in Main Stat). Roll Value lives in the expanded
-// inspection card, not the table.
+/** Tooltip for the quality column, which carries CV alone because Roll Value lives in the expanded inspection card */
 const CV_TITLE = "Crit Value: 2×Crit Rate + Crit DMG from this echo's substats, out of 42";
 
 const SUBSTAT_COLUMN_KEYS = LB_ECHO_SUBSTAT_SORT_KEYS;
@@ -51,7 +49,7 @@ function formatStatValue(stat: string | null | undefined, value: number | null |
   return isPercentStat(stat) ? `${Number(value).toFixed(1)}%` : String(Math.round(Number(value)));
 }
 
-// Nightmare or Reminiscence stuff get shorter to fit
+/** Long names, Nightmare and Reminiscence ones especially, step down a size to fit the cell */
 function echoNameSizeClass(name: string): string {
   if (name.length > 34) return 'text-sm';
   if (name.length > 27) return 'text-base';
@@ -60,7 +58,7 @@ function echoNameSizeClass(name: string): string {
 
 interface ProfileEchoesProps {
   uid: string;
-  /** Surface a build in the profile's builds table above (expand + scroll). */
+  /** Opens one of the echo's equipped builds as the featured card above the filters */
   onOpenBuild: (buildId: string, characterId: string) => void;
 }
 
@@ -82,13 +80,13 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
   const [settledKey, setSettledKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Loading is derived from whether the in-flight query matches the last settled one, so the effect never calls setState synchronously
+  // Loading falls out of comparing this key against the last settled one, so the effect never sets state synchronously
   const queryKey = useMemo(
     () => JSON.stringify({ uid, page, sort, direction, costs, setIds, mainStatTypes }),
     [uid, page, sort, direction, costs, setIds, mainStatTypes],
   );
 
-  // Set options (deduped by id) and a lookup for rendering an echo's own set.
+  // Deduped by id because fetters list a set once per piece count
   const setOptions = useMemo(() => {
     const map = new Map<string, { id: string; name: string; icon: string }>();
     for (const fetter of fetters) {
@@ -109,7 +107,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
     return Array.from(seen);
   }, [getMainStatsByCost]);
 
-  // SortHeaderMenu is typed for the builds board, echo sort keys are superset string union
+  // SortHeaderMenu is typed for the builds board, so the wider echo sort keys need the cast
   const substatOptions = useMemo<SortMenuOption[]>(
     () => SUBSTAT_COLUMN_KEYS.map((key) => ({ key: key as unknown as LBSortKey, label: keyLabel(key), icon: keyIcon(statIcons, key) })),
     [statIcons],
@@ -163,8 +161,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
     setSort(key);
   };
 
-  // Pick a substat to sort by from a hover menu. While active, the selected
-  // stat pins to the first substat cell and the rest stay in positional order.
+  /** Picks a substat to sort by, which pins that stat to the first substat cell while the rest keep positional order */
   const selectSubstatSort = (key: LBEchoSortKey) => {
     handleSort(key);
   };
@@ -223,7 +220,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
         />
 
         {/* Table */}
-        {/* Publishes --scrollport: the expansion card pins to this scrollport's width. */}
+        {/* Publishes --scrollport, which the expansion card pins its width to */}
         <div ref={scrollportRef} className="mt-3 overflow-x-auto overflow-y-hidden pb-1">
           <div className="w-max min-w-full">
             <div className="overflow-visible rounded-lg border border-border bg-background/70">
@@ -301,7 +298,7 @@ export const ProfileEchoes: React.FC<ProfileEchoesProps> = ({ uid, onOpenBuild }
               </div>
 
               {/* Body */}
-              {/* overflow-clip, not hidden cos it does weird stuff when expanded otherwise */}
+              {/* overflow-clip, not hidden, which misbehaves once a row is expanded */}
               <div className="relative overflow-clip rounded-b-lg">
                 {isInitialLoading ? (
                   <div className="divide-y divide-border/60">
@@ -535,9 +532,8 @@ const EchoFilterBar: React.FC<EchoFilterBarProps> = ({
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const activeRowRef = useRef<HTMLButtonElement | null>(null);
-  // Scrolling the list moves rows under a stationary cursor, which still emits
-  // pointer events. Both refs keep that from stealing the cursor back from the
-  // keyboard, and keep hover off the scroll path entirely.
+  // Scrolling moves rows under a stationary cursor, which still emits pointer events
+  // Both refs keep that from stealing the cursor back from the keyboard
   const pointerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const navIntentRef = useRef<'keyboard' | 'pointer'>('keyboard');
   const normalized = query.trim().toLowerCase();
@@ -563,14 +559,13 @@ const EchoFilterBar: React.FC<EchoFilterBarProps> = ({
     return items;
   }, [normalized, costs, setIds, mainStatTypes, setOptions, mainStatOptions, statIcons]);
 
-  // No cursor until the user navigates so that opening the dropdown doesn't look like a row is already hovered
+  // No cursor until the reader navigates, so opening the dropdown does not look like a row is already hovered
   const activeIdx = (!open || visibleItems.length === 0)
     ? -1
     : (activeIndex < 0 || activeIndex >= visibleItems.length ? -1 : activeIndex);
 
-  // Keyboard-only: `block: 'nearest'` is a no-op for fully visible rows, so
-  // scrolling on hover would only ever fire on the partially visible first/last
-  // row and nudge the list out from under the pointer.
+  // Keyboard-only because `block: 'nearest'` is a no-op on fully visible rows
+  // On hover it would fire only on a partly visible first or last row and nudge the list out from under the pointer
   useEffect(() => {
     if (!open || activeIdx < 0) return;
     if (navIntentRef.current !== 'keyboard') return;

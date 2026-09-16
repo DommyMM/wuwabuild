@@ -13,11 +13,11 @@ import { ProfileBuildCardStage } from './ProfileBuildCardStage';
 
 export interface FeaturedBuildSelection {
   buildId: string;
-  /** `weaponId:trackKey` of the board the reader clicked through from, when known. */
+  /** `weaponId:trackKey` of the board the reader clicked through from, null when unknown */
   standingKey: string | null;
-  /** Character behind the build, when the opener knew it before the detail loaded. */
+  /** Character behind the build, null when the opener did not know it before the detail loaded */
   characterId: string | null;
-  /** Percentile on the board the reader clicked; unknown for a pasted deep link. */
+  /** Percentile on the board the reader clicked, null for a pasted deep link */
   topPercent: number | null;
 }
 
@@ -33,14 +33,11 @@ interface ProfileFeaturedBuildProps {
 }
 
 /**
- * The card placement for builds that arrive without a table row: a rankings
- * tile, a `?buildId=` deep link, or the echo inventory's "Equipped by" strip.
- * Sits between the rankings shelf and the filters so a tile and its card stay
- * adjacent, and it is not part of the build query, so filtering and paging the
- * table below never disturb it.
+ * Card placement for builds arriving without a table row: a rankings tile, a `?buildId=` deep link or "Equipped by"
  *
- * The tier-colored top edge is the tile's own edge continued: the same 2px,
- * the same color, so the open card reads as that tile's drawer.
+ * - Sits between the rankings shelf and the filters so a tile and its card stay adjacent
+ * - Outside the build query, so filtering and paging the table below never disturb it
+ * - Top edge repeats the tile's 2px tier color, so the open card reads as that tile's drawer
  */
 export const ProfileFeaturedBuild: React.FC<ProfileFeaturedBuildProps> = ({
   uid,
@@ -63,8 +60,8 @@ export const ProfileFeaturedBuild: React.FC<ProfileFeaturedBuildProps> = ({
   const regionBadge = resolveRegionBadge(uid);
   const tier = selection.topPercent !== null ? getRankTier(selection.topPercent) : null;
 
-  // A tile is usually on screen when it is clicked; a deep link lands cold.
-  // Both end with the region under the sticky nav, once per build.
+  // A clicked tile is usually on screen while a deep link lands cold, so both scroll the region under the sticky nav
+  // Keyed on buildId, so it runs once per build
   useEffect(() => {
     const node = sectionRef.current;
     if (!node) return;
@@ -86,7 +83,7 @@ export const ProfileFeaturedBuild: React.FC<ProfileFeaturedBuildProps> = ({
           : { background: 'color-mix(in srgb, var(--color-accent) 45%, transparent)' }}
       />
 
-      {/* The card names itself, so this strip is only the way out. */}
+      {/* The card names itself, so this strip is only the way out */}
       <div className="flex justify-end px-4 pt-3">
         <button
           type="button"
@@ -99,10 +96,9 @@ export const ProfileFeaturedBuild: React.FC<ProfileFeaturedBuildProps> = ({
         </button>
       </div>
 
-      {/* Below md the card keeps its 1440px design space and scrolls sideways
-          in its own scroller (this is not inside the table, so it is the only
-          one); from md up CardScaler shrinks it to fit. --scrollport keeps the
-          bench controls over the visible strip while scrolled. */}
+      {/* Below md the card keeps its 1440px design space and scrolls sideways, from md up CardScaler shrinks it to fit
+          Not inside the table, so this is the only scroller
+          --scrollport keeps the bench controls over the visible strip while scrolled */}
       <div ref={scrollportRef} className="-mt-3 w-full max-md:overflow-x-auto">
         <div className="max-md:min-w-360">
           <ProfileBuildCardStage

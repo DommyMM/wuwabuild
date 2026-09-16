@@ -15,16 +15,14 @@ interface BuildStandingsTableProps {
   onRetry?: () => void;
   characterId: string;
   characterName: string;
-  /** Deep-links the board to this build when set. Omitted for transient/ghost
-   *  builds (e.g. the editor's rank simulation), which have no stored id. */
+  /** Deep-links the board to this build, omitted for a ghost build like the editor's rank simulation that has no stored id */
   buildId?: string;
   hasBoardContext: boolean;
   activeWeaponId: string;
   activeTrackKey: string;
-  /** Current surrounding page lens. Standings data itself remains canonical Score. */
+  /** The surrounding page's lens, while the standings themselves stay canonical Score */
   currentScoring?: ScoringMode;
-  /** Horizontal alignment of the table. Defaults to centered (leaderboard use);
-   *  the editor's rank simulation passes "left" so it sits in its column. */
+  /** Centred by default, while the editor's rank simulation passes "left" so the table sits in its column */
   align?: 'center' | 'left';
 }
 
@@ -80,8 +78,7 @@ export const BuildStandingsTable: React.FC<BuildStandingsTableProps> = ({
   const showScoreContext = currentScoring === 'raw';
 
   return (
-    // max-w + overflow keeps the ~720px table swipeable on phones instead of
-    // clipping at the viewport edge (the only board table without a scroller).
+    // max-w plus overflow keeps the 720px table swipeable on phones rather than clipped at the viewport edge
     <div className={`${alignClass ? `${alignClass} ` : ''}w-fit max-w-full overflow-x-auto`}>
       <p className="mb-2 text-center text-3xs leading-snug text-text-primary/40">
         Echoes stay the same while weapon, sequence, team, and rotation are standardized per board

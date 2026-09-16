@@ -14,7 +14,7 @@ interface LevelSliderProps {
   className?: string;
 }
 
-// Default snap values for character/weapon levels
+/** Character and weapon ascension breakpoints */
 const DEFAULT_SNAP_VALUES = [1, 20, 40, 50, 60, 70, 80, 90];
 
 export const LevelSlider: React.FC<LevelSliderProps> = ({
@@ -32,7 +32,6 @@ export const LevelSlider: React.FC<LevelSliderProps> = ({
   const [inputValue, setInputValue] = useState('');
   const previousValueRef = useRef(value);
 
-  // Get diamond/ascension level based on current level
   const getDiamondLevel = useCallback((level: number): number => {
     if (level <= 20) return 0;
     if (level <= 40) return 1;
@@ -43,25 +42,21 @@ export const LevelSlider: React.FC<LevelSliderProps> = ({
     return 6;
   }, []);
 
-  // Snap to closest breakpoint value
   const snapToClosestValue = useCallback((rawValue: number): number => {
     return snapValues.reduce((closest, current) =>
       Math.abs(current - rawValue) < Math.abs(closest - rawValue) ? current : closest
     , snapValues[0]);
   }, [snapValues]);
 
-  // Handle slider change
   const handleSliderChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = snapToClosestValue(parseInt(event.target.value));
     onLevelChange(newValue);
   }, [snapToClosestValue, onLevelChange]);
 
-  // Handle direct input change
   const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
   }, []);
 
-  // Finalize level from input
   const finalizeLevelFromInput = useCallback(() => {
     if (inputValue.trim() === '') {
       onLevelChange(previousValueRef.current);
@@ -74,7 +69,6 @@ export const LevelSlider: React.FC<LevelSliderProps> = ({
     setIsEditing(false);
   }, [inputValue, min, max, onLevelChange]);
 
-  // Handle keyboard events
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (event.key === 'Enter') {
       finalizeLevelFromInput();
@@ -84,14 +78,13 @@ export const LevelSlider: React.FC<LevelSliderProps> = ({
     }
   }, [finalizeLevelFromInput, onLevelChange]);
 
-  // Start editing mode
   const startEditing = useCallback(() => {
     previousValueRef.current = value;
     setInputValue('');
     setIsEditing(true);
   }, [value]);
 
-  // Calculate gradient percentage for slider track
+  // Fills the slider track gradient
   const valuePercentage = useMemo(() => ((value - min) / (max - min)) * 100, [value, min, max]);
 
   const diamondLevel = getDiamondLevel(value);

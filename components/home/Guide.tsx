@@ -1,10 +1,7 @@
 import { FAQS } from './faqs';
 import { HomeLink } from './HomeLink';
 
-// The steps sit beside a real wuwa-bot card instead of describing one: the
-// input artifact is the whole trick, so it is shown at real fidelity. Card
-// download (editor/profiles) is a side quest, not the funnel; it lives in the
-// FAQ now.
+// Steps sit beside a real wuwa-bot card rather than describing one, since the input artifact is the whole trick
 const STEPS: { title: string; desc: React.ReactNode }[] = [
     {
         title: 'Grab the wuwa-bot image',

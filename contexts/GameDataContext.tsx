@@ -23,7 +23,7 @@ interface SubstatRollProbabilityData {
   [statName: string]: Array<[number, number]>;
 }
 
-// Raw JSON shape loaded from the public data files.
+/** Raw JSON shape loaded from the public data files */
 interface RawGameData {
   characters: unknown;
   echoes: unknown;
@@ -111,13 +111,11 @@ function warnDroppedRecords(label: string, all: readonly unknown[], kept: readon
 }
 
 function processRawGameData(raw: RawGameData): GameDataState {
-  // Process characters
   const cdnCharacters: unknown[] = Array.isArray(raw.characters) ? raw.characters : [];
   const validCDNCharacters = cdnCharacters.filter(validateCDNCharacter);
   warnDroppedRecords('character', cdnCharacters, validCDNCharacters);
   const validCharacters: Character[] = validCDNCharacters.map(adaptCDNCharacter);
 
-  // Process echoes
   const cdnEchoes: unknown[] = Array.isArray(raw.echoes) ? raw.echoes : [];
   const validCDNEchoes = cdnEchoes.filter(validateCDNEcho);
   warnDroppedRecords('echo', cdnEchoes, validCDNEchoes);
@@ -132,7 +130,6 @@ function processRawGameData(raw: RawGameData): GameDataState {
     echoesByCost[cost].sort((a, b) => a.name.localeCompare(b.name));
   });
 
-  // Process weapons
   const weaponMap = new Map<WeaponType, Weapon[]>();
   const weaponList: Weapon[] = [];
   const cdnWeapons: unknown[] = Array.isArray(raw.weapons) ? raw.weapons : [];

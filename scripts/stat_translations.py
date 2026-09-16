@@ -1,13 +1,8 @@
-"""
-Sync stat translations from Wuthery CDN PropertyIndexs.json to public/Data/Stats.json.
+"""Sync stat translations from Wuthery's PropertyIndexs.json into public/Data/Stats.json.
 
-Fetches PropertyIndexs.json and picks out the stats used in EchoStats.json by their exact CDN English name.
-
-HP%, ATK%, DEF% are not separate entries so they're derived by
-appending "%" to each translation of their base stat (HP / ATK / DEF).
-
-Each stat entry also includes an "icon" field, the direct CDN icon URL from PropertyIndexs, so the frontend can display stat icons without any hardcoded
-name→filename mapping.
+Entries are picked by exact CDN English name, in the order WANT_EN lists them.
+HP%, ATK% and DEF% have no CDN entry, so each is derived by appending "%" to every translation of its base.
+Each entry carries the PropertyIndexs icon URL, so the frontend needs no name→filename mapping.
 
 Usage:
     python stat_translations.py            # Fetch and write Stats.json
@@ -32,8 +27,8 @@ OUTPUT = Path(__file__).parent.parent / "public/Data/Stats.json"
 
 LANGS = ["de", "en", "es", "fr", "id", "ja", "ko", "pt", "ru", "th", "vi", "uk", "zh-Hans", "zh-Hant"]
 
-# Exact CDN Name.en values to pick, in output order.
-# HP/ATK/DEF will have their % variants inserted immediately after them.
+# Exact CDN Name.en values to pick, in output order
+# HP, ATK and DEF get their % variant inserted immediately after them
 WANT_EN = [
     "HP",
     "ATK",
@@ -54,8 +49,8 @@ WANT_EN = [
     "Resonance Liberation DMG Bonus",
 ]
 
-# CDN English name → our output key, only where they differ.
-# Stats not listed here keep the CDN English name as their key.
+# CDN English name → our output key, only where the two differ
+# Anything not listed keeps the CDN English name as its key
 EN_TO_KEY: dict[str, str] = {
     "Crit. Rate":         "Crit Rate",
     "Crit. DMG":          "Crit DMG",
@@ -67,8 +62,7 @@ EN_TO_KEY: dict[str, str] = {
     "Spectro DMG Bonus":  "Spectro DMG",
 }
 
-# Percentage stats, derived from base, inserted into output right after base.
-# key = base stat output key, value = pct stat output key
+# Base stat output key → the percent stat derived from it and emitted right after it
 PCT_AFTER: dict[str, str] = {
     "HP":   "HP%",
     "ATK":  "ATK%",
@@ -83,8 +77,10 @@ def get_icon_url(entry: dict) -> str:
 
 
 def derive_percent(base_i18n: dict) -> dict:
-    """Append '%' to each non-empty translation; leave empty strings empty.
-    Does NOT touch the 'icon' key, that is added separately."""
+    """Append '%' to each non-empty translation, leaving empty strings empty.
+
+    Callers merge the 'icon' key in afterwards, so it never reaches here
+    """
     return {lang: (val + "%" if val else "") for lang, val in base_i18n.items()}
 
 
@@ -120,15 +116,14 @@ def main():
             print(f"  WARNING: '{en_name}' not found in PropertyIndexs")
             continue
 
-        # Translations only (no icon yet, keep derive_percent clean)
+        # Translations only, derive_percent must not see the icon key
         i18n = {lang: (pick(entry, "name", "Name", default={}) or {}).get(lang, "") for lang in LANGS}
 
-        # Icon URL from PropertyIndexs
         icon_url = get_icon_url(entry)
 
         output[our_key] = {**i18n, **({"icon": icon_url} if icon_url else {})}
 
-        # Insert % variant immediately after if applicable, same icon as base
+        # % variant goes immediately after its base and shares its icon
         pct_key = PCT_AFTER.get(our_key)
         if pct_key:
             pct_i18n = derive_percent(i18n)

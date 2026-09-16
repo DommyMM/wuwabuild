@@ -2,7 +2,7 @@ import type { Echo, EchoPanelState } from '@/lib/echo';
 import type { EchoOCRData } from './types';
 
 const EXTRA_OCR_SET_IDS_BY_ECHO_ID: Record<string, ReadonlySet<number>> = {
-  // Hecate can be selected from weekly challenge boxes on the six elemental sets.
+  // Hecate can be selected from weekly challenge boxes on the six elemental sets
   '60000855': new Set([1, 2, 3, 4, 5, 6]),
 };
 
@@ -38,11 +38,11 @@ export function matchEchoData(
     rawName = rawName.slice('Phantom '.length);
   }
 
-  // ID lookup (primary, backend provides CDN id directly)
+  // Backend provides the CDN id directly, so it is the primary lookup
   const echoId = ocrData.name.id;
   let echo: Echo | null = echoId ? (echoes.find(e => String(e.id) === echoId) ?? null) : null;
 
-  // Name-based fallback (handles Phantom prefix, Nightmare prefix, etc.)
+  // Name fallback, where the leading-word strip catches prefixes like Nightmare
   if (!echo) {
     echo =
       echoes.find(e => e.name === rawName) ??
@@ -59,9 +59,8 @@ export function matchEchoData(
 
   if (!echo) return null;
 
-  // Set id — backend resolves the fetter id directly. Accept it when it's one of
-  // the echo's legal sets (or a weekly-box extra, e.g. Hecate); otherwise fall
-  // back to the echo's first legal set.
+  // The backend's fetter id is accepted when it is one of the echo's legal sets or a weekly-box extra
+  // Otherwise the echo's first legal set stands in
   const ocrSetId = typeof ocrData.setId === 'number' ? ocrData.setId : null;
   const fallbackSetId = echo.fetterIds[0] ?? null;
   const ocrSetIdLegal =
@@ -69,11 +68,10 @@ export function matchEchoData(
     isEchoSetIdLegal(echo, ocrSetId);
   const resolvedSetId: number | null = ocrSetIdLegal ? ocrSetId : fallbackSetId;
 
-  // Main stat names are canonical from backend OCR output.
+  // Stat names arrive canonical from backend OCR, so only whitespace is normalized
   const mainStatType  = normalizeStatName(ocrData.main?.name);
   const mainStatValue = ocrData.main?.value ? parseValue(ocrData.main.value) : null;
 
-  // Substats names are canonical from backend OCR output.
   const subStats = ocrData.substats.slice(0, 5).map(sub => ({
     type:  normalizeStatName(sub?.name),
     value: sub?.value ? parseValue(sub.value) : null,

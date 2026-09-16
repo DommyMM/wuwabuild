@@ -14,7 +14,7 @@ const MOBILE_ARC_RADIUS = 80;
 const MOBILE_SIZE = 196;
 const MOBILE_ORB = 28;
 
-// Active orb: golden conic gradient (matches slider thumb aesthetic)
+/** Golden conic gradient for the active orb, matching the slider thumb */
 const ACTIVE_BG: React.CSSProperties = {
   background: 'conic-gradient(from 45deg, #bfad7d, #8a7c52 90deg, #bfad7d 180deg, #8a7c52 270deg, #bfad7d 360deg)',
 };

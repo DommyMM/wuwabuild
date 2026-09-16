@@ -4,11 +4,11 @@ import { STATUS_NEGATIVE_COLOR, STATUS_POSITIVE_COLOR } from '../constants';
 export type ProfileSegment = { key: string; color: string; damage: number };
 
 interface ProfileBarProps {
-  /** Part-to-whole pieces of move damage (by scored type, or by heal source). */
+  /** Part-to-whole pieces of move damage, by scored type or by heal source */
   segments: ProfileSegment[];
-  /** Positive score bonuses, drawn after the move damage. */
+  /** Positive score bonuses, drawn after the move damage */
   bonuses: ProfileSegment[];
-  /** Score removed by penalties (Energy Regen), hatched over the bar's end. */
+  /** Score removed by penalties (Energy Regen), hatched over the bar's end */
   lostDamage: number;
   isDimmed?: (key: string) => boolean;
   onSegmentEnter?: (key: string) => void;
@@ -17,9 +17,9 @@ interface ProfileBarProps {
 }
 
 /**
- * One thin part-to-whole bar: the same shape the home hero draws from the same
- * type totals. It carries what the rotation cannot: share by type, score bonuses
- * and what Energy Regen takes away.
+ * One thin part-to-whole bar, the same shape the home hero draws from the same type totals
+ *
+ * - Carries what the rotation cannot: share by type, score bonuses and what Energy Regen takes away
  */
 export const ProfileBar: React.FC<ProfileBarProps> = ({
   segments,

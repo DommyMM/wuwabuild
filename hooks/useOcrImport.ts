@@ -110,9 +110,8 @@ export function useOcrImport(): UseOcrImportReturn {
       try {
         data = await attempt();
       } catch (firstError) {
-        // Retrying a deterministic client rejection (especially 413/429)
-        // only burns another edge attempt. Keep the one retry for network and
-        // transient upstream failures.
+        // Retrying a deterministic client rejection (413/429 above all) only burns another edge attempt
+        // The one retry is kept for network and transient upstream failures
         if (firstError instanceof OcrHttpError && firstError.status < 500) {
           throw firstError;
         }

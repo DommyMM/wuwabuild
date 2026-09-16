@@ -1,11 +1,9 @@
-"""
-Run all sync scripts with default options.
+"""Run every sync script with default options.
 
-Fetches characters, weapons, echoes, fetters (element/sonata sets), stat
-translations and the in-game glossary, and writes them to public/Data. Wuthery is the default source;
-pass --encore to use Encore's faster early-patch sync path.
-Also generates backend OCR data and LB constants.
-Supported flags are routed only to child scripts that declare them.
+Fetches characters, weapons, echoes, fetters (element and sonata sets), stats and the glossary into public/Data.
+Also generates the backend OCR data and the leaderboard constants.
+Wuthery is the default source, --encore switches to Encore's faster early-patch path.
+Flags are routed only to the child scripts that declare them.
 """
 
 import argparse
@@ -23,8 +21,7 @@ def main() -> int:
     source = parser.add_mutually_exclusive_group()
     source.add_argument("--encore", action="store_true", help="Use Encore API sync instead of the default Wuthery CDN path")
     source.add_argument("--wuthery", action="store_true", help="Use Wuthery CDN sync (default; retained for compatibility)")
-    # Backend template refresh controls (all routed to sync_backend.py, which is the
-    # single source of truth for backend Data/ templates).
+    # Backend template refresh controls, all routed to sync_backend.py which owns the backend Data/ templates
     parser.add_argument("--skip-element-icons", action="store_true", help="Skip backend element template refresh")
     parser.add_argument("--force-element-icons", action="store_true", help="Refresh existing backend element templates")
     parser.add_argument("--skip-character-icons", action="store_true", help="Skip backend character splash templates")
@@ -43,9 +40,7 @@ def main() -> int:
         pretty_flags.append("--pretty")
 
     data_flags = [*dry_run_flags, *pretty_flags]
-    # sync_all's own --dry-run means "preview only" everywhere, including the
-    # image mirror: --apply is what actually downloads into public/game-images
-    # and rewrites the JSON, so it's only passed on a real run.
+    # --dry-run means preview only everywhere, and the mirror downloads and rewrites JSON only under --apply
     mirror_flags = [] if args.dry_run else ["--apply"]
     backend_icon_flags = [
         "--" + flag.replace("_", "-")
@@ -66,8 +61,7 @@ def main() -> int:
             ("Echoes",     [sys.executable, str(scripts_dir / "sync_echoes.py"), "--fetch", *data_flags]),
             ("Fetters",    [sys.executable, str(scripts_dir / "sync_fetters.py"), *data_flags]),
             ("Stats",      [sys.executable, str(scripts_dir / "stat_translations.py"), *data_flags]),
-            # Terms reads the entity JSON that just landed to decide which
-            # glossary entries are reachable, so it has to follow them.
+            # Terms reads the entity JSON that just landed to decide which glossary entries are reachable
             ("Terms",      [sys.executable, str(scripts_dir / "sync_terms.py"), *data_flags]),
             ("Image mirror", [sys.executable, str(scripts_dir / "mirror_images_to_public.py"), *mirror_flags]),
             ("Backend",    [sys.executable, str(scripts_dir / "sync_backend.py"), *backend_flags]),

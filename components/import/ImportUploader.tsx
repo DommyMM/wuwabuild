@@ -27,7 +27,7 @@ export function ImportUploader({ onFile, onInvalidFile }: ImportUploaderProps) {
     onInvalidFile({ reason: 'bad_file_type', fileType: f.type || null });
   }, [onFile, onInvalidFile]);
 
-  // Document-level paste listener (Ctrl+V)
+  // On document, so Ctrl+V works without the drop zone holding focus
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       const items = Array.from(e.clipboardData?.items ?? []);

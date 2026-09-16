@@ -1,6 +1,3 @@
-// Rank-tier letter derived from top-percentile on a leaderboard board.
-// Thresholds are guesses for the initial cut; revisit once board distributions land.
-
 export type RankTier = 'S' | 'A' | 'B' | 'C' | 'D';
 
 export interface RankTierStyle {
@@ -17,6 +14,7 @@ const RANK_TIERS: RankTierStyle[] = [
   { letter: 'D', color: 'rgba(224,224,224,0.40)' },
 ];
 
+/** Percentile cuts are a first guess, to revisit once board distributions land */
 export const getRankTier = (topPercent: number): RankTierStyle => {
   if (topPercent <= 1) return RANK_TIERS[0];
   if (topPercent <= 10) return RANK_TIERS[1];

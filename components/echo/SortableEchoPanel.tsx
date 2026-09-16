@@ -25,7 +25,7 @@ export const SortableEchoPanel: React.FC<SortableEchoPanelProps> = ({
     isDragging
   } = useSortable({ id });
 
-  // Replicate frontend pattern: only apply drag handle props to the handle element
+  // Drag props go on the handle alone, so the rest of the panel stays interactive
   const dragHandleProps = {
     ...attributes,
     ...listeners,
@@ -34,7 +34,7 @@ export const SortableEchoPanel: React.FC<SortableEchoPanelProps> = ({
     'aria-describedby': `drag-handle-${id}`
   } as const;
 
-  // Replicate frontend pattern: translate3d with transition only while dragging
+  // Transition only while dragging, so a dropped panel lands without animating back
   const style: React.CSSProperties | undefined = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     transition: isDragging ? transition : 'none',
@@ -47,7 +47,6 @@ export const SortableEchoPanel: React.FC<SortableEchoPanelProps> = ({
       className={`relative ${isDragging ? 'z-999 opacity-80' : ''}`}
       data-dragging={isDragging}
     >
-      {/* Replicate frontend: box-shadow on inner panel when dragging */}
       <div className={isDragging ? '[&>div]:shadow-[0_0_20px_rgba(0,0,0,0.3)]' : ''}>
         <EchoPanel
           index={index}

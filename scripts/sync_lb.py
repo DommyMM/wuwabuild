@@ -1,21 +1,16 @@
-"""
-Generate LB base-data from local synced game data.
+"""Generate LB base-data from local synced game data.
 
-Inputs (all from frontend public/Data/):
-- Characters.json, Weapons.json, Echoes.json
-- EchoStats.json
-- Fetters.json
-- CharacterCurve.json, LevelCurve.json
+Inputs are all from frontend public/Data/: Characters, Weapons, Echoes, EchoStats, Fetters,
+CharacterCurve and LevelCurve.
 
-Outputs:
-- lb/internal/calc/data/character_bases.json
-- lb/internal/calc/data/weapon_bases.json    (lv1 ATK + secondary, effect_en, params_r1/params_r5)
-- lb/internal/calc/data/echo_bases.json
-- lb/internal/calc/data/fetter_bases.json    (piece_effects include parsed `effects` arrays
-                                              and hand-declared `display_bonuses`)
-- lb/internal/calc/data/character_curve.json
-- lb/internal/calc/data/level_curve.json
-- lb/internal/calc/data/echo_stats.json
+Outputs land in lb/internal/calc/data/:
+  character_bases.json
+  weapon_bases.json    lv1 ATK and secondary, effect_en, params_r1 and params_r5
+  echo_bases.json
+  fetter_bases.json    piece_effects carry the parsed `effects` arrays and hand-declared `display_bonuses`
+  character_curve.json
+  level_curve.json
+  echo_stats.json
 """
 
 from __future__ import annotations
@@ -104,20 +99,20 @@ def _load_json(path: Path) -> Any:
 
 
 def _normalize_name(name: str) -> str:
-    # Normalize diacritics ("Jué" -> "Jue"), punctuation, and known wording drift.
+    # Normalize diacritics ("Jué" -> "Jue"), punctuation and known wording drift
     folded = unicodedata.normalize("NFKD", name)
     ascii_name = "".join(ch for ch in folded if not unicodedata.combining(ch))
     tokens = re.findall(r"[a-z]+|\d+", ascii_name.lower())
     normalized_tokens: list[str] = []
     for token in tokens:
-        # Treat possessive "'s" punctuation splits as noise.
+        # Treat a possessive "'s" split as noise
         if token == "s":
             continue
         if token in NAME_TOKEN_ALIASES:
             token = NAME_TOKEN_ALIASES[token]
         if token == "":
             continue
-        # Smooth common singular/plural diffs across legacy catalogs.
+        # Smooth the singular and plural spellings the legacy catalogs disagree on
         if token.isalpha() and len(token) > 3 and token.endswith("s"):
             token = token[:-1]
         normalized_tokens.append(token)
@@ -238,77 +233,57 @@ def _resolve_effect_placeholders(effect_en: str, add_prop: list[dict], effect_pa
     return re.sub(r"\{(\d+)\}", repl, effect_en)
 
 
-# ---------------------------------------------------------------------------
-# Fetter effect_en parser
-# ---------------------------------------------------------------------------
-# Converts the natural-language effect_en strings from fetter 5pc/3pc tiers
-# into structured `effects` arrays that the Go engine can consume directly
-# instead of relying on hardcoded maps.
+# Fetter effect_en parser: turns 5pc and 3pc free text into `effects` arrays the Go engine consumes directly
 #
-# Each parsed effect is a dict with three keys:
-#   trigger  – str: the condition that activates the buff, exactly as written
-#              in the source text (e.g. "releasing Intro Skill",
-#              "Hitting a target with Aero Erosion").  Empty string means the
-#              buff is passive / always-active for the rotation.
-#   buffs    – list[{stat, value}]: one entry per stat granted.
-#              `stat` uses the same canonical English names as character_bases
-#              stats and echo_bases bonuses (e.g. "Crit Rate", "Aero DMG",
-#              "Resonance Skill DMG Bonus").  `value` is a display-unit float
-#              (e.g. 10.0 for 10%).
-#   duration – float | None: seconds the buff lasts, or null when the effect
-#              has no explicit duration (treat as covering the full rotation).
+# Each effect carries three keys:
+#   trigger   the condition that activates the buff, verbatim from the source ("releasing Intro Skill")
+#             empty means passive, active for the whole rotation
+#   buffs     one {stat, value} per stat granted, value in display units (10.0 for 10%)
+#             stat uses the canonical names character_bases stats and echo_bases bonuses use
+#   duration  seconds the buff lasts, or null when the effect names none, which reads as the full rotation
 #
-# Extra optional fields present when relevant:
-#   max_stacks – int: maximum stack count for accumulating buffs.
-#   per_stack  – bool: true when `value` is the per-stack amount (multiply by
-#                max_stacks to get the effective total at full stacks).
+# Two more when relevant:
+#   max_stacks  maximum stack count for an accumulating buff
+#   per_stack   true when `value` is per-stack, so the total at full stacks is value * max_stacks
 #
-# The original `effect_en` string is always preserved alongside `effects` so
-# that humans can audit what the parser produced and spot mismatches easily.
+# The original effect_en travels alongside `effects` so a human can audit what the parser produced.
 #
-# Canonical stat names (matching character_bases.json + echo_bases bonuses):
-#   "ATK", "DEF", "HP", "Crit Rate", "Crit DMG", "Energy Regen",
-#   "Healing Bonus",
-#   "Aero DMG", "Glacio DMG", "Fusion DMG", "Electro DMG",
-#   "Havoc DMG", "Spectro DMG",
-#   "Basic Attack DMG Bonus", "Heavy Attack DMG Bonus",
-#   "Resonance Skill DMG Bonus", "Resonance Liberation DMG Bonus",
-#   "Echo Skill DMG Bonus", "Outro Skill DMG",     ← non-substat extras
-#   "Coordinated Attack DMG"                         ← non-substat extras
-# ---------------------------------------------------------------------------
+# Canonical stat names, matching character_bases.json and echo_bases bonuses:
+#   ATK, DEF, HP, Crit Rate, Crit DMG, Energy Regen, Healing Bonus
+#   Aero DMG, Glacio DMG, Fusion DMG, Electro DMG, Havoc DMG, Spectro DMG
+#   Basic Attack DMG Bonus, Heavy Attack DMG Bonus, Resonance Skill DMG Bonus, Resonance Liberation DMG Bonus
+#   Echo Skill DMG Bonus, Outro Skill DMG, Coordinated Attack DMG (non-substat extras)
 
-# Ordered list of (canonical_name, regex_fragment) pairs.
-# Longer/more-specific entries MUST come before shorter ones to prevent
-# partial matches (e.g. "Resonance Skill DMG Bonus" before "Resonance Skill DMG").
+# (canonical_name, regex_fragment) pairs, longer entries first so a short one never claims a partial match
+# "Resonance Skill DMG Bonus" has to precede "Resonance Skill DMG"
 _STAT_NAMES: list[tuple[str, str]] = [
     # Move-type DMG bonuses, most specific first
     ("Resonance Liberation DMG Bonus", r"Resonance Liberation DMG Bonus"),
     ("Resonance Skill DMG Bonus",      r"Resonance Skill DMG Bonus"),
     ("Basic Attack DMG Bonus",         r"Basic Attack DMG Bonus"),
     ("Heavy Attack DMG Bonus",         r"Heavy Attack DMG Bonus"),
-    # Generic all-move-type bonus (no specific move type prefix); e.g. Red Spring forte trigger
+    # Generic all-move-type bonus with no move prefix, e.g. Red Spring's forte trigger
     ("Basic DMG Bonus",                r"Basic DMG Bonus"),
-    # Non-substat DMG types (keep as-is for future engine support)
+    # Non-substat DMG types, kept for future engine support
     ("Echo Skill DMG Bonus",           r"Echo Skill DMG Bonus"),
     ("Echo Skill DMG",                 r"Echo Skill DMG(?! Bonus)"),
     ("Coordinated Attack DMG",         r"Coordinated Attack DMG"),
     ("Outro Skill DMG",                r"Outro Skill DMG(?! Bonus)"),
-    # Move-type DMG without "Bonus" suffix (less common, check after Bonus variants)
+    # Move-type DMG without the "Bonus" suffix, less common, so checked after the Bonus variants
     ("Resonance Liberation DMG",       r"Resonance Liberation DMG(?! Bonus)"),
     ("Resonance Skill DMG",            r"Resonance Skill DMG(?! Bonus)"),
     ("Basic Attack DMG",               r"Basic Attack DMG(?! Bonus)"),
     ("Heavy Attack DMG",               r"Heavy Attack DMG(?! Bonus)"),
-    # Elemental DMG, effect_en sometimes writes "Aero DMG Bonus", which maps
-    # to the same canonical "Aero DMG" stat (the "Bonus" suffix is stylistic).
+    # Elemental DMG, where effect_en's occasional "Aero DMG Bonus" is the same stat, the suffix being stylistic
     ("Aero DMG",     r"Aero DMG(?:\s+Bonus)?"),
     ("Glacio DMG",   r"Glacio DMG(?:\s+Bonus)?"),
     ("Fusion DMG",   r"Fusion DMG(?:\s+Bonus)?"),
     ("Electro DMG",  r"Electro DMG(?:\s+Bonus)?"),
     ("Havoc DMG",    r"Havoc DMG(?:\s+Bonus)?"),
     ("Spectro DMG",  r"Spectro DMG(?:\s+Bonus)?"),
-    # "all Attribute DMG" / "Attribute DMG" → generic all-element bonus
+    # "all Attribute DMG" and "Attribute DMG" both mean the generic all-element bonus
     ("All Attribute DMG", r"(?:[Aa]ll[-\s])?[Aa]ttribute DMG(?:\s+Bonus)?"),
-    # Generic "DMG Boost" (e.g. Bell-Borne Geochelone's team-wide 10% DMG Boost)
+    # Generic "DMG Boost", e.g. Bell-Borne Geochelone's team-wide 10%
     ("DMG Boost", r"DMG Boost"),
     # Base stats
     ("Crit Rate",     r"Crit\.?\s*Rate"),
@@ -322,15 +297,14 @@ _STAT_NAMES: list[tuple[str, str]] = [
 
 
 def _build_stat_regex() -> re.Pattern[str]:
-    """Build a combined alternation regex using named groups (s0, s1, …) so
-    that the matched canonical name can be recovered from the group index."""
+    """Combined alternation over _STAT_NAMES, named s0, s1, ... so a match recovers its canonical name by index."""
     parts = [f"(?P<s{i}>{pat})" for i, (_, pat) in enumerate(_STAT_NAMES)]
     return re.compile("|".join(parts))
 
 
 _STAT_RE = _build_stat_regex()
 
-# Regexes for numeric value / duration / stacking extraction.
+# Numeric value, duration and stacking extraction
 _RE_PCT       = re.compile(r"(\d+(?:\.\d+)?)\s*%")
 _RE_DURATION  = re.compile(
     r"(?:"
@@ -359,7 +333,7 @@ _STATUS_DMG_AMP_TO_MOVE_TYPE = {
     "aero erosion": "erosion",
 }
 
-# Trigger-condition prefixes that appear at the start of a clause.
+# Trigger-condition prefixes that start a clause
 _TRIGGER_STARTS = re.compile(
     r"^(Hitting|Casting|Using|While|Upon|After|When|Dealing|Inflicting|Performing|"
     r"Holding|Reaching|At\b|With\b|Every\s+time)",
@@ -372,14 +346,12 @@ def _stat_name_for_match(m: re.Match) -> str:
     for i, (name, _) in enumerate(_STAT_NAMES):
         if m.group(f"s{i}") is not None:
             return name
-    return m.group(0)  # fallback: raw matched text
+    return m.group(0)  # fall back to the raw matched text
 
 
-# Damage the effect *deals*, as opposed to a stat bonus it grants. The two read
-# almost identically to the generic value+stat pass, because the elemental stat
-# patterns accept a bare "Havoc DMG" as well as "Havoc DMG Bonus" — so
-# "deal additional 480% Havoc DMG" would otherwise be emitted as a +480% Havoc
-# DMG Bonus. The verb is the only thing distinguishing them.
+# Damage the effect deals, as opposed to a stat bonus it grants
+# The elemental stat patterns accept a bare "Havoc DMG", so "deal additional 480% Havoc DMG" would read as a buff
+# The verb is the only thing telling the two apart
 _DAMAGE_INSTANCE_RE = re.compile(
     r"\bdeal(?:s|ing)?\s+(?:an?\s+)?(?:additional\s+)?\d+(?:\.\d+)?\s*%\s+"
     r"(?:Havoc|Spectro|Glacio|Fusion|Electro|Aero)\s+DMG\b",
@@ -388,12 +360,12 @@ _DAMAGE_INSTANCE_RE = re.compile(
 
 
 def _extract_buffs(text: str) -> list[dict]:
-    """Find all (stat, value) buff pairs in *text*.
+    """Find every (stat, value) buff pair in the text.
 
-    Handles three common orderings:
-      "30% Aero DMG Bonus"          – value then stat
-      "Aero DMG + 10%"              – stat then value with + separator
-      "increases ATK by 15%"        – stat then value with 'by' / 'increases by'
+    Three orderings occur:
+      "30% Aero DMG Bonus"     value then stat
+      "Aero DMG + 10%"         stat then value, separated by +
+      "increases ATK by 15%"   stat then value, separated by "by"
     """
     buffs: list[dict] = []
     used: list[tuple[int, int]] = []  # (start, end) spans already claimed
@@ -401,15 +373,13 @@ def _extract_buffs(text: str) -> list[dict]:
     def _overlaps(s: int, e: int) -> bool:
         return any(a < e and b > s for a, b in used)
 
-    # Pass 0 - claim damage instances before anything can read them as buffs.
-    # Nothing is emitted: the span is reserved purely so later passes skip it.
+    # Pass 0 claims damage instances before anything can read them as buffs
+    # Nothing is emitted, the span is reserved purely so later passes skip it
     for dmg_m in _DAMAGE_INSTANCE_RE.finditer(text):
         used.append(dmg_m.span())
 
-    # Pass B2 - "MOVETYPE DMG ignores X% [of] DEF [and Y% Element RES on targets]".
-    # Must run before Pass A so it claims the DEF/RES spans before the generic value+stat pass.
-    # Handles scoped DEF/RES penetration, e.g. "Resonance Liberation DMG ignores 32% DEF
-    # and 10% Fusion RES on targets for 8s".
+    # Pass B2 handles scoped DEF and RES penetration, "MOVETYPE DMG ignores X% DEF and Y% Element RES on targets"
+    # Runs before Pass A so it claims those spans ahead of the generic value+stat pass
     _MOVE_TYPE_TO_CODE = {
         "basic attack":         "basic_attack",
         "heavy attack":         "heavy_attack",
@@ -439,10 +409,8 @@ def _extract_buffs(text: str) -> list[dict]:
                     "value": -float(move_def_res_m.group(3)),
                 })
 
-    # Pass A - move-specific amplification, including Frazzle.
-    # Run before the generic "% StatName" matcher so noun-form text like
-    # "24% Heavy Attack DMG Amplification" is claimed as amplification instead
-    # of being truncated to a plain "Heavy Attack DMG" buff.
+    # Pass A is move-specific amplification, Frazzle included
+    # Runs before the generic "% StatName" matcher, so "24% Heavy Attack DMG Amplification" is not truncated to a buff
     for elem_amp_m in re.finditer(
         r"\b(Glacio|Fusion|Electro|Aero|Havoc|Spectro)\s+DMG\s+(?:is\s+)?"
         r"[Aa]mplified\s+by\s+(\d+(?:\.\d+)?)\s*%",
@@ -478,7 +446,7 @@ def _extract_buffs(text: str) -> list[dict]:
             })
             used.append(span)
 
-    # Matches verb form: "Amplif[y/ies] [the] [Element] Frazzle DMG [intervening text] by X%"
+    # Verb form, "Amplif[y/ies] [the] [Element] Frazzle DMG [intervening text] by X%"
     frazzle_amp_m = re.search(
         r"\bAmplif(?:y|ies)\s+(?:the\s+)?(?:[A-Za-z]+\s+)?[Ff]razzle\s+DMG\b[^.]{0,80}\bby\s+(\d+(?:\.\d+)?)\s*%",
         text,
@@ -493,7 +461,7 @@ def _extract_buffs(text: str) -> list[dict]:
                 "value": float(frazzle_amp_m.group(1)),
             })
             used.append(span)
-    # Noun form: "X% [Element] Frazzle DMG Amplification" (e.g. "100% Spectro Frazzle DMG Amplification")
+    # Noun form, "X% [Element] Frazzle DMG Amplification"
     noun_frazzle_m = re.search(
         r"(\d+(?:\.\d+)?)\s*%\s+(?:[A-Za-z]+\s+)?[Ff]razzle\s+DMG\s+Amplification\b",
         text,
@@ -516,12 +484,9 @@ def _extract_buffs(text: str) -> list[dict]:
         "resonance liberation": "resonance_liberation",
         "echo skill": "echo",
     }
-    # Noun form: "X% MOVETYPE DMG Amplification" (value precedes the phrase — the
-    # canonical wording, e.g. "32% Echo Skill DMG Amplification"). Run this BEFORE
-    # the verb form below: the verb form's trailing ".*?\d+%" can otherwise latch
-    # onto a number belonging to a later clause (e.g. "... Echo Skill DMG
-    # Amplification, and ignore 8% of the target's DEF" would parse 8 instead of
-    # 32, and the claimed span would also starve the DEF-ignore pass).
+    # Noun form "X% MOVETYPE DMG Amplification" is the canonical wording, value first
+    # Runs before the verb form below, whose trailing ".*?\d+%" can otherwise latch onto a later clause's number
+    # "32% Echo Skill DMG Amplification, and ignore 8% of the target's DEF" would parse 8 and starve the DEF pass
     move_amp_noun_m = re.search(
         r"(\d+(?:\.\d+)?)\s*%\s+"
         r"(Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation|Echo Skill)\s+DMG\s+Amplification\b",
@@ -538,7 +503,7 @@ def _extract_buffs(text: str) -> list[dict]:
                 "value": float(move_amp_noun_m.group(1)),
             })
             used.append(span)
-    # Verb / trailing-value form: "MOVETYPE DMG Amplification ... X%".
+    # Verb form, value trailing: "MOVETYPE DMG Amplification ... X%"
     move_amp_m = re.search(
         r"\b(Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation|Echo Skill)\s+DMG\s+Amplification\b.*?\b(\d+(?:\.\d+)?)\s*%",
         text,
@@ -555,18 +520,11 @@ def _extract_buffs(text: str) -> list[dict]:
             })
             used.append(span)
 
-    # Pass A3 - move-type-scoped Crit Rate / Crit DMG.
-    #
-    # "Dealing Echo Skill DMG increases Heavy Attack Crit. Rate by 20% for 6s"
-    # is NOT a flat +20% Crit Rate: it only applies to Heavy Attack hits. Emitting
-    # it unscoped is how Flamewing's Shadow ended up granting its Heavy Attack and
-    # Echo Skill clauses to every hit at once (+40 instead of +20).
-    #
-    # Must run before Passes B/C so the span is claimed before the generic
-    # "<stat> by <value>%" matcher truncates it to a bare "Crit Rate".
-    # The move type has to sit immediately before "Crit", because the same
-    # sentence usually names another move type in its trigger clause
-    # ("Dealing *Echo Skill* DMG increases *Heavy Attack* Crit. Rate").
+    # Pass A3 is move-type-scoped Crit Rate and Crit DMG
+    # "Dealing Echo Skill DMG increases Heavy Attack Crit. Rate by 20%" applies to Heavy Attack hits only
+    # Emitting it unscoped gave Flamewing's Shadow both its clauses on every hit, +40 instead of +20
+    # Runs before Passes B and C so the generic "<stat> by <value>%" matcher cannot truncate it to a bare "Crit Rate"
+    # The move type must sit immediately before "Crit", since the trigger clause usually names another move type
     _CRIT_STAT_NAME = {"rate": "Crit Rate", "dmg": "Crit DMG"}
     _MOVE_TYPE_ALT = "Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation|Echo Skill"
     for scoped_crit_m in re.finditer(
@@ -583,7 +541,7 @@ def _extract_buffs(text: str) -> list[dict]:
                 "value": float(scoped_crit_m.group(3)),
             })
             used.append(span)
-    # Value-first wording: "grants 20% Heavy Attack Crit. Rate".
+    # Value-first wording, "grants 20% Heavy Attack Crit. Rate"
     for scoped_crit_pre_m in re.finditer(
         rf"(\d+(?:\.\d+)?)\s*%\s+({_MOVE_TYPE_ALT})\s+Crit\.?\s*(Rate|DMG)\b",
         text, re.I,
@@ -598,7 +556,7 @@ def _extract_buffs(text: str) -> list[dict]:
             })
             used.append(span)
 
-    # Pass B – "X% StatName" (value precedes stat)
+    # Pass B is "X% StatName", value before stat
     for pct_m in _RE_PCT.finditer(text):
         val = float(pct_m.group(1))
         increase_after = text[pct_m.end():pct_m.end() + 90].lstrip()
@@ -611,10 +569,8 @@ def _extract_buffs(text: str) -> list[dict]:
                     buffs.append({"stat": _stat_name_for_match(stat_m), "value": val})
                     used.append((pct_m.start(), span_end))
                     continue
-        # A deal-verb directly before the value means combat damage, not a stat
-        # buff (e.g. Rebecca's turret "dealing 2.5% Electro DMG each hit").
-        # Buff phrasings never put the value right after the verb ("deal 15%
-        # more Havoc DMG" fails the stat match anyway because of "more").
+        # A deal-verb right before the value means combat damage, as in "dealing 2.5% Electro DMG each hit"
+        # Buff phrasings never put the value straight after the verb, and "deal 15% more Havoc DMG" fails on "more"
         before = text[max(0, pct_m.start() - 16):pct_m.start()]
         if re.search(r"\bdeal(?:s|ing|t)?\s+$", before, re.I):
             continue
@@ -628,11 +584,8 @@ def _extract_buffs(text: str) -> list[dict]:
             if not _overlaps(pct_m.start(), span_end):
                 buffs.append({"stat": stat, "value": val})
                 used.append((pct_m.start(), span_end))
-                # Compound clause "X% StatA and StatB": the value distributes
-                # over both stats (e.g. Adam Smasher 1pc "grants 35% Basic
-                # Attack DMG Bonus and Heavy Attack DMG Bonus"). Only fires
-                # when StatB carries no value of its own — "20% ATK and 10%
-                # Crit Rate" fails the stat match after "and".
+                # In "X% StatA and StatB" the value covers both, as in Adam Smasher 1pc
+                # Only fires when StatB has no value of its own, so "20% ATK and 10% Crit Rate" fails the stat match
                 stat_pos = text.find(stat_m.group(0), after_start)
                 if stat_pos >= 0:
                     cont_start = stat_pos + len(stat_m.group(0))
@@ -644,7 +597,7 @@ def _extract_buffs(text: str) -> list[dict]:
                             buffs.append({"stat": _stat_name_for_match(stat2_m), "value": val})
                             used.append((cont_start, stat2_start + stat2_m.end()))
 
-    # Pass C - "ignore(s) X% of the target's DEF".
+    # Pass C is "ignore(s) X% of the target's DEF"
     def_ignore_m = re.search(
         r"\bignores?\s+(\d+(?:\.\d+)?)\s*%\s+of\s+(?:(?:the\s+target'?s|their)\s+)?DEF\b",
         text,
@@ -656,11 +609,9 @@ def _extract_buffs(text: str) -> list[dict]:
             buffs.append({"stat": "DEF Ignore", "value": float(def_ignore_m.group(1))})
             used.append(span)
 
-    # Pass D – "StatName + X%" or "StatName … by X%" (stat precedes value).
-    # Uses a wider 80-char window to handle wordy constructions like Pact.
-    # Rejects the match when another stat name appears in the text between
-    # this stat and the value, that indicates "A increases B by X%" where
-    # B (not A) is the buffed stat.
+    # Pass D is "StatName + X%" or "StatName ... by X%", stat before value
+    # The window is 80 chars wide to reach the value in wordy constructions like Pact
+    # A stat name sitting between this stat and the value means "A increases B by X%", where B is the buffed one
     for stat_m in _STAT_RE.finditer(text):
         stat = _stat_name_for_match(stat_m)
         immediate = text[stat_m.end():stat_m.end() + 24]
@@ -686,7 +637,7 @@ def _extract_buffs(text: str) -> list[dict]:
                 buffs.append({"stat": stat, "value": val})
                 used.append((stat_m.start(), span_end))
 
-    # Pass E - generic "the DMG taken ... is Amplified by X%".
+    # Pass E is the generic "the DMG taken ... is Amplified by X%"
     dmg_amp_m = re.search(
         r"\bDMG\s+taken\b.*?\bAmplified\s+by\s+(\d+(?:\.\d+)?)\s*%",
         text,
@@ -723,7 +674,7 @@ def _extract_trigger(text: str) -> str:
     2. A trailing "after/upon releasing MOVE" clause after the stat+value.
     Falls back to "" (passive / always-active) if neither is found.
     """
-    # Pattern 1 – clause starts with a known trigger keyword
+    # Pattern 1, clause starts with a known trigger keyword
     cond_m = re.match(
         r"^((?:Hitting|Casting|Using|While|Upon|After|When|Dealing|Inflicting|Performing|"
         r"Holding|Reaching|Every\s+time)\b.+?)"
@@ -733,7 +684,7 @@ def _extract_trigger(text: str) -> str:
     if cond_m:
         return cond_m.group(1).strip().rstrip(",")
 
-    # Pattern 2 – "STAT + X% after/upon TRIGGER"
+    # Pattern 2, "STAT + X% after/upon TRIGGER"
     after_m = re.search(
         r"\b(?:after|upon)\b\s+(?:releasing\s+)?(.+?)(?:\.|,|$)", text, re.I
     )
@@ -743,11 +694,9 @@ def _extract_trigger(text: str) -> str:
     return ""
 
 
-# Regex that matches " and " followed immediately by a trigger-start keyword.
-# Used by _split_compound_and to separate clauses with distinct triggers joined
-# by "and" in a single sentence, e.g.:
-#   "Casting Resonance Skill grants X for 15s and casting Resonance Liberation
-#    increases Y by Z%, lasting for 5s"
+# " and " followed immediately by a trigger-start keyword
+# _split_compound_and uses it to separate two differently triggered clauses joined by "and" in one sentence
+# "Casting Resonance Skill grants X for 15s and casting Resonance Liberation increases Y by Z%"
 _AND_TRIGGER_RE = re.compile(
     r"\s+and\s+(?=(?:Hitting|Casting|Using|While|Upon|After|When|Dealing|Performing|"
     r"Inflicting|Holding|Reaching|Every\s+time)\b)",
@@ -766,22 +715,18 @@ def _split_compound_and(sentence: str) -> list[str]:
     return [p.strip() for p in parts if p.strip()]
 
 
-# Canonical trigger-move keys (matching weapon_effects.go TriggerMove values)
+# Canonical trigger-move keys, matching weapon_effects.go TriggerMove values
 _TRIGGER_MOVE_PATTERNS: list[tuple[str, str]] = [
     (r"tune\s+break",                              "Passive"),
     (r"tune\s+rupture",                            "Passive"),
-    # DOT-applier kits (Hiyuki/Aero/Havoc-applier weapons): the wielder keeps
-    # the debuff up across nearly every move in their rotation, so model as Passive.
+    # DOT-applier kits keep the debuff up across nearly every move in the wielder's rotation, so Passive
     (r"applies\s+(?:glacio\s+chafe|havoc\s+bane|aero\s+erosion|spectro\s+frazzle)", "Passive"),
     (r"while\s+the\s+wielder\s+is\s+on\s+the\s+field", "Passive"),
     (r"while\s+both\s+effects?\s+are\s+active",    "Passive"),
     (r"(?:targets?|enemies?)\s+with\s+spectro\s+frazzle", "Passive"),
     (r"negative\s+statuses",                       "Passive"),
-    # FB/Strain-applier weapons (Forged Dwarf Star, Glint of Clouds etc.): wielder
-    # keeps the debuff up across nearly every move in their rotation, so model as
-    # Passive. Both "inflicts" and "inflicting" appear in tooltip triggers — Glint
-    # of Clouds reads "Inflicting Tune Strain - Shifting", and matching only the
-    # "-s" form silently dropped its whole conditional.
+    # FB and Strain appliers (Forged Dwarf Star, Glint of Clouds) keep the debuff up the same way, so Passive
+    # Tooltips use both "inflicts" and "inflicting", and matching only the "-s" form dropped Glint of Clouds entirely
     (r"inflict(?:s|ing)?\s+fusion\s+burst",        "Passive"),
     (r"inflict(?:s|ing)?\s+tune\s+strain",         "Passive"),
     (r"concerto\s+energy",                         "forte"),
@@ -797,7 +742,7 @@ _TRIGGER_MOVE_PATTERNS: list[tuple[str, str]] = [
     (r"\bdealing\s+basic\s+attack\s+dmg",          "basic"),
 ]
 
-# Stat name → (go_type, element, moveType). None means skip (unsupported/complex).
+# Stat name → (go_type, element, moveType), None meaning the stat is unsupported and gets skipped
 _STAT_TO_GO_EFFECT: dict[str, tuple[str, str, str]] = {
     "ATK":                              ("atkPercentage", "", ""),
     "Crit Rate":                        ("critRate",      "", ""),
@@ -829,17 +774,14 @@ _STAT_TO_GO_EFFECT: dict[str, tuple[str, str, str]] = {
 def _trigger_to_move_keys(trigger: str) -> list[str]:
     """Normalize raw trigger text to a list of canonical trigger-move keys.
 
-    Handles compound triggers: "Casting Intro Skill or Resonance Liberation"
-    produces ["intro", "liberation"].  Returns [] for unrecognisable triggers.
-
-    Empty trigger → [] (unconditional/passive — already covered by passive_bonuses;
-    skip to avoid double-counting in weapon_effects).
-    Explicitly team-triggered effects like "tune break" → ["Passive"].
+    A compound trigger splits, so "Casting Intro Skill or Resonance Liberation" gives ["intro", "liberation"]
+    An unrecognisable trigger gives []
+    An empty trigger also gives [], because passive_bonuses already covers it and emitting it would double-count
+    An explicitly team-triggered effect like "tune break" gives ["Passive"]
     """
     if not trigger.strip():
         return []  # unconditional: already in passive_bonuses, don't emit weapon_effect
-    # Split on literal " or " to handle multi-trigger phrases, but only where
-    # each side contains a recognisable move keyword.
+    # Split on literal " or " for multi-trigger phrases, but only where each side names a recognisable move
     parts = re.split(r"\s+or\s+", trigger, flags=re.I)
     keys: list[str] = []
     for part in parts:
@@ -852,12 +794,9 @@ def _trigger_to_move_keys(trigger: str) -> list[str]:
     return keys
 
 
-# Fields that identify *which* effect an entry is, as opposed to how strong it
-# is at a given refinement. Two entries with the same signature at the same list
-# position are the same effect parsed at R1 and at R5, so their values and
-# durations can be paired as refinement endpoints. Duration is deliberately
-# excluded: it is a scaling quantity here, not structure (see Autumntrace, whose
-# duration is mis-parsed off the ATK clause and therefore differs by rank).
+# Fields identifying which effect an entry is, as opposed to how strong it is at a given refinement
+# Same signature at the same list position means the same effect at R1 and R5, so the values pair as endpoints
+# Duration is excluded because it scales rather than identifies, as Autumntrace shows by differing per rank
 _GO_EFFECT_STRUCTURAL_KEYS = (
     "type", "triggerMove", "element", "moveType", "maxStacks", "stacking",
 )
@@ -880,7 +819,7 @@ def _derive_go_weapon_effects_at_rank(effects: list[dict]) -> list[dict]:
     out: list[dict] = []
     for eff in effects:
         trigger = eff.get("trigger", "")
-        # Skip effects involving DMG Amplification (amplify type — handled manually)
+        # DMG Amplification is handled by hand, so skip it here
         if re.search(r"amplif", trigger, re.I):
             continue
         move_keys = _trigger_to_move_keys(trigger)
@@ -892,10 +831,8 @@ def _derive_go_weapon_effects_at_rank(effects: list[dict]) -> list[dict]:
         stacking = "accumulate" if (max_stacks > 0 and per_stack) else ""
         duration = eff.get("duration")
 
-        # Use only the first recognised trigger key for each effect entry.
-        # "X or Y" triggers (e.g. "Intro Skill or Resonance Liberation") should
-        # not produce two identical entries — the buff fires once and cannot stack
-        # with itself ("Effects of the same name cannot be stacked").
+        # Only the first recognised trigger key is used per entry
+        # An "X or Y" trigger fires once and cannot stack with itself, so two identical entries would be wrong
         move_key = move_keys[0]
 
         for buff in eff.get("buffs", []):
@@ -903,7 +840,7 @@ def _derive_go_weapon_effects_at_rank(effects: list[dict]) -> list[dict]:
             value = buff.get("value", 0.0)
             type_info = _STAT_TO_GO_EFFECT.get(stat)
             if type_info is None:
-                continue  # DEF, HP, Energy Regen, etc. — skip
+                continue  # DEF, HP, Energy Regen and the rest have no Go effect
             go_type, element, move_type = type_info
             buff_move_type = str(buff.get("move_type", "") or "").strip()
             if buff_move_type:
@@ -921,7 +858,7 @@ def _derive_go_weapon_effects_at_rank(effects: list[dict]) -> list[dict]:
                 entry["element"] = element
             if move_type:
                 entry["moveType"] = move_type
-            # Duration handling: None and non-Passive → emit -1 (full rotation)
+            # A missing duration on a non-Passive trigger emits -1, meaning the full rotation
             if duration is not None:
                 entry["duration"] = duration
             elif move_key != "Passive":
@@ -939,27 +876,16 @@ def _derive_go_weapon_effects(
     effects_r5: list[dict],
     rarity: str,
 ) -> list[dict]:
-    """Produce Go-ready weapon effects carrying BOTH refinement endpoints.
+    """Produce Go-ready weapon effects carrying both refinement endpoints.
 
-    Each entry keeps the historical baked fields (`value`, `duration`) — taken
-    from R5 for 4-star weapons and from R1 for everything else, exactly as before
-    — and adds `valueR1`/`valueR5` plus, where a duration is parsed,
-    `durationR1`/`durationR5`. The Go loader interpolates linearly between the
-    endpoints in four equal steps, so a weapon resolved at its standard rank
-    reproduces the historical value exactly and no stored score moves.
-
-    When the R1 and R5 parses do not line up structurally (a clause that only one
-    refinement's text produced, say), the standard-rank value is written to both
-    endpoints so that weapon simply does not scale — the same behavior it had
-    before endpoints existed — rather than pairing unrelated clauses.
-
-    The same flat fallback covers 3-star weapons. The bake source has always been
-    R5 for 4-star weapons and R1 for everything else, while Go's
-    StandardWeaponRank is R1 for 5-star weapons and R5 for everything else. Those
-    agree for 5-star and 4-star weapons but not for 3-star ones, whose R1 values
-    have always been read at R5. Handing them honest endpoints would double the
-    "of Night" starter weapons' Intro ATK buff and move stored board scores, so
-    they stay flat until that mismatch is fixed deliberately with a recalc.
+    Each entry keeps the baked `value` and `duration`, read at R5 for 4-star weapons and R1 for everything else
+    It adds `valueR1` and `valueR5`, plus `durationR1` and `durationR5` where a duration parsed
+    The Go loader interpolates linearly in four equal steps, so a weapon at its standard rank reproduces the bake
+    When the R1 and R5 parses do not line up structurally, the standard-rank value goes to both endpoints
+    That weapon then does not scale, which beats pairing unrelated clauses
+    The same flat fallback covers 3-star weapons, whose bake rank and Go StandardWeaponRank disagree
+    Honest endpoints would double the "of Night" starters' Intro ATK buff and move stored board scores
+    They stay flat until that mismatch is fixed deliberately with a recalc
     """
     entries_r1 = _derive_go_weapon_effects_at_rank(effects_r1)
     entries_r5 = _derive_go_weapon_effects_at_rank(effects_r5)
@@ -1013,23 +939,18 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
     effect_en = _MARKUP_RE.sub("", effect_en)
     effect_en = re.sub(r"\{[^}]+\}", "", effect_en)
 
-    # Normalise in-word abbreviations that contain ". " so they don't
-    # trigger false sentence splits (e.g. "Crit. Rate" → "Crit Rate").
+    # Normalise in-word abbreviations holding ". " so they do not trigger false sentence splits
     text = re.sub(r"\bCrit\.\s+", "Crit ", effect_en)
     text = re.sub(r"\bRegen\.\s+", "Regen ", text)
 
-    # Split into sentences. Keep meta-sentences (e.g. "This effect stacks up to
-    # N times.") temporarily so we can extract global stacking info before
-    # dropping them from the main results.
+    # Meta-sentences like "This effect stacks up to N times" are kept for now, so the pre-pass can read them
     _META_RE = re.compile(
         r"^(?:this effect|effects? of the same name|cd\s*:)", re.I
     )
     sentences = [s.strip() for s in re.split(r"\.\s+", text.rstrip(".")) if s.strip()]
 
-    # Pre-pass: extract stacking info and duration from meta-sentences so they
-    # can be attached to per-stack buff entries whose stacking sentence was
-    # split off separately (e.g. Attack set: "ATK +5% every 1.5s." then
-    # "This effect stacks up to 4 times.").
+    # Stacking and duration come off the meta-sentences first, so a buff whose stacking sentence was split off
+    # (Attack set: "ATK +5% every 1.5s." then "This effect stacks up to 4 times.") still gets them
     global_stacks = 0
     global_duration: float | None = None
     for s in sentences:
@@ -1043,24 +964,20 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
 
     sentences = [s for s in sentences if not _META_RE.match(s)]
 
-    # Expand compound "and [TriggerKeyword]" clauses so each distinct trigger
-    # gets its own entry.  Simple conjunctions inside a single clause (e.g.
-    # "Basic Attack or Heavy Attack") are not affected.
+    # Expand compound "and [TriggerKeyword]" clauses so each trigger gets its own entry
+    # A simple conjunction inside one clause ("Basic Attack or Heavy Attack") is untouched
     sentences = [part for s in sentences for part in _split_compound_and(s)]
 
     results: list[dict] = []
 
     for sentence in sentences:
         lower_sentence = sentence.lower()
-        # Extract trigger first so we can filter out threshold-condition
-        # values that appear in the trigger clause but aren't actual buffs
-        # (e.g. "Reaching 250% Energy Regen" → 250 should not be a buff).
+        # Trigger comes first so threshold values inside it are not read as buffs
+        # "Reaching 250% Energy Regen" must not emit a 250 buff
         trigger  = _extract_trigger(sentence)
         if not trigger and results and sentence.strip().lower().startswith("if "):
-            # Some weapon/tooltips split a triggered effect across two sentences,
-            # e.g. "After casting Intro Skill..., ignore DEF. If the target...
-            # DMG taken is Amplified..." In those cases, inherit the prior
-            # trigger window instead of dropping the second clause as passive.
+            # Some tooltips split one triggered effect across two sentences, the second opening with "If the target"
+            # Inherit the previous trigger window instead of dropping that clause as passive
             trigger = str(results[-1].get("trigger", "") or "")
         if "for every" in lower_sentence and any(phrase in lower_sentence for phrase in _PARTY_SCOPE_PHRASES):
             buffs = []
@@ -1069,9 +986,8 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
                 b for b in _extract_buffs(sentence)
                 if trigger == "" or b["stat"] not in trigger
             ]
-            # Drop clauses that buff the incoming Resonator: `effects` is the
-            # wielder-facing list, and those bonuses are the swap-in target's.
-            # They still reach the team via _parse_party_scoped_buffs.
+            # Clauses buffing the incoming Resonator go, since `effects` is the wielder-facing list
+            # Those bonuses still reach the team through _parse_party_scoped_buffs
             for b in _incoming_scoped_clause_buffs(sentence):
                 if b in buffs:
                     buffs.remove(b)
@@ -1080,7 +996,7 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
 
         duration = _extract_duration(sentence)
 
-        # Stacking annotations (informational – Go engine decides how to apply)
+        # Stacking annotations are informational, the Go engine decides how to apply them
         stacks_m    = _RE_STACKS.search(sentence)
         per_stack_m = _RE_PER_STACK.search(sentence)
 
@@ -1089,18 +1005,16 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
             entry["max_stacks"] = _stack_count(stacks_m)
             entry["per_stack"] = True  # "stacking up to N times" always means accumulate
         elif per_stack_m and global_stacks > 0:
-            # Stacking info was in a separate meta-sentence; attach it here.
+            # Stacking info was in a separate meta-sentence, so attach it here
             entry["max_stacks"] = global_stacks
             entry["per_stack"] = True
 
         results.append(entry)
 
-    # Post-pass: attach global_stacks to the last triggered clause that has no
-    # inline stacks yet.  This handles patterns like:
-    #   "Stat +X% after TriggerA.  Stat +Y% after TriggerB.  This effect stacks up to N times."
-    # Reverse iteration is correct when the meta-sentence appears at the end of the
-    # description — the stacking belongs to the most recently defined triggered entry
-    # (e.g. Frosty Resolve where "stacks up to 2 times" refers to the RS DMG effect).
+    # global_stacks goes to the last triggered clause with no inline stacks yet
+    # "Stat +X% after TriggerA. Stat +Y% after TriggerB. This effect stacks up to N times." is the shape
+    # Reverse iteration is right because a trailing meta-sentence belongs to the most recent triggered entry
+    # Frosty Resolve is the case, where "stacks up to 2 times" refers to its RS DMG effect
     if global_stacks > 0:
         for entry in reversed(results):
             if "max_stacks" not in entry and entry.get("trigger"):
@@ -1108,9 +1022,7 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
                 entry["per_stack"] = True
                 break
 
-    # Post-pass: attach global_duration to entries missing explicit duration
-    # when a trigger is present (meta-sentences like "This effect lasts for Xs"
-    # refer to the triggered effects listed before them).
+    # global_duration goes to triggered entries with no duration, since "This effect lasts for Xs" refers back
     if global_duration is not None:
         for entry in results:
             if entry.get("trigger") and entry.get("duration") is None:
@@ -1118,10 +1030,6 @@ def _parse_effect_en(effect_en: str) -> list[dict]:
 
     return results
 
-
-# ---------------------------------------------------------------------------
-# Character bases
-# ---------------------------------------------------------------------------
 
 def _parse_forte_node_value(node: dict) -> float:
     value_text = node.get("valueText")
@@ -1169,7 +1077,7 @@ def _extract_forte_nodes(char: dict) -> dict[str, dict]:
     return forte_nodes
 
 def _extract_chains_lb(char: dict) -> list[dict]:
-    """Extract chain (sequence) data for lb JSON: id, English name, English description, params, bonus."""
+    """Chain (sequence) data for the lb JSON: id, English name, English description, params and bonus."""
     chains = char.get("chains")
     if not isinstance(chains, list):
         return []
@@ -1265,9 +1173,9 @@ def _extract_sequence_bonuses(char: dict) -> list[dict]:
 
 
 def _extract_inherent_bonuses(char: dict) -> list[dict]:
-    """Always-on inherent-skill stat bonuses parsed into Characters.json by
-    sync_characters.parse_inherent_bonuses (e.g. Mornye Energy Regen +10%).
-    Passed through verbatim; canonical stat names already match applyStatString.
+    """Always-on inherent-skill stat bonuses, as sync_characters.parse_inherent_bonuses wrote them.
+
+    Passed through verbatim, since the canonical stat names already match applyStatString
     """
     raw = char.get("inherentBonuses")
     if not isinstance(raw, list):
@@ -1282,11 +1190,9 @@ def _extract_inherent_bonuses(char: dict) -> list[dict]:
 def _skip_sequence_bonus(char: dict, chain: dict, index: int, bonus: dict) -> bool:
     """Drop chain.bonus entries whose value disagrees with the chain's first param.
 
-    The CDN convention for `chain.bonus` is that `bonus.value` mirrors the
-    numeric magnitude of `param[0]` (the unconditional headline bonus). When
-    they disagree, the bonus has been authored against a different param —
-    typically a conditional clause buried later in the description — and
-    cannot be applied as a flat sequence bonus.
+    By CDN convention `bonus.value` mirrors the magnitude of `param[0]`, the unconditional headline bonus
+    A disagreement means the bonus was authored against a different param, usually a later conditional clause
+    Such a bonus cannot be applied flat
     """
     try:
         value = float(bonus.get("value"))
@@ -1309,11 +1215,11 @@ def _skip_sequence_bonus(char: dict, chain: dict, index: int, bonus: dict) -> bo
     return param_value != value
 
 
-# Regex for the "up to Y%" cap pattern used in scaling party buffs.
+# The "up to Y%" cap that scaling party buffs carry
 _RE_UP_TO_CAP = re.compile(r"up\s+to\s+(\d+(?:\.\d+)?)\s*%", re.I)
 _RE_UP_TO_POINTS = re.compile(r"up\s+to\s+(\d+(?:\.\d+)?)\s+points?", re.I)
 
-# Phrases indicating the buff applies to party members (not just the caster).
+# Phrases marking a buff as reaching party members, not just the caster
 _PARTY_SCOPE_PHRASES = [
     "party member",
     "nearby party",
@@ -1328,7 +1234,7 @@ _PARTY_SCOPE_PHRASES = [
     "all nearby resonators in the team",
 ]
 
-# Echo active skill party phrases (superset of _PARTY_SCOPE_PHRASES).
+# Echo active skill party phrases, a superset of _PARTY_SCOPE_PHRASES
 _ECHO_PARTY_SCOPE_PHRASES = _PARTY_SCOPE_PHRASES + [
     "all team members",
     "current team members",
@@ -1336,30 +1242,29 @@ _ECHO_PARTY_SCOPE_PHRASES = _PARTY_SCOPE_PHRASES + [
     "next resonator",
 ]
 
-# Generic damage boost pattern used by echo skills (e.g. Impermanence Heron).
+# Generic damage boost an echo skill grants, e.g. Impermanence Heron
 _RE_ECHO_DMG_BOOST = re.compile(
     r"damage\s+(?:dealt\s+)?(?:will\s+be\s+)?(?:boosted|increased)\s+by\s+(\d+(?:\.\d+)?)\s*%",
     re.I,
 )
-# Echo/support "increase the DMG Bonus ... by X%" (e.g. Hyvatia: "increase the DMG Bonus of the
-# next Resonator to come on stage by X%"). Distinct from _RE_ECHO_DMG_BOOST which requires "damage".
+# Echo and support "increase the DMG Bonus ... by X%", as Hyvatia phrases it for the next Resonator on stage
+# Distinct from _RE_ECHO_DMG_BOOST, which requires the word "damage"
 _RE_ECHO_DMG_BONUS_BOOST = re.compile(
     r"increase[sd]?\s+(?:the\s+)?DMG\s+Bonus\b[^.]{0,80}\bby\s+(\d+(?:\.\d+)?)\s*%",
     re.I,
 )
-# Party-scoped generic "increases/increased DMG dealt by X%" (e.g. Lynae Liberation 24%, Spectrum Blaster 8%×3).
-# Groups: (1) = value when "increases the DMG dealt ... by X%"; (2) = value when "DMG dealt ... is increased by X%".
+# Party-scoped "increases/increased DMG dealt by X%", as in Lynae Liberation 24% or Spectrum Blaster 8% per stack
+# Group 1 is the value in "increases the DMG dealt ... by X%", group 2 in "DMG dealt ... is increased by X%"
 _RE_PARTY_DMG_INCREASE = re.compile(
     r"(?:increase[sd]?\s+the\s+DMG\s+dealt\b[^.]{0,100}\bby\s+(\d+(?:\.\d+)?)\s*%"
     r"|DMG\s+dealt\b[^.]{0,100}\bis\s+increased\s+by\s+(\d+(?:\.\d+)?)\s*%)",
     re.I,
 )
 
-# ATK% with optional intermediate word "bonus" (e.g. Fallacy: "10% bonus ATK for 20s").
+# ATK% with an optional "bonus" in between, as Fallacy writes "10% bonus ATK for 20s"
 _RE_ECHO_BONUS_ATK = re.compile(r"(\d+(?:\.\d+)?)\s*%\s+(?:bonus\s+)?ATK\b", re.I)
 
-# Amplify patterns: "[Qualifier ]DMG [is ]Amplified by X%"
-# Optional qualifier may be an element or move-type keyword.
+# Amplify patterns, "[Qualifier ]DMG [is ]Amplified by X%", where the optional qualifier is an element or move type
 _AMPLIFY_RE = re.compile(
     r"(?:(Glacio|Fusion|Electro|Aero|Havoc|Spectro"
     r"|Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation)"
@@ -1376,20 +1281,17 @@ _AMPLIFY_NOUN_RE = re.compile(
     r"(\d+(?:\.\d+)?)\s*%\s+"
     r"(All|Glacio|Fusion|Electro|Aero|Havoc|Spectro"
     r"|Basic Attack|Heavy Attack|Resonance Skill|Resonance Liberation)?"
-    # Allow hyphen-joined variants like "All-DMG" used in some skill text
-    # (e.g. Aemeath outro Silent Protection: "10% All-DMG Amplification").
+    # Hyphen-joined variants occur in skill text, as in Aemeath's "10% All-DMG Amplification"
     r"[\s\-]*DMG\s+Amplification",
     re.I,
 )
-# Frazzle amplify verb form: "[Element ]Frazzle DMG [of...] by X%" (allows intervening text up to 80 chars).
-# Handles weapon outro passives like "Casting Outro Skill Amplifies the Spectro Frazzle DMG of all
-# Resonators on the team by 30%" where qualifiers and audience phrases sit between DMG and "by".
+# Frazzle amplify verb form, "[Element ]Frazzle DMG [of...] by X%", tolerating up to 80 chars in between
+# Weapon outro passives put qualifiers and an audience phrase between DMG and "by"
 _AMPLIFY_FRAZZLE_RE = re.compile(
     r"(?:[A-Za-z]+\s+)?[Ff]razzle\s+DMG\b[^.)]{0,80}\bby\s+(\d+(?:\.\d+)?)\s*%",
     re.I,
 )
-# Frazzle amplify noun form: "X% [Element] Frazzle DMG Amplification"
-# e.g. "granting 100% Spectro Frazzle DMG Amplification" (Phoebe Attentive Heart).
+# Frazzle amplify noun form, "X% [Element] Frazzle DMG Amplification", as Phoebe's Attentive Heart writes it
 _AMPLIFY_FRAZZLE_NOUN_RE = re.compile(
     r"(\d+(?:\.\d+)?)\s*%\s+(?:[A-Za-z]+\s+)?[Ff]razzle\s+DMG\s+Amplification\b",
     re.I,
@@ -1423,18 +1325,15 @@ def _normalize_damage_type_label(label: str) -> str:
     if label in _MOVE_TYPE_TO_CODE:
         return _MOVE_TYPE_TO_CODE[label]
 
-    # Keep future labels instead of dropping them outright.
-    # Example: "Coordinated Attack" -> "coordinated_attack"
+    # An unknown label is slugged rather than dropped, so "Coordinated Attack" becomes "coordinated_attack"
     return re.sub(r"[^a-z0-9]+", "_", label).strip("_")
 
 
 def _extract_move_damage_types(description: str) -> list[str]:
     """Extract damage-classification tags from a move description.
 
-    The source move `type` tells us which skill bucket the move belongs to
-    (basic / skill / liberation / intro / forte). Some descriptions then add a
-    separate rule for how the damage should actually be classified, e.g.
-    "This instance of DMG is considered Basic Attack DMG."
+    The source move `type` gives the skill bucket: basic, skill, liberation, intro or forte
+    A description can then reclassify the damage itself, "This instance of DMG is considered Basic Attack DMG"
     """
     if not description:
         return []
@@ -1558,12 +1457,11 @@ def _extract_team_debuff_buffs(text: str) -> list[dict]:
             "move_type": "erosion",
             "value": float(m.group(1)),
         })
-    # Frazzle DMG Amplification (verb form: "Amplifies [the] Frazzle DMG ... by X%")
+    # Frazzle DMG Amplification, verb form "Amplifies [the] Frazzle DMG ... by X%"
     lower = text.lower()
     if "frazzle" in lower:
         for m in _AMPLIFY_FRAZZLE_RE.finditer(text):
-            # Skip self-targeted Frazzle amps: "Frazzle DMG dealt by [CharName]" without
-            # a team-scope indicator means it only benefits the character themselves.
+            # "Frazzle DMG dealt by [CharName]" with no team-scope indicator benefits that character alone
             ctx = text[max(0, m.start() - 120):m.end()].lower()
             if "dealt by" in ctx and not any(p in ctx for p in (
                 "other resonator", "resonators in the team", "all resonators", "incoming resonator",
@@ -1574,7 +1472,7 @@ def _extract_team_debuff_buffs(text: str) -> list[dict]:
                 "move_type": "frazzle",
                 "value": float(m.group(1)),
             })
-        # Noun form: "X% [Element] Frazzle DMG Amplification"
+        # Noun form, "X% [Element] Frazzle DMG Amplification"
         for m in _AMPLIFY_FRAZZLE_NOUN_RE.finditer(text):
             _append_unique_party_buff(out, {
                 "type": "amplify",
@@ -1592,10 +1490,8 @@ _SELF_SCOPE_RE = re.compile(
 def _self_scoped_clause_buffs(sentence: str) -> list[dict]:
     """Collect buffs from sub-clauses explicitly scoped to the wielder.
 
-    A party-scoped sentence can mix self and team clauses, e.g. Skull Thrasher:
-    "Inflicting Hack - Shifting grants 12% Basic Attack DMG Bonus to the
-    wielder for 14s, and increases the ATK of Resonators in the team by 24%".
-    The wielder clause's stats must not be attributed to the party.
+    A party-scoped sentence can mix self and team clauses, as Skull Thrasher does
+    The wielder clause's stats must not land on the party
     """
     excluded: list[dict] = []
     for clause in re.split(r",\s+(?:and\s+)?|;\s*", sentence):
@@ -1613,13 +1509,11 @@ _INCOMING_SCOPE_RE = re.compile(r"\b(?:incoming|next)\s+Resonator\b", re.I)
 
 
 def _incoming_scoped_clause_buffs(sentence: str) -> list[dict]:
-    """Collect buffs from sub-clauses granted to the *incoming* Resonator.
+    """Collect buffs from sub-clauses granted to the incoming Resonator.
 
-    The mirror of _self_scoped_clause_buffs: these belong to whoever swaps in
-    and never to the wielder, so they must be kept out of the wielder-facing
-    `effects` list (they are already emitted via `party_buffs`). Without this,
-    e.g. Moonlit Clouds' "increases the ATK of the next Resonator by 22.5%"
-    hands the wearer a phantom +22.5% ATK.
+    Mirror of _self_scoped_clause_buffs, for buffs belonging to whoever swaps in rather than the wielder
+    They are already emitted through `party_buffs`, so leaving them in `effects` too would double-count
+    Moonlit Clouds' "increases the ATK of the next Resonator by 22.5%" would hand the wearer a phantom +22.5%
     """
     excluded: list[dict] = []
     for clause in re.split(r",\s+(?:and\s+)?|;\s*", sentence):
@@ -1629,12 +1523,10 @@ def _incoming_scoped_clause_buffs(sentence: str) -> list[dict]:
     return excluded
 
 
-# Named states handed to the whole team, e.g. Firstlight's Herald:
-#   "Casting Intro Skill or Resonance Skill grants nearby Resonators in the team
-#    Kingfisher for 30s. ... Resonators with Kingfisher have their ATK increased by 20%."
-# The grant sentence is party-scoped but carries no number; the sentence that
-# carries the number names its audience by token instead of by any of
-# _PARTY_SCOPE_PHRASES. Without linking the two, the payload is dropped entirely.
+# Named states handed to the whole team, as Firstlight's Herald grants "Kingfisher" then buffs ATK by token
+# The granting sentence is party-scoped but carries no number
+# The sentence carrying the number names its audience by token, not by any of _PARTY_SCOPE_PHRASES
+# Without linking the two the payload is dropped entirely
 _RE_TOKEN_GRANT_TRAILING = re.compile(
     r"grants?\s+(?:all\s+)?(?:nearby\s+)?(?:party members|Resonators)"
     r"(?:\s+(?:in|on)\s+(?:the\s+)?team)?\s+"
@@ -1670,10 +1562,10 @@ def _targets_party_token(sentence: str, tokens: list[str]) -> bool:
 def _capped_party_dmg_value(text: str, match_end: int, value: float) -> float:
     """Resolve a "DMG dealt is increased by X%" figure to the buff's real ceiling.
 
-    Two suffixes can follow the figure, and they mean opposite things:
-      "…by 0.2%, up to 12%"      -> 0.2 is a per-unit scaling rate; 12 is the buff.
-      "…by 8%, up to 3 stacks"   -> 8 is per stack; the buff is 8 x 3.
-    Without the first case, an ER-scaled tier (Suisui's outro) syncs as +0.2%.
+    Two suffixes can follow the figure and they mean opposite things:
+      "...by 0.2%, up to 12%"     0.2 is the per-unit rate, 12 is the buff
+      "...by 8%, up to 3 stacks"  8 is per stack, so the buff is 8 x 3
+    Without the first case an ER-scaled tier like Suisui's outro syncs as +0.2%
     """
     cap_m = _RE_UP_TO_CAP.match(text[match_end:].lstrip(" ,"))
     if cap_m:
@@ -1748,7 +1640,7 @@ def _parse_party_scoped_buffs(text: str) -> list[dict]:
         for entry in _extract_amplify_buffs(sentence):
             _append_unique_party_buff(out, entry)
 
-        # Generic "increases/increased DMG dealt by X%" (e.g. Spectrum Blaster, Lynae Liberation).
+        # Generic "increases/increased DMG dealt by X%", as Spectrum Blaster and Lynae Liberation write it
         for m in _RE_PARTY_DMG_INCREASE.finditer(sentence):
             val = float(m.group(1) if m.group(1) is not None else m.group(2))
             val = _capped_party_dmg_value(sentence, m.end(), val)
@@ -1761,8 +1653,7 @@ def _parse_support_text_buffs(text: str) -> list[dict]:
     out = _parse_party_scoped_buffs(text)
     for entry in _extract_team_debuff_buffs(text):
         _append_unique_party_buff(out, entry)
-    # Weapon outro Frazzle amplify: enemy-scoped ("on targets around active Resonator")
-    # but team-facing — any Frazzle DMG by any team member benefits, like RES shred.
+    # Weapon outro Frazzle amp is enemy-scoped but team-facing, so any member's Frazzle DMG benefits, like RES shred
     for fraz_m in _AMPLIFY_FRAZZLE_RE.finditer(text):
         _append_unique_party_buff(out, {"type": "amplify", "move_type": "frazzle", "value": float(fraz_m.group(1))})
     return out
@@ -1771,16 +1662,14 @@ def _parse_support_text_buffs(text: str) -> list[dict]:
 def _parse_echo_party_buffs(effect_en: str) -> list[dict]:
     """Parse party-scoped buffs from an echo's active skill description.
 
-    Handles phrases like "all team members X% bonus ATK" and "next character's
-    damage dealt will be boosted by X%".  Returns a list of buff dicts in the
-    same shape as CharPartyBuff: {"type": ..., "value": ...} plus optional
-    "element" / "move_type" for amplify entries.
+    Handles "all team members X% bonus ATK" and "next character's damage dealt will be boosted by X%"
+    Entries take the CharPartyBuff shape, {"type", "value"} plus "element" or "move_type" on an amplify
     """
     if not effect_en:
         return []
 
     party_buffs: list[dict] = []
-    # Split on sentence boundaries (period + whitespace or end-of-string).
+    # Sentence boundary is a period followed by whitespace or end of string
     sentences = [s.strip() for s in re.split(r"\.(?:\s+|$)", effect_en) if s.strip()]
 
     for sentence in sentences:
@@ -1788,25 +1677,25 @@ def _parse_echo_party_buffs(effect_en: str) -> list[dict]:
         if not any(phrase in lower for phrase in _ECHO_PARTY_SCOPE_PHRASES):
             continue
 
-        # ATK%, handles "10% bonus ATK" and plain "ATK +10%" forms.
+        # ATK%, in both the "10% bonus ATK" and "ATK +10%" forms
         for m in _RE_ECHO_BONUS_ATK.finditer(sentence):
             party_buffs.append({"type": "atkPercentage", "value": float(m.group(1))})
 
-        # Named stats via shared extractor (Crit Rate, Crit DMG, All Attribute DMG, etc.).
+        # Named stats through the shared extractor, so Crit Rate, Crit DMG, All Attribute DMG and the rest
         for b in _extract_buffs(sentence):
             for entry in _stat_to_party_buffs(b["stat"], b["value"]):
                 if entry not in party_buffs:
                     party_buffs.append(entry)
 
-        # Generic damage boost ("damage dealt will be boosted by X%").
+        # Generic damage boost, "damage dealt will be boosted by X%"
         for m in _RE_ECHO_DMG_BOOST.finditer(sentence):
             party_buffs.append({"type": "moveTypeDMG", "value": float(m.group(1))})
 
-        # "increase the DMG Bonus ... by X%" (e.g. Hyvatia next-resonator buff).
+        # "increase the DMG Bonus ... by X%", as in Hyvatia's next-resonator buff
         for m in _RE_ECHO_DMG_BONUS_BOOST.finditer(sentence):
             party_buffs.append({"type": "elementalDMG", "value": float(m.group(1))})
 
-        # Amplify patterns.
+        # Amplify patterns
         for entry in _extract_amplify_buffs(sentence):
             party_buffs.append(entry)
 
@@ -1832,9 +1721,8 @@ def _append_unique_echo_bonus(out: list[dict], entry: dict) -> None:
 def _extract_echo_character_condition(sentence: str) -> list[str] | None:
     """Detect character-restricted main-slot bonuses (mirrors sync_echoes).
 
-    e.g. "When Lucy or Rebecca has this Echo equipped in the main slot, their
-    Crit Rate is increased by 15%" or "When Resonator: Aero or Cartethyia equips
-    this Echo". Generic "the Resonator with this Echo equipped" is no condition.
+    Matches "When Lucy or Rebecca has this Echo equipped ..." and "When Resonator: Aero ... equips this Echo"
+    A generic "the Resonator with this Echo equipped" is no condition
     """
     has_match = re.search(r"\bWhen\s+([A-Z].*?)\s+(?:has|have)\s+this\s+Echo\s+equipped", sentence)
     if has_match and "resonator" not in has_match.group(1).lower():
@@ -1890,8 +1778,7 @@ def _parse_echo_main_slot_bonuses(effect_en: str) -> list[dict]:
 def _build_self_possessive_re(char: dict) -> "re.Pattern[str] | None":
     """Build a regex matching "<CharName>'s <Stat>" for the caster.
 
-    Used to detect self-buff sentences masquerading as party buffs. Returns None
-    when no usable English name is available.
+    Detects self-buff sentences masquerading as party buffs, returning None when no English name is usable
     """
     name_obj = char.get("name")
     char_name = ""
@@ -1902,8 +1789,7 @@ def _build_self_possessive_re(char: dict) -> "re.Pattern[str] | None":
     if not char_name:
         return None
 
-    # Stat alternation mirrors _STAT_NAMES; intentionally permissive on whitespace
-    # and dotted abbreviations (e.g. "Crit." vs "Crit").
+    # Stat alternation mirrors _STAT_NAMES, staying permissive on whitespace and the dotted "Crit." spelling
     stat_alt = (
         r"Crit\.?\s*Rate|Crit\.?\s*DMG|ATK|HP|DEF|"
         r"Resonance\s+(?:Skill|Liberation|Heavy\s+Attack|Basic\s+Attack)\s+DMG(?:\s+Bonus)?|"
@@ -1911,9 +1797,8 @@ def _build_self_possessive_re(char: dict) -> "re.Pattern[str] | None":
         r"All[-\s]?Attribute\s+DMG(?:\s+Bonus)?|"
         r"(?:Aero|Glacio|Fusion|Electro|Havoc|Spectro)\s+DMG(?:\s+Bonus)?"
     )
-    # Require an increase-verb after the possessive so we only catch buff-target
-    # patterns ("Aemeath's Crit. DMG increases by 20%") and not scaling-input
-    # references ("for every 0.2% of Shorekeeper's Energy Regen, all party…").
+    # An increase-verb has to follow the possessive, so "Aemeath's Crit. DMG increases by 20%" counts
+    # A scaling-input reference like "for every 0.2% of Shorekeeper's Energy Regen" does not
     increase_alt = (
         r"increases?(?:\s+by)?|"
         r"is\s+increased(?:\s+by)?|"
@@ -1930,19 +1815,14 @@ def _build_self_possessive_re(char: dict) -> "re.Pattern[str] | None":
 def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
     """Parse party-scoped buffs from a character's move descriptions at S0.
 
-    Chains are excluded because they are sequence-locked (at S0 no chains active).
-    Returns a list of buff dicts, each with at least {"type": ..., "value": ...}.
-    amplify buffs may also have "element" or "move_type".
+    Chains are excluded because they are sequence-locked and no chain is active at S0
+    Each entry carries at least {"type", "value"}, and an amplify may add "element" or "move_type"
     """
     moves = char.get("moves") or []
     party_buffs: list[dict] = []
 
-    # Build a "self possessive" regex from the caster's own English name. When a
-    # sentence has a team-scope trigger phrase ("Resonators in the team inflict …")
-    # but the actual buff target is "<CharName>'s <Stat>", the buff belongs to the
-    # caster, not the team. Example: Aemeath Between the Stars —
-    # "when Resonators in the team inflict Tune Rupture - Shifting, **Aemeath's
-    # Crit. DMG** increases by 20%, up to 3 times" — that 20% CD is a self-buff.
+    # A sentence can carry a team-scope trigger phrase while the buff target is "<CharName>'s <Stat>"
+    # That buff belongs to the caster, as in Aemeath's "Resonators in the team inflict ..., Aemeath's Crit. DMG"
     self_possessive_re = _build_self_possessive_re(char)
 
     for move in moves:
@@ -1957,40 +1837,31 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
         if not desc_en:
             continue
 
-        # Resolve {N} placeholders in the description text.
+        # Resolve the {N} placeholders in the description text
         resolved = _resolve_effect_placeholders(desc_en, [], desc_params)
 
-        # Check if this move is party-scoped.
+        # Check whether this move is party-scoped
         lower = resolved.lower()
         if any(phrase in lower for phrase in _PARTY_SCOPE_PHRASES):
-            # Crit Rate/DMG and ATK cap-values must be extracted at sentence level so
-            # that a party-scope phrase in one sentence (e.g. a DEF team buff) does not
-            # cause self-only stat buffs in a different sentence to be misclassified as
-            # party buffs (e.g. Mornye's CriticalProtocol ER-scaled self crit).
+            # Crit and ATK caps are read per sentence, so a party-scope phrase in one sentence cannot
+            # promote a self-only buff in another, as it did for Mornye's ER-scaled self crit
             for sentence in _split_buff_sentences(resolved):
                 if not any(phrase in sentence.lower() for phrase in _PARTY_SCOPE_PHRASES):
                     continue
 
-                # Skip sentences whose buff target is the caster's own stat
-                # (e.g. "Aemeath's Crit. DMG increases"). These are self-buffs
-                # triggered by team actions, not party buffs.
+                # A sentence buffing the caster's own stat is a self-buff triggered by a team action
                 if self_possessive_re is not None and self_possessive_re.search(sentence):
                     continue
 
-                # Skip sentences gated on team composition or enemy class — they
-                # are not universally applicable and shouldn't auto-flow as party
-                # buffs. Example: Lupa "If there are 3 Fusion Resonators in the
-                # team, the Fusion DMG Bonus against Overlord/Calamity targets
-                # additionally increases by 10%".
+                # Sentences gated on team composition or enemy class are not universal, so they never auto-flow
+                # Lupa's "If there are 3 Fusion Resonators in the team, ... against Overlord targets" is the case
                 stripped = sentence.lstrip(" -•\t").lower()
                 if stripped.startswith("if there are ") or stripped.startswith("if there is "):
                     continue
 
-                # "…, up to X%" states the buff's ceiling; the bare percentage earlier in
-                # the same sentence is only the per-unit scaling rate. Emit the cap and
-                # record its type so the rate is not also emitted below — otherwise e.g.
-                # Suisui's "for every 0.12% of Energy Regen over 200%, ATK is increased by
-                # 0.1%, up to 50%" lands as a +0.1% ATK party buff instead of +50%.
+                # "..., up to X%" is the ceiling, while the bare percentage earlier in the sentence is the rate
+                # The cap is emitted and its type recorded so the rate below does not also fire
+                # Otherwise Suisui's "ATK is increased by 0.1%, up to 50%" lands as +0.1% instead of +50%
                 emitted_types: set[tuple[str, str, str]] = set()
 
                 for cap_m in _RE_UP_TO_CAP.finditer(sentence):
@@ -2038,15 +1909,14 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
                         "Aero DMG", "Glacio DMG", "Fusion DMG", "Electro DMG",
                         "Havoc DMG", "Spectro DMG", "All Attribute DMG",
                     ):
-                        # Elemental / all-attribute DMG team buffs in stance/inherent text
-                        # (e.g. Denia Etched Colors: "All Resonators in the team gain 30% Fusion DMG Bonus").
+                        # Elemental and all-attribute team buffs in stance or inherent text, as Denia grants
                         for entry in _stat_to_party_buffs(stat, val):
                             _append_unique_party_buff(party_buffs, entry)
 
                 for entry in _extract_amplify_buffs(sentence):
                     _append_unique_party_buff(party_buffs, entry)
 
-            # Explicit team-scoped elemental DMG wording like Ciaccona Solo Concert.
+            # Explicit team-scoped elemental DMG wording, as Ciaccona's Solo Concert uses
             for sentence in _split_buff_sentences(resolved):
                 sentence_lower = sentence.lower()
                 if not (
@@ -2061,7 +1931,7 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
                         for entry in _stat_to_party_buffs(b["stat"], b["value"]):
                             _append_unique_party_buff(party_buffs, entry)
 
-            # Generic "increases/increased DMG dealt by X%" (e.g. Lynae Liberation +24%).
+            # Generic "increases/increased DMG dealt by X%", as in Lynae Liberation's +24%
             for m in _RE_PARTY_DMG_INCREASE.finditer(resolved):
                 val = float(m.group(1) if m.group(1) is not None else m.group(2))
                 val = _capped_party_dmg_value(resolved, m.end(), val)
@@ -2070,9 +1940,8 @@ def _parse_char_kit_party_buffs(char: dict) -> list[dict]:
         for entry in _extract_team_debuff_buffs(resolved):
             _append_unique_party_buff(party_buffs, entry)
 
-        # Support-side target-state enabling like Chisa's Thread of Bane.
-        # We treat this as party-facing because teammate loadouts are modeled
-        # as fully-achievable support shells during the DPS window.
+        # Support-side target-state enabling like Chisa's Thread of Bane counts as party-facing
+        # Teammate loadouts are modeled as fully-achievable support shells during the DPS window
         if "thread of bane" in lower:
             for m in _RE_DEF_IGNORE.finditer(resolved):
                 _append_unique_party_buff(party_buffs, {"type": "defIgnore", "value": float(m.group(1))})
@@ -2115,13 +1984,9 @@ _RE_INHERENT_INTRO_MV = re.compile(
 def _parse_char_inherent_self_buffs(char: dict) -> list[dict]:
     """Parse self-scoped buffs from a character's inherent skills (type=4 moves) at S0.
 
-    These are typically always-on personal passives like:
-      - "Jinhsi gains 20% Spectro DMG Bonus."
-      - "Gain 15% Basic DMG Bonus."
-      - "DMG Multiplier of Intro Skill ... is increased by 50%."
-
-    Returns a list of buff dicts in the same shape as CharPartyBuff.
-    NOTE: This intentionally does NOT try to model conditional/stacking mechanics.
+    Always-on personal passives, worded as "Jinhsi gains 20% Spectro DMG Bonus" or "Gain 15% Basic DMG Bonus"
+    Entries take the CharPartyBuff shape
+    Conditional and stacking mechanics are deliberately not modeled here
     """
     moves = char.get("moves") or []
     out: list[dict] = []
@@ -2142,19 +2007,17 @@ def _parse_char_inherent_self_buffs(char: dict) -> list[dict]:
         if not resolved:
             continue
 
-        # Inherent text can mix self-scoped and party-scoped sentences (e.g. Chisa's
-        # "All Ends Here": one sentence grants self Havoc DMG Bonus on cast, another
-        # sentence references "Resonators in the team with Thread of Bane"). Filter
-        # at sentence level so self buffs are still captured.
+        # Inherent text mixes self-scoped and party-scoped sentences, as Chisa's "All Ends Here" does
+        # Filtering per sentence keeps the self buffs
         for sentence in _split_buff_sentences(resolved):
             if any(phrase in sentence.lower() for phrase in _PARTY_SCOPE_PHRASES):
                 continue
 
-            # Elemental DMG bonus (always-on).
+            # Always-on elemental DMG bonus
             for m in _RE_INHERENT_ELEM_GAIN.finditer(sentence):
                 out.append({"type": "elementalDMG", "element": m.group(2).title(), "value": float(m.group(1))})
 
-            # Move-type DMG bonus (Basic/Heavy/RS/RL).
+            # Move-type DMG bonus, basic, heavy, resonance skill or resonance liberation
             for m in _RE_INHERENT_MOVE_GAIN.finditer(sentence):
                 kind = m.group(2).strip().lower()
                 mt = None
@@ -2169,12 +2032,12 @@ def _parse_char_inherent_self_buffs(char: dict) -> list[dict]:
                 if mt:
                     out.append({"type": "moveTypeDMG", "move_type": mt, "value": float(m.group(1))})
 
-            # Intro MV multiplier (applies only to intro moves).
+            # Intro MV multiplier, applying to intro moves only
             mv_m = _RE_INHERENT_INTRO_MV.search(sentence)
             if mv_m:
                 out.append({"type": "mvMultiplier", "move_type": "intro", "value": float(mv_m.group(1))})
 
-    # De-dupe exact entries while preserving order.
+    # De-dupe exact entries while preserving order
     uniq: list[dict] = []
     for e in out:
         if e not in uniq:
@@ -2197,9 +2060,8 @@ def _build_character_bases(
         hp = int(round(float(pick(stats, "life", "Life", default=0) or 0)))
         atk = int(round(float(pick(stats, "atk", "Atk", default=0) or 0)))
         defense = int(round(float(pick(stats, "def", "Def", default=0) or 0)))
-        # A renamed source key reads as 0 rather than failing, and a character
-        # with no base HP or ATK scores 0 damage on every board. DEF is exempt:
-        # some unreleased entries (Jingran) really do ship with 0.
+        # A renamed source key reads as 0 rather than failing, and 0 base HP or ATK scores 0 damage on every board
+        # DEF is exempt because some unreleased entries really do ship with 0
         if not hp or not atk:
             raise ValueError(f"{name}: missing base stats in Characters.json (got {stats!r})")
 
@@ -2232,7 +2094,7 @@ def _build_character_bases(
                 "Resonance Skill DMG Bonus": 0, "Resonance Liberation DMG Bonus": 0,
             },
         }
-        # Only emit when present — keeps the field off the ~60 characters without one.
+        # Only emitted when present, so the ~60 characters without one keep the field off
         if inherent_bonuses:
             entry["inherent_bonuses"] = inherent_bonuses
         out[cdn_id] = entry
@@ -2241,43 +2103,35 @@ def _build_character_bases(
     return out
 
 
-# ---------------------------------------------------------------------------
-# Weapon bases
-# ---------------------------------------------------------------------------
-
 def _weapon_secondary_stat(second: dict) -> tuple[str, float]:
     """Return (stat_name, base_main_as_percent) from stats.second.
 
-    Conversion rules (matching frontend stats.ts):
-      isRatio=true  → value is a raw decimal ratio (0.081 → 8.1%)   multiply by 100
-      isRatio=false → value is in internal units   (1080  → 10.8%)  divide by 100
-
-    For "Atk" attribute with isRatio=true the stat is ATK% (percent of base ATK).
+    Conversion matches frontend stats.ts:
+      isRatio=true   a raw decimal ratio, multiplied by 100 (0.081 is 8.1%)
+      isRatio=false  internal units, divided by 100 (1080 is 10.8%)
+    An "Atk" attribute with isRatio=true is ATK%, a percent of base ATK
     """
     attribute = second.get("attribute", "")
     value = float(second.get("value", 0))
     is_ratio = bool(second.get("isRatio", False))
 
-    # Normalize to percent
     base_main = (value * 100) if is_ratio else (value / 100)
 
-    # Derive stat name
     mapped_attr = WEAPON_ATTR_TO_MAIN_STAT.get(attribute)
     if mapped_attr:
         return mapped_attr, base_main
 
     name_en = (second.get("name") or {}).get("en", "")
-    # First try the display name normalization table
+    # Try the display-name normalization table before falling back to the raw name
     normalized = MAIN_STAT_NORMALIZE.get(name_en, "")
     if normalized:
         return normalized, base_main
 
-    # Fall back to display name (may still need normalization)
     return name_en if name_en else attribute, base_main
 
 
 def _params_for_rank(weapon: dict, rank: int) -> list[str]:
-    """Return weapon effect parameters for rank R1..R5 (clamped per slot)."""
+    """Weapon effect parameters for one rank R1 to R5, clamped per slot when a slot has fewer values."""
     idx = max(rank - 1, 0)
     params = weapon.get("params") or {}
     result = []
@@ -2340,17 +2194,14 @@ def _build_weapon_bases(
         rarity_id = (w.get("rarity") or {}).get("id", 0)
         rarity_str = WEAPON_RARITY_MAP.get(rarity_id, f"{rarity_id}-star")
 
-        # Base ATK (level 1) from stats.first
         first = (w.get("stats") or {}).get("first", {})
         base_atk = float(first.get("value", 0))
         atk_lv1 = int(round(base_atk))
 
-        # Secondary stat from stats.second (level 1 display units)
         second = (w.get("stats") or {}).get("second", {})
         main_stat, base_main = _weapon_secondary_stat(second)
         main_stat = MAIN_STAT_NORMALIZE.get(main_stat, main_stat)
-        # Keep weapon secondary precision for level scaling. Rounding the level-1
-        # value before applying STAT_CURVE changes final HP/ATK/DEF by dozens.
+        # Precision is kept for level scaling, since rounding before STAT_CURVE shifts final HP/ATK/DEF by dozens
         base_main_lv1 = round(base_main, 6)
 
         effect_en = (w.get("effect") or {}).get("en", "")
@@ -2363,9 +2214,9 @@ def _build_weapon_bases(
         effects_r1 = _parse_effect_en(resolved_r1)
         effects_r5 = _parse_effect_en(resolved_r5)
 
-        # Go effects carry both refinement endpoints. `value`/`duration` keep the
-        # historical bake (R5 for 4-star weapons, R1 otherwise) so no stored score
-        # moves; valueR1/valueR5 let the engine interpolate between refinements.
+        # Go effects carry both refinement endpoints
+        # `value` and `duration` keep the baked rank, R5 for 4-star weapons and R1 otherwise, so no stored score moves
+        # valueR1 and valueR5 let the engine interpolate between refinements
         weapon_effects = _derive_go_weapon_effects(effects_r1, effects_r5, rarity_str)
         party_buffs_by_rank = _parse_weapon_party_buffs_by_rank(w)
 
@@ -2391,10 +2242,6 @@ def _build_weapon_bases(
 
     return out, errors
 
-
-# ---------------------------------------------------------------------------
-# Echo bases
-# ---------------------------------------------------------------------------
 
 def _build_echo_bases(
     echoes: list[dict],
@@ -2491,7 +2338,7 @@ def _build_fetter_bases(fetters: list[dict]) -> dict[str, dict]:
         if isinstance(piece_effects_raw, dict) and piece_effects_raw:
             items = sorted(piece_effects_raw.items(), key=lambda kv: int(kv[0]))
         else:
-            # Backward-compatible fallback for older Fetters.json that only has one tier.
+            # Fallback for an older Fetters.json carrying only one tier
             fallback_piece = str(int(fetter.get("pieceCount", 2) or 2))
             items = [(fallback_piece, {
                 "pieceCount": int(fetter.get("pieceCount", 2) or 2),
@@ -2508,7 +2355,7 @@ def _build_fetter_bases(fetters: list[dict]) -> dict[str, dict]:
             add_prop = piece_data.get("addProp", [])
             if not isinstance(add_prop, list):
                 add_prop = []
-            # effect_params used only for placeholder resolution; not written to output.
+            # effect_params only resolves placeholders, it never reaches the output
             effect_params = piece_data.get("effectDescriptionParam", [])
             if not isinstance(effect_params, list):
                 effect_params = []
@@ -2521,9 +2368,8 @@ def _build_fetter_bases(fetters: list[dict]) -> dict[str, dict]:
                 "party_buffs": _parse_support_text_buffs(effect_en),
                 "effects": _parse_effect_en(effect_en),
             }
-            # Panel-visible clauses are declared by hand in sync_fetters.py and
-            # carried through verbatim; see DISPLAY_BONUSES there for why they
-            # cannot be derived from the parsed trigger field.
+            # Panel-visible clauses are hand-declared in sync_fetters.py and carried through verbatim
+            # DISPLAY_BONUSES there says why they cannot come from the parsed trigger field
             display_bonuses = piece_data.get("displayBonuses")
             if isinstance(display_bonuses, list) and display_bonuses:
                 normalized["display_bonuses"] = display_bonuses
@@ -2538,10 +2384,6 @@ def _build_fetter_bases(fetters: list[dict]) -> dict[str, dict]:
 
     return {k: out[k] for k in sorted(out)}
 
-
-# ---------------------------------------------------------------------------
-# Go code generation for weapon_buffs_gen.go
-# ---------------------------------------------------------------------------
 
 def _sync_weapons_only(dry_run: bool, pretty: bool) -> int:
     required = [WEAPONS_JSON]
@@ -2567,10 +2409,6 @@ def _sync_weapons_only(dry_run: bool, pretty: bool) -> int:
     print(f"  Weapons:    {len(weapon_bases)}")
     return 0
 
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate LB base-data from local synced game data")

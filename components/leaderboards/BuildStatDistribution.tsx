@@ -18,7 +18,7 @@ const MEDIAN_STROKE = 'color-mix(in srgb, var(--color-text-primary) 34%, transpa
 // The selected spoke brightens but stays a neutral, because accent inside the plot area means "this build"
 const ACTIVE_SPOKE_STROKE = 'color-mix(in srgb, var(--color-text-primary) 45%, transparent)';
 
-// Movement on screen wants ease-in-out; something entering wants ease-out
+// Movement on screen wants ease-in-out while something entering wants ease-out
 const EASE_MOVE = 'cubic-bezier(0.77,0,0.175,1)';
 const EASE_ENTER = 'cubic-bezier(0.23,1,0.32,1)';
 
@@ -31,52 +31,17 @@ const RADIUS = 115;
 const LABEL_RADIUS = RADIUS + 26;
 const RINGS = [0.25, 0.5, 0.75, 1];
 
-
-/**
- * Rim labels, in the reader's language.
- *
- * Two rules, and nothing outside them — no invented words:
- *
- *  1. If the game's own localized term is already short, use it verbatim. For
- *     the `<X> DMG Bonus` family that means the stem only (`Glacio`, `冷凝`,
- *     `Ґлаціо`), which is the game's word for the element with the wrapper
- *     dropped, not a coinage.
- *  2. Otherwise fall back to `axisCode`, this codebase's own stat code. A code
- *     is script-neutral and always short, and the tooltip is showing the full
- *     localized name a few pixels away, so `RL` is never the only thing a
- *     reader gets.
- *
- * Only the rule-1 wins are listed here; everything absent takes the code. So
- * an unlisted language degrades to `CR`/`RL`/`ATK` rather than to a raw stat
- * key, and adding a language means adding only the cells that beat the code.
- *
- * Budget is roughly 7 Latin characters or 4 CJK, since CJK glyphs are
- * full-width and eight of these ring a 230px circle.
- */
-/**
- * Rim labels are derived from the localized name, not tabulated.
- *
- * The boilerplate in a stat name is itself derivable: every member of a family
- * carries the same wrapper, so whatever the family's names share *is* the
- * wrapper and whatever differs is the part worth showing. "Aero DMG Bonus" and
- * "Glacio DMG Bonus" share " DMG Bonus"; the French pair share the prefix
- * "Bonus : Dégâts " instead; the Chinese share the suffix "伤害加成". One
- * routine handles all three because it never needs to know which shape a
- * language uses.
- *
- * Measured over the real Stats.json, 118 of 170 cells come out of pure
- * extraction (the name verbatim, or the name minus its family wrapper), 26 are
- * initialisms, and 26 fall through to the stat code. No hand-written table, and
- * a new language is covered the day its translations land.
- */
 const ELEMENT_KEYS: LBStatSortKey[] = ['aero_dmg', 'glacio_dmg', 'fusion_dmg', 'electro_dmg', 'havoc_dmg', 'spectro_dmg'];
 const MOVE_KEYS: LBStatSortKey[] = ['basic_attack_dmg', 'heavy_attack_dmg', 'resonance_skill_dmg', 'resonance_liberation_dmg'];
-// Healing has no siblings of its own, so it borrows the affixes shared by every
-// bonus-shaped stat ("… Bonus", "…アップ", "…加成", "Bonus : …"). The specific
-// families are matched first, which is why this one is last.
+/**
+ * Sibling sets a rim label strips its shared wrapper against, matched in order
+ *
+ * - Healing has no siblings of its own, so the catch-all family lends it the affixes every bonus-shaped stat carries
+ * - That catch-all is last because the specific families give a tighter wrapper
+ */
 const AXIS_FAMILIES: LBStatSortKey[][] = [ELEMENT_KEYS, MOVE_KEYS, [...ELEMENT_KEYS, ...MOVE_KEYS, 'healing_bonus']];
 
-// CJK glyphs are full-width, so the same pixel budget buys fewer of them.
+// Glyph budgets, not pixel budgets: CJK glyphs are full-width, so the same rim arc holds fewer
 const RIM_BUDGET_LATIN = 8;
 const RIM_BUDGET_CJK = 5;
 const SEPARATOR = /[\s :·・\-—]/u;
@@ -87,12 +52,11 @@ const isLatinScript = (value: string): boolean => /^[\p{Script=Latin}\p{Nd}\s'�
 const rimBudget = (value: string): number => (hasCJK(value) ? RIM_BUDGET_CJK : RIM_BUDGET_LATIN);
 
 /**
- * The longest prefix and suffix every name in a family shares.
+ * Longest prefix and suffix every name in a family shares
  *
- * Snapped back to a separator on space- and hyphen-delimited scripts, because a
- * raw longest-common-prefix happily stops mid-word: German's four move names
- * share "SCH-Bonus de", and trimming that leaves "s Standardangriffs". CJK has
- * no separators, so it is left alone.
+ * - Snapped back to a separator on space- and hyphen-delimited scripts because a raw common prefix stops mid-word
+ * - German's four move names share "SCH-Bonus de", and trimming that leaves "s Standardangriffs"
+ * - CJK has no separators, so it keeps the raw affix
  */
 function sharedAffixes(names: string[]): { prefix: string; suffix: string } {
   if (names.length < 2) return { prefix: '', suffix: '' };
@@ -127,12 +91,10 @@ function stripFamilyAffixes(full: string, family: string[]): string {
 }
 
 /**
- * Initials of the significant words, for Latin scripts only.
+ * Initials of the significant words, null outside Latin script
  *
- * "Resonance Liberation" → RL, "Liberación de resonancia" → LR, which is the
- * right answer in each language rather than the English one twice. Restricted
- * to Latin because an initialism of a Cyrillic or Thai phrase is not a
- * convention anyone reads — those fall through to the stat code instead.
+ * - "Resonance Liberation" gives RL and "Liberación de resonancia" gives LR, right in each language rather than English twice
+ * - Cyrillic and Thai get null because an initialism there is not a convention anyone reads, so they take the stat code
  */
 function initialism(stem: string): string | null {
   if (!isLatinScript(stem)) return null;
@@ -143,16 +105,20 @@ function initialism(stem: string): string | null {
   return words.map((word) => [...word][0].toUpperCase()).join('');
 }
 
-// `getLBStatCode` is already this codebase's short form for every stat, so the
-// last resort reuses it rather than keeping a parallel list that could drift.
-// The three flats are the only ones it renders too terse to stand alone: a lone
-// "A" on a spoke is not ATK to anybody.
+/** The three stats `getLBStatCode` renders too terse to stand on a spoke, since a lone "A" is not ATK to anybody */
 const FLAT_CODE_LABELS: Partial<Record<LBStatSortKey, string>> = { atk: 'ATK', hp: 'HP', def: 'DEF' };
 
 function axisCode(key: LBStatSortKey): string {
   return FLAT_CODE_LABELS[key] ?? getLBStatCode(key);
 }
 
+/**
+ * Rim label within the glyph budget, derived from the localized name rather than tabulated
+ *
+ * - Every member of a family carries the same wrapper, so what the names share is boilerplate and what differs is the label
+ * - That covers all three wrapper shapes without knowing which a language uses: " DMG Bonus", "Bonus : Dégâts " and "伤害加成"
+ * - Initials, then the stat code, take over when the stem is still too long
+ */
 function axisShortLabel(
   key: LBStatSortKey,
   language: LanguageCode,
@@ -167,8 +133,7 @@ function axisShortLabel(
     : [];
   const stem = siblings.length > 1 ? stripFamilyAffixes(full, siblings) : full;
   if (stem !== full && glyphCount(stem) <= rimBudget(stem)) {
-    // Spanish yields "curación" here; a lowercase label beside ATQ reads as a
-    // typo rather than a word.
+    // Spanish yields "curación" here, and a lowercase label beside ATQ reads as a typo
     return stem.charAt(0).toUpperCase() + stem.slice(1);
   }
 
@@ -179,12 +144,9 @@ function axisShortLabel(
 }
 
 /**
- * The unabbreviated name for the tooltip, in the reader's language.
+ * Unabbreviated name for the tooltip, in the reader's language
  *
- * `getLBStatLabel` is the join key rather than a hand-kept parallel list of
- * English names: it is already the canonical label, and it is already the key
- * `Stats.json` (and therefore `statTranslations` and `statIcons`) is indexed
- * by. One source, three uses, nothing to keep in sync.
+ * - `getLBStatLabel` doubles as the join key because `Stats.json`, and so `statTranslations` and `statIcons`, is indexed by it
  */
 function axisFullLabel(
   key: LBStatSortKey,
@@ -192,14 +154,15 @@ function axisFullLabel(
   statTranslations: Record<string, Record<string, string>> | null,
 ): string {
   const canonical = getLBStatLabel(key);
-  // Some languages ship blank strings for some stats, hence the truthiness
-  // check rather than `??`.
+  // Truthiness rather than `??` because some languages ship a blank string for a stat
   return statTranslations?.[canonical]?.[language] || canonical;
 }
 
-// Parallel phrasing, so the control reads as one series of narrowing fields
-// rather than a named thing plus two percentages. `top1` is published by the
-// backend only on boards large enough to clear its sample floor.
+/**
+ * Cohort selector labels, phrased in parallel so the control reads as one series of narrowing fields
+ *
+ * - The backend publishes `top1` only on boards large enough to clear its sample floor
+ */
 const COHORT_LABELS: Record<string, string> = {
   all: 'All builds',
   top10: 'Top 10%',
@@ -217,17 +180,10 @@ function formatStat(key: LBStatSortKey, value: number): string {
 }
 
 /**
- * Standing, stated the way a leaderboard player already thinks.
+ * Standing in the cohort selector's own words, "top 10%" or "bottom 15%", so nothing has to be inverted to read it
  *
- * This used to print the raw percentile as an ordinal — "90th", "52nd" — which
- * asks the reader to know what a percentile is *and* to invert it before it
- * means anything ("90th" → "top 10%"). "top 10%" and "bottom 15%" need neither
- * step, and they are the same words the cohort selector uses.
- *
- * The pivot is the median: above it, count down from the top; below it, count up
- * from the bottom. Both directions are literally true at every value — a build
- * at p52 is in the top 48% and a build at p15 is in the bottom 15% — so the
- * phrasing only ever picks the shorter, more useful half.
+ * - The median is the pivot: above it count down from the top, below it count up from the bottom
+ * - Both directions are true at every value, so this only picks the shorter half
  */
 function formatStanding(fraction: number): string {
   const pct = Math.round(fraction * 100);
@@ -235,7 +191,7 @@ function formatStanding(fraction: number): string {
   return `bottom ${pct}%`;
 }
 
-/** Ordinal position on the ladder, used to read p50 by value. */
+/** Stat value at one rung of the ladder, NaN when the board did not publish that rung */
 function quantileAt(axis: LBDistributionAxis, ladder: number[], target: number): number {
   const index = ladder.findIndex((q) => Math.abs(q - target) < 1e-9);
   return index >= 0 ? axis.quantiles[index] : Number.NaN;
@@ -245,24 +201,19 @@ interface AxisView {
   key: LBStatSortKey;
   label: string;
   fullLabel: string;
-  /** The build's own value on this axis. */
+  /** The build's own value, not the cohort's */
   value: number;
-  /** 0-1 position of the build on the cohort's ladder; null when degenerate. */
+  /** 0-1 position on the cohort's ladder, null when degenerate */
   percentile: number | null;
   p50: number;
-  /**
-   * True when the published ladder has no spread — Healing Bonus is 0 for every
-   * build on a DPS board. A percentile there would be invented.
-   */
+  /** Ladder has no spread (Healing Bonus is 0 for every build on a DPS board), so a percentile would be invented */
   degenerate: boolean;
 }
 
 /**
- * Radius fraction for a vertex.
+ * Radius fraction for a vertex
  *
- * A degenerate axis sits on the median ring rather than at the centre: with zero
- * variance every build carries the same value, so this one *is* the median. The
- * old centre-pin drew that as bottom-1%, which is a different claim entirely.
+ * - A degenerate axis sits on the median ring, not the centre, since zero variance means this build is the median
  */
 function radiusFraction(view: AxisView): number {
   if (view.degenerate || view.percentile === null) return 0.5;
@@ -273,7 +224,7 @@ function pointOn(angle: number, radius: number): [number, number] {
   return [CX + (Math.cos(angle) * radius), CY + (Math.sin(angle) * radius)];
 }
 
-/** Angles start at 12 o'clock and run clockwise. */
+/** Angles start at 12 o'clock and run clockwise */
 function axisAngle(index: number, count: number): number {
   return (-Math.PI / 2) + ((index / count) * Math.PI * 2);
 }
@@ -285,26 +236,19 @@ function ringVertices(fraction: number, count: number): string[] {
   });
 }
 
-/**
- * The grid is a web, not a set of circles.
- *
- * On a percentile radius both are equally correct, but the web shares its
- * geometry with the data polygon, so a vertex reads directly against the ring
- * segment beside it instead of against a curve the shape never follows. It is
- * also what makes the thing look like a spider rather than a dartboard.
- */
+/** Grid ring as a polygon, so it shares geometry with the data and a vertex reads against the segment beside it */
 function ringPoints(fraction: number, count: number): string {
   return ringVertices(fraction, count).join(' ');
 }
 
-/** Middle-half band as a real annulus: outer ring, inner ring, even-odd hole. */
+/** Middle-half band as a real annulus: outer ring, inner ring, even-odd hole */
 function bandPath(count: number): string {
   const outer = ringVertices(0.75, count);
   const inner = ringVertices(0.25, count);
   return `M ${outer.join(' L ')} Z M ${inner.join(' L ')} Z`;
 }
 
-/** The series itself: one vertex per axis, at its own percentile radius. */
+/** One vertex per axis, at its own percentile radius */
 function seriesPoints(views: AxisView[]): string {
   return views
     .map((view, i) => {
@@ -314,7 +258,7 @@ function seriesPoints(views: AxisView[]): string {
     .join(' ');
 }
 
-/** Invisible wedge covering one axis's angular slice, so the whole chart is hoverable. */
+/** Invisible wedge covering one axis's angular slice, so the whole chart is hoverable */
 function wedgePath(index: number, count: number): string {
   const half = Math.PI / count;
   const mid = axisAngle(index, count);
@@ -324,12 +268,9 @@ function wedgePath(index: number, count: number): string {
 }
 
 /**
- * A one-line status where the section's content would be.
+ * One-line status where the section's content would be
  *
- * Deliberately not a bordered full-width panel. These states are an absence —
- * nothing loaded, nothing to compare — and a card spanning the whole expanded-row
- * measure frames that absence as if it were content. Sized to its text and
- * centred, it reads as a continuation of the toggle column above it instead.
+ * - Sized to its text rather than a full-width bordered panel, because a card that wide frames an absence as content
  */
 const SectionNote: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <p className="mx-auto w-fit max-w-full px-4 py-1.5 text-center text-xs text-text-primary/45">
@@ -362,10 +303,7 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
   const { statIcons, statTranslations } = useGameData();
   const { language } = useLanguage();
   const [cohortKey, setCohortKey] = useState('all');
-  // One state, not an active index plus a mirror of its last value. The tooltip
-  // stays mounted through its own fade-out, so closing has to keep the index it
-  // was showing — carrying `open` alongside it makes that the same fact rather
-  // than derived state an effect has to chase.
+  // Index and open flag are one state because the tooltip stays mounted through its fade-out and keeps showing its index
   const [axisState, setAxisState] = useState<{ index: number; open: boolean } | null>(null);
 
   const openAxis = useCallback((index: number) => setAxisState({ index, open: true }), []);
@@ -380,21 +318,9 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
     if (!data || !cohort) return [];
     const ladder = data.quantileLadder;
 
-    // API order is the winding order, deliberately.
-    //
-    // `calc.DeriveBoardRadarStats` emits the axes by their *role on this board*,
-    // not alphabetically: crit pair, then the flat the board actually scales on,
-    // its element, the bonus it scales with, ER, then the flats it does not
-    // care about. So the clock positions mean something fixed even though the
-    // stats at them change from board to board — 3 o'clock is always "the stat
-    // this build is built around", the upper left is always the dead weight.
-    //
-    // A frontend re-sort by stat key was tried and removed: it looked stable but
-    // it moved an HP board's scaling stat down next to DEF and pulled its unused
-    // ATK up between the crits and the element, turning one clean lobe into a
-    // sawtooth. The order is already deterministic per board (it is derived from
-    // the board's stored display columns), so two builds on the same board always
-    // wind the same way — which is the only comparison this section makes.
+    // API order is the winding order: the backend emits axes by their role on this board, not alphabetically
+    // Crit pair, the flat the board scales on, its element, the bonus it scales with, ER, then the flats it ignores
+    // Re-sorting here by stat key breaks the lobe, and the API order is already deterministic per board
     return cohort.axes.map((axis) => {
       const value = buildDetail.stats[getLBStatCode(axis.key)] ?? 0;
       const floor = axis.quantiles[0] ?? 0;
@@ -417,8 +343,7 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
   const stepAxis = useCallback((delta: number) => {
     if (count === 0) return;
     setAxisState((prev) => {
-      // Stepping after a blur resumes from where the reader left off rather
-      // than snapping back to the top of the chart.
+      // Stepping after a blur resumes where the reader left off rather than snapping to the top of the chart
       if (!prev) return { index: delta > 0 ? 0 : count - 1, open: true };
       return { index: (prev.index + delta + count) % count, open: true };
     });
@@ -458,11 +383,9 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
   if (error) {
     return <ErrorBanner onRetry={onRetry}>{error}</ErrorBanner>;
   }
-  // Two different absences, and conflating them would misreport a brand-new
-  // board as an unpopular one. A null payload is a 404: the axes come from the
-  // board's optimality reference, and a board that has never been evaluated has
-  // none. An empty cohort list is a board that exists but sits under the
-  // backend's publish floor.
+  // Two different absences, so conflating them would misreport a brand-new board as an unpopular one
+  // Null payload is a 404, because the axes come off the board's optimality reference and an unevaluated board has none
+  // Empty cohort list is a board that exists but sits under the backend's publish floor
   if (!data) {
     return <SectionNote>No reference build for this board yet, so there is nothing to compare against.</SectionNote>;
   }
@@ -474,9 +397,8 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
   const comparisonLabel = medianLabel(cohort.key, cohortLabel);
   const sampleSize = cohort.sampleSize.toLocaleString();
 
-  // `activeAxis` is what the chart itself highlights and what gets announced —
-  // it goes null the moment the reader leaves. `shownAxis` is what the tooltip
-  // renders, and it outlives that by one exit animation.
+  // `activeAxis` drives the highlight and the announcement, going null the moment the reader leaves
+  // `shownAxis` drives the tooltip and outlives that by one exit animation
   const isOpen = axisState?.open ?? false;
   const activeAxis = isOpen ? axisState?.index ?? null : null;
   const active = activeAxis === null ? null : views[activeAxis] ?? null;
@@ -516,10 +438,7 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
           </div>
         )}
 
-        {/* A legend, not an explainer. The two marks and the band are the only
-            things on the chart that cannot be named by looking at them; the
-            radial scale needs one line now that the tooltip says "top 4%"
-            instead of asking anyone to invert a percentile. */}
+        {/* Only the two marks, the band and the radial scale, since everything else on the chart names itself */}
         <HoverTooltip
           placement="top"
           triggerClassName="inline-flex"
@@ -534,12 +453,8 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
               <LegendRow swatch={<span className="h-2 w-3 rounded-xs border" style={{ background: BAND_FILL, borderColor: CHROME_STROKE }} />}>
                 Middle half of the {sampleSize} compared
               </LegendRow>
-              {/* Not "further out is better", which is what this said and which
-                  is only true on the offensive axes. More HP or DEF than the
-                  board usually means substat rolls spent in the wrong place,
-                  and ER past its rotation target is capped out of Score
-                  entirely. The chart shows standing; whether standing is good
-                  is the stat's business, not the chart's. */}
+              {/* Standing, not quality: further out is only better on the offensive axes, since HP and DEF past the
+                  board are rolls spent wrong and ER past its rotation target is capped out of Score */}
               <p className="pt-0.5 text-text-primary/45">Further out = higher than more of the board.</p>
             </div>
           }
@@ -555,8 +470,7 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
         </HoverTooltip>
       </div>
 
-      {/* One focus stop for the whole chart, stepped with the arrow keys, rather
-          than one tab stop per wedge promising an activation that never existed. */}
+      {/* One focus stop for the whole chart, stepped with the arrow keys, since a wedge has nothing to activate */}
       <div
         tabIndex={0}
         role="group"
@@ -571,10 +485,8 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
           aria-hidden
           onMouseLeave={closeAxis}
         >
-          {/* The field, in one geometry with the data: a webbed grid, the middle
-              half as a real even-odd annulus (not a disc with a surface-coloured
-              disc punched out of it, which only works on one background), then
-              the dashed median ring. */}
+          {/* Middle half is an even-odd annulus, not a disc with a surface-coloured disc over it, so it survives
+              either background */}
           <path d={bandPath(count)} fill={BAND_FILL} fillRule="evenodd" />
           {RINGS.map((ring) => (
             <polygon
@@ -609,7 +521,7 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
             strokeLinejoin="round"
           />
 
-          {/* The one series. */}
+          {/* After the whole field, so the series stroke sits over the rings and the median dashes */}
           <polygon
             points={seriesPoints(views)}
             fill={YOU_FILL}
@@ -620,9 +532,7 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
           {views.map((view, i) => {
             const [x, y] = pointOn(axisAngle(i, count), radiusFraction(view) * RADIUS);
             const isActive = i === activeAxis;
-            // r is not a transitionable property, so the hover growth rides a
-            // transform on a fixed-radius circle instead of snapping between
-            // two radii.
+            // r is not transitionable, so hover growth rides a transform on a fixed-radius circle
             return (
               <circle
                 key={view.key}
@@ -658,7 +568,7 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
             );
           })}
 
-          {/* Hit targets last so the whole wedge is live, not just the vertex dot. */}
+          {/* Hit targets last so the whole wedge is live, not just the vertex dot */}
           {views.map((view, i) => (
             <path
               key={view.key}
@@ -672,14 +582,9 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
           ))}
         </svg>
 
-        {/* Sweeping between spokes used to teleport the tooltip, because it was
-            keyed to the live axis and remounted at a new place each time. It now
-            stays mounted and slides.
-
-            The mover is a full-size overlay, so a percentage translate resolves
-            against the chart's own box — which keeps the whole thing on
-            `transform` (compositor-only) instead of animating `left`/`top`, and
-            works at any responsive width without measuring anything. */}
+        {/* One mounted tooltip that slides between spokes, keyed to nothing, because remounting per axis teleports it.
+            The mover is a full-size overlay so a percentage translate resolves against the chart's own box, which
+            keeps the move on `transform` and works at any width without measuring. */}
         {shown && shownPoint && (
           <div
             aria-hidden
@@ -693,8 +598,7 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
               className={`absolute top-0 left-0 -translate-x-1/2 rounded-md border border-border px-2.5 py-1.5 text-2xs shadow-lg transition-[opacity,scale] motion-reduce:transition-none ${LB_EXPANDED_OPAQUE_SURFACE} ${
                 shownPoint[1] < CY ? 'translate-y-2.5 origin-top' : 'translate-y-[calc(-100%-10px)] origin-bottom'
               } ${
-                // Exit is quicker than entry: the user is already looking
-                // somewhere else by then.
+                // Exit is quicker than entry because the reader is already looking somewhere else
                 isOpen ? 'scale-100 opacity-100 duration-150' : 'scale-95 opacity-0 duration-100'
               }`}
               style={{ transitionTimingFunction: EASE_ENTER }}
@@ -727,9 +631,8 @@ export const BuildStatDistribution: React.FC<BuildStatDistributionProps> = ({
         )}
       </div>
 
-      {/* The tooltip is aria-hidden and its content lags the live axis by one
-          exit animation, and a live region has to already exist in the tree to
-          announce into. This one is always mounted and always current. */}
+      {/* Always mounted, because a live region has to be in the tree before it can announce, and the tooltip is
+          aria-hidden and lags the live axis by one exit animation anyway */}
       <p aria-live="polite" className="sr-only">
         {active
           ? activePlaced

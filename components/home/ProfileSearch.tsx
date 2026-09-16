@@ -8,9 +8,8 @@ import { resolveRegionBadge } from '@/components/leaderboards/formatters';
 import { getPinnedProfiles, getRecentProfiles, StoredProfile } from '@/lib/profileHistory';
 import { LB_API_BASE } from '@/lib/apiEndpoints';
 
-// Modifier-key label for the ⌘/Ctrl+K hint. Read via useSyncExternalStore so
-// SSR renders the Windows/desktop-majority "Ctrl K" and the client corrects to
-// "⌘ K" only on Apple platforms without a post-hydration setState.
+// ⌘/Ctrl+K hint label, held in a useSyncExternalStore so hydration needs no setState
+// Server snapshot is "Ctrl K" for the desktop majority, the client corrects to "⌘ K" on Apple platforms
 const subscribeShortcut = () => () => {};
 const readShortcut = () =>
     /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || '') ? '⌘ K' : 'Ctrl K';
@@ -29,33 +28,33 @@ interface SearchResults {
 }
 
 interface ProfileSearchProps {
-    /** Where this search lives, recorded on the navigate capture. */
+    /** Where this search lives, recorded on the navigate capture */
     surface?: 'home' | 'profiles' | 'nav';
     /**
-     * `bar` (default) is the standalone hero pill with a floating dropdown, used
-     * on `/` and `/profiles`. `panel` is the seamless command-panel (flush input
-     * and results in one card), used for the mobile nav drawer. `inline` spawns
-     * the input directly into the navbar row where the trigger sits, with results
-     * dropping flush beneath the nav (desktop nav search).
+     * Chrome around the shared input and results
+     *
+     * - `bar` is the standalone hero pill with a floating dropdown, used on `/` and `/profiles`
+     * - `panel` is a flush input and results in one card, used for the mobile nav drawer
+     * - `inline` spawns the input into the navbar row, results dropping flush beneath the nav
      */
     variant?: 'bar' | 'panel' | 'inline';
-    /** Focus the input on mount (navbar popover). */
+    /** Focus the input on mount (navbar popover) */
     autoFocus?: boolean;
-    /** Show pinned/recent profiles when the input is focused with no query. */
+    /** Show pinned and recent profiles when the input is focused with no query */
     showSavedProfiles?: boolean;
-    /** Panel variant: called on Escape so the host can dismiss the popover. */
+    /** Called on Escape so a host popover can dismiss itself */
     onRequestClose?: () => void;
     /**
-     * Real player shown in the placeholder as a format example. The home hero
-     * feeds it the current record holder so it stays live data, never an
-     * invented handle. With both, the placeholder teaches both accepted forms
-     * ("Username or UID, e.g. yuuhi or 500006092").
+     * Real player shown in the placeholder as a format example, never an invented handle
+     *
+     * - Home hero feeds the current record holder, so the example stays live data
+     * - With both set the placeholder teaches both accepted forms ("Username or UID, e.g. yuuhi or 500006092")
      */
     exampleName?: string;
     exampleUid?: string;
 }
 
-/** Enka-style entry point: type a UID or username, land on the profile. Empty focus shows pinned + recent visits. */
+/** Type a UID or username, land on the profile. Focus with no query shows pinned and recent visits. */
 export function ProfileSearch({
     surface = 'home',
     variant = 'bar',
@@ -130,23 +129,22 @@ export function ProfileSearch({
     }, []);
 
     const trimmed = query.trim();
-    // Results are only valid for the query they were fetched for; anything else means a fetch is in flight.
+    // Results only match the query they were fetched for, so a mismatch means a fetch is in flight
     const searching = trimmed.length >= 2 && results.forQuery !== trimmed;
     const matches = results.forQuery === trimmed ? results.matches : [];
     const showSearch = trimmed.length >= 2;
     const showRecents = showSavedProfiles && !showSearch && saved.length > 0;
-    // The panel/inline surfaces live inside a popover the host mounts/unmounts,
-    // so their body tracks content directly; the bar gates on its own open state.
+    // Panel and inline live inside a host-mounted popover, so their body tracks content directly
     const hasBody = showSearch || showRecents;
     const showPanel = isPanel || isInline ? hasBody : open && hasBody;
-    // Every surface links out to the directory, except the directory itself.
+    // Every surface links out to the directory, except the directory itself
     const showFooter = surface !== 'profiles';
 
-    // Keyboard-navigable rows, aligned with what the body renders below.
+    // Keyboard-navigable rows, aligned with what the body renders below
     const items = showRecents ? saved : matches;
 
-    // Reset the highlight whenever the visible list changes (typing, results
-    // arriving, recents<->search). Render-phase adjustment, not an effect.
+    // Highlight resets whenever the visible list changes (typing, results arriving, recents to search)
+    // Render-phase adjustment, not an effect
     const listKey = showRecents ? `r:${saved.length}` : `q:${trimmed}:${matches.length}`;
     const [prevListKey, setPrevListKey] = useState(listKey);
     if (prevListKey !== listKey) {
@@ -200,14 +198,14 @@ export function ProfileSearch({
                 event.preventDefault();
                 go(items[activeIndex].uid);
             }
-            // Otherwise the form submit resolves a raw UID or the first match.
+            // Otherwise the form submit resolves a raw UID or the first match
         } else if (event.key === 'Escape') {
             if (onRequestClose) onRequestClose();
             else setOpen(false);
         }
     };
 
-    // Shared results body — identical rows in both variants; only the chrome differs.
+    // Shared results body: identical rows in every variant, only the chrome differs
     const body = showRecents ? (
         <>
             <div className="px-4 pt-2.5 pb-1 font-mono text-3xs uppercase tracking-[0.16em] text-text-primary/40">
@@ -217,9 +215,8 @@ export function ProfileSearch({
                 {saved.map((recent, i) => {
                     const badge = resolveRegionBadge(recent.uid);
                     const isActive = activeIndex === i;
-                    // Hover is only offered when the row is not already the keyboard
-                    // cursor: `hover:` outranks a plain background utility, so leaving
-                    // both on would dim the active row from 12% to 8% under the pointer.
+                    // Active row drops hover because `hover:` outranks a plain background utility
+                    // Leaving both on would dim the active row from 12% to 8% under the pointer
                     const rowBg = isActive
                         ? 'bg-accent/12'
                         : `hover:bg-accent/8 ${recent.isPinned ? 'bg-accent/4' : ''}`;
@@ -232,8 +229,7 @@ export function ProfileSearch({
                             onMouseEnter={() => setActiveIndex(i)}
                             className={`relative flex w-full items-center gap-3 px-4 py-2 text-left transition-colors cursor-pointer ${rowBg}`}
                         >
-                            {/* Starred rows signal with an accent edge (same vocabulary as the
-                                ranking tiles' tier edge) so names stay aligned across rows. */}
+                            {/* Accent edge marks starred rows so names stay aligned across rows */}
                             {recent.isPinned && (
                                 <span className="absolute inset-y-0 left-0 w-0.5 bg-accent/80" aria-hidden />
                             )}
@@ -297,7 +293,7 @@ export function ProfileSearch({
         </p>
     );
 
-    // Shared footer: a consistent link out to the full directory on every surface.
+    // Shared footer linking out to the full directory
     const footer = showFooter ? (
         <div className="flex justify-end border-t border-border px-4 py-2.5">
             <Link
@@ -313,10 +309,8 @@ export function ProfileSearch({
         </div>
     ) : null;
 
-    // Inline: the input spawns in the navbar where the trigger sits (right edge
-    // aligned to the icon, extending left over the toolbar space); results drop
-    // flush beneath the nav. Both children anchor to the host's positioned,
-    // stretched wrapper, so they align on the same right edge and width.
+    // Inline: input spawns where the navbar trigger sits, results drop flush beneath the nav
+    // Both children anchor to the host's stretched wrapper, so they share a right edge and width
     if (isInline) {
         return (
             <div ref={containerRef}>
@@ -355,7 +349,7 @@ export function ProfileSearch({
         );
     }
 
-    // Panel: flush input + hairline divider + inline body, all in the host's card.
+    // Panel: flush input, hairline divider and inline body, all in the host's card
     if (isPanel) {
         return (
             <div ref={containerRef} className="w-full">
@@ -392,7 +386,7 @@ export function ProfileSearch({
         );
     }
 
-    // Bar: standalone hero pill with a floating dropdown beneath it.
+    // Bar: standalone hero pill with a floating dropdown beneath it
     return (
         <div ref={containerRef} className="relative w-full max-w-105">
             <form onSubmit={onSubmit}>

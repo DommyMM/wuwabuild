@@ -2,27 +2,24 @@ import { Character } from '@/lib/character';
 import { Weapon } from '@/lib/weapon';
 import { ForteState } from '@/lib/build';
 
-// Character curve stats interface
 interface CurveStats {
   HP: number;
   ATK: number;
   DEF: number;
 }
 
-// Character curve data structure
 export interface CharacterCurve {
   CHARACTER_CURVE: {
     [level: string]: CurveStats;
   };
 }
 
-// Level curve data structure for weapons
 export interface LevelCurves {
   ATK_CURVE: { [key: string]: number };
   STAT_CURVE: { [key: string]: number };
 }
 
-// Get the level key for curve lookup
+/** Curve-table key for a level: ascension levels read as "60/60", every other level as the bare number */
 const getLevelKey = (level: number): string => {
   if (level <= 20) {
     if (level === 1) return "1/20";
@@ -45,7 +42,6 @@ const getLevelKey = (level: number): string => {
   return "90/90";
 };
 
-// Scale weapon ATK based on level using weapon curves.
 const scaleWeaponAtk = (
   baseAtk: number,
   level: number,
@@ -56,7 +52,6 @@ const scaleWeaponAtk = (
   return Math.floor(baseAtk * curves.ATK_CURVE[key]);
 };
 
-// Scale weapon stat based on level using weapon curves.
 const scaleWeaponStat = (
   baseStat: number,
   level: number,
@@ -67,8 +62,6 @@ const scaleWeaponStat = (
   return parseFloat((baseStat * curves.STAT_CURVE[key]).toFixed(1));
 };
 
-// Calculate scaled weapon stats (ATK + substat) at a given level.
-// Passive effect values are available directly via weapon.params[paramIndex][rank-1].
 export const calculateWeaponStats = (
   weapon: Weapon,
   level: number,
@@ -78,8 +71,7 @@ export const calculateWeaponStats = (
   scaledMainStat: scaleWeaponStat(weapon.base_main, level, curves),
 });
 
-// Calculate forte bonus from tree nodes using CDN values.
-// forte: [[level, top, middle], ...] indexed 0–4 for tree1–tree5.
+/** A `forte` row is [level, top, middle], rows 0-4 for tree1-tree5 */
 export const calculateForteBonus = (
   character: Character,
   forte: ForteState
@@ -88,12 +80,12 @@ export const calculateForteBonus = (
   let bonus1Total = 0;
   let bonus2Total = 0;
 
-  // tree indices: 0=tree1, 1=tree2, 3=tree4, 4=tree5  (tree3 has no stat nodes)
+  // tree3 has no stat nodes, so index 2 is skipped
   const treeMap: [number, string, boolean][] = [
-    [0, 'tree1', true],   // Bonus1
-    [1, 'tree2', false],  // Bonus2
-    [3, 'tree4', false],  // Bonus2
-    [4, 'tree5', true],   // Bonus1
+    [0, 'tree1', true],
+    [1, 'tree2', false],
+    [3, 'tree4', false],
+    [4, 'tree5', true],
   ];
 
   for (const [col, treeName, isBonus1] of treeMap) {

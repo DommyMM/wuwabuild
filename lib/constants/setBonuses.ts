@@ -6,7 +6,7 @@ interface SetBonusEntry {
   value: number;
 }
 
-// These IDs come from PhantomFetter AddProp and are stable across localized names.
+/** Ids come from PhantomFetter AddProp, stable across localized names */
 const PROP_ID_TO_STAT: Record<number, StatName> = {
   11: 'Energy Regen',
   14: 'Resonance Skill DMG Bonus',
@@ -22,7 +22,7 @@ const PROP_ID_TO_STAT: Record<number, StatName> = {
 };
 
 const normalizeSetPropValue = (prop: { value: number; isRatio: boolean }): number => (
-  // sync_fetters keeps non-ratio AddProp in x10 units (100 => 10.0%).
+  // sync_fetters keeps non-ratio AddProp in x10 units (100 => 10.0%)
   prop.isRatio ? prop.value : prop.value / 10
 );
 
@@ -59,17 +59,14 @@ const getActivationTierProps = (
   return Array.isArray(fetter.addProp) ? fetter.addProp : [];
 };
 
-// A set's 2-piece tier is a bare stat line and reaches the panel through addProp
-// above. Every 3- and 5-piece clause lives in free text instead, and nearly all of
-// them need an in-combat action (casting, dealing, inflicting, gaining a shield),
-// so they belong to the damage engine and not to a panel read out of combat. The
-// few that need nothing are declared by hand in scripts/sync_fetters.py's
-// DISPLAY_BONUSES and arrive on the tier as `displayBonuses`.
-//
-// `requires` carries the character gate as data so this file needs no notion of
-// Resonance Energy: Dream of the Lost's "Holding 0 Resonance Energy" is
-// permanently true for the two characters who hold 0 max energy, and durably true
-// for nobody else. lb asserts that list against its own engine-side gate.
+/**
+ * Panel bonuses from tier text that needs no in-combat action
+ *
+ * - A 2-piece tier is a bare stat line and reaches the panel through addProp instead
+ * - 3- and 5-piece clauses live in free text and nearly all need an action, so they belong to the damage engine
+ * - The few that need nothing are hand-declared in scripts/sync_fetters.py and arrive as `displayBonuses`
+ * - `requires` carries the character gate as data, so this file needs no notion of Resonance Energy
+ */
 const getDisplayBonuses = (
   fetter: CDNFetter,
   pieceCount: number,
@@ -78,9 +75,8 @@ const getDisplayBonuses = (
   const tiers = fetter.pieceEffects;
   if (!tiers) return [];
 
-  // Unlike addProp this reads every tier the piece count reaches, not just the
-  // activation tier: Tidebreaking Courage activates at 2 pieces but its
-  // unconditional ATK clause sits on the 5-piece tier.
+  // Every tier the piece count reaches, unlike addProp which reads the activation tier alone
+  // Tidebreaking Courage activates at 2 pieces while its unconditional ATK clause sits on the 5-piece tier
   return Object.entries(tiers).flatMap(([tier, pieceEffect]) => {
     const tierCount = Number(tier);
     if (!Number.isFinite(tierCount) || pieceCount < tierCount) return [];

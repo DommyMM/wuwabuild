@@ -20,10 +20,12 @@ export interface CDNFetter {
     buffIds: number[];
     effectDescription: I18nString;
     effectDescriptionParam?: string[];
-    // Clauses of this tier that hold without an in-combat action, so the stat
-    // panel shows them alongside the 2-piece bonuses. Hand-declared in
-    // scripts/sync_fetters.py; `requires` lists the character IDs a clause is
-    // unconditional for, or is null when it holds for everyone.
+    /**
+     * Clauses of this tier that hold with no in-combat action, so the stat panel shows them beside the 2-piece bonuses
+     *
+     * - Hand-declared in `scripts/sync_fetters.py`
+     * - `requires` lists the character ids a clause is unconditional for, null when it holds for everyone
+     */
     displayBonuses?: Array<{ stat: StatName; value: number; requires: string[] | null }>;
   }>;
   fetterIcon: string;
@@ -46,16 +48,16 @@ export interface CDNEcho {
   };
 }
 
+/** Echo as the UI reads it: flat legacy fields plus the CDN-native i18n, icon and skill fields */
 export interface Echo {
-  // Legacy fields (used by EchoSelector, EchoPanel, StatsContext, BuildCard, etc.)
   name: string;
   id: string;
   legacyId?: string;
   cost: number;
   elements: ElementType[];
-  fetterIds: number[];   // legal fetter set ids, parallel to elements (from CDN fetter)
+  /** Legal set ids, parallel to elements */
+  fetterIds: number[];
 
-  // CDN-native fields
   nameI18n?: I18nString;
   cdnId?: number;
   iconUrl: string;
@@ -119,20 +121,15 @@ export const COST_SECTIONS = [4, 3, 1] as const;
 export type ElementType = keyof typeof ELEMENT_SETS;
 
 /**
- * Activation threshold to assume when a set is missing from the catalog — either
- * because the game data has not loaded yet, or because the backend knows a set id
- * this build's `Fetters.json` predates.
+ * Activation threshold assumed for a set the catalog does not know
  *
- * Deliberately the full echo slot count, so an unknown set can never be reported
- * active on a partial build. Sets activate at 1, 2, or 3 pieces, so defaulting to
- * 2 both invents bonuses (2 pieces of a 3-piece set) and hides real ones (the
- * 1-piece Shadow of Shattered Dreams). Claiming a bonus the player does not have
- * is the worse error, so unknown sets stay silent until the catalog confirms them.
- * Mirrors the server-side default in `lib/server/leaderboardInsight.ts`.
+ * - Happens when game data has not loaded, or when the backend knows a set id this build's Fetters.json predates
+ * - The full echo slot count, so an unknown set is never reported active on a partial build
+ * - Sets activate at 1, 2 or 3 pieces, so a default of 2 would invent bonuses and hide the 1-piece ones alike
+ * - Mirrors the server-side default in `lib/server/leaderboardInsight.ts`
  */
 export const UNKNOWN_SET_ACTIVATION_THRESHOLD = 5;
 
-// Fetter ID → ElementType mapping (from Phantom repo analysis)
 export const FETTER_MAP: Record<number, ElementType> = {
   1: 'Glacio',
   2: 'Fusion',
@@ -148,7 +145,7 @@ export const FETTER_MAP: Record<number, ElementType> = {
   12: 'Midnight',
   13: 'Empyrean',
   14: 'Tidebreaking',
-  // 15: (no fetter 15 exists)
+  // No fetter 15 exists
   16: 'Gust',
   17: 'Windward',
   18: 'Flaming',
@@ -205,7 +202,6 @@ const toImageUrl = (rawPath: string): string => {
 };
 
 export const adaptCDNEcho = (cdn: CDNEcho): Echo => ({
-  // Legacy fields
   name: cdn.name.en,
   id: String(cdn.id),
   legacyId: cdn.legacyId,
@@ -215,7 +211,6 @@ export const adaptCDNEcho = (cdn: CDNEcho): Echo => ({
     .filter((el): el is ElementType => el !== undefined),
   fetterIds: cdn.fetter.filter(id => FETTER_MAP[id] !== undefined),
 
-  // CDN-native fields
   nameI18n: cdn.name,
   cdnId: cdn.id,
   iconUrl: toImageUrl(cdn.icon),

@@ -3,7 +3,7 @@ import { HomeLink } from './HomeLink';
 
 export interface FaqItem {
     q: string;
-    /** Rendered answer (may contain links). */
+    /** Rendered answer, which may contain links */
     a: ReactNode;
 }
 

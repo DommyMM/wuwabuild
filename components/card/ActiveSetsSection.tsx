@@ -21,7 +21,7 @@ const getPieceLabel = (count: number, threshold: number): string => {
   return count >= 5 ? '5' : '2';
 };
 
-// Design-space font sizes for a set name, in the order the fit pass tries them.
+/** Design-space font sizes for a set name, in the order the fit pass tries them */
 const SET_NAME_ONE_LINE_SIZES_PX = [14, 13, 12] as const;
 const SET_NAME_WRAPPED_SIZES_PX = [14, 13, 12, 11, 10, 9] as const;
 const SET_NAME_MAX_LINES = 2;
@@ -41,8 +41,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
   onHoverStatChange,
 }) => {
   const { stats } = useStats();
-  // Some set clauses hold only for specific characters, so the chip has to be
-  // resolved against the same wearer StatsContext used.
+  // Some set clauses hold only for specific characters, so the chip resolves against the same wearer StatsContext used
   const { state: { characterId } } = useBuild();
   const { fettersByElement } = useGameData();
   const { t } = useLanguage();
@@ -79,13 +78,13 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
         .filter((node): node is HTMLSpanElement => node !== null);
       if (nodes.length === 0) return;
 
-      // 1px of slack on both axes
       const apply = (px: number, wrap: boolean) => {
         nodes.forEach((node) => {
           node.style.fontSize = `${px}px`;
           node.style.whiteSpace = wrap ? 'normal' : 'nowrap';
         });
       };
+      // 1px of slack on both axes, so sub-pixel rounding does not force a smaller size
       const withinWidth = (node: HTMLSpanElement) => node.scrollWidth <= node.clientWidth + 1;
       const withinLines = (node: HTMLSpanElement, px: number) => {
         const lineHeight = parseFloat(getComputedStyle(node).lineHeight) || px;
@@ -121,7 +120,8 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
     <div className={`flex w-full min-w-0 items-stretch overflow-visible pt-2 pb-1 text-sm font-semibold leading-none ${isCrowded ? 'justify-center gap-1 px-0' : 'gap-2 pl-4'}`}>
       {showCV && (
         <div className={`flex shrink-0 items-center justify-center bg-black/35 ${isCrowded ? 'min-h-8 w-20 rounded-lg px-1 py-1' : 'min-h-8 rounded-xl px-1.5'}`}>
-          {/* snapdom bakes its measured width into the export, so without nowrap a hair of font drift at capture time splits "220.4 CV" across two lines */}
+          {/* snapdom bakes the measured width into the export
+              Without nowrap a hair of font drift at capture splits "220.4 CV" across two lines */}
           <span className="whitespace-nowrap rounded-md tabular-nums">
             {stats.cv.toFixed(1)} CV
           </span>
@@ -140,9 +140,8 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
           : setHoverMatch
             ? 'opacity-100 ring-1 ring-white/34 bg-white/12 shadow-[0_0_10px_rgba(255,255,255,0.22)]'
             : 'opacity-45 brightness-90';
-        // Two chips size to their own names and give back what they do not use.
-        // Three are all long and all wrap, so an even split is the tidier read
-        // there and is what the 9px floor was measured against.
+        // Two chips size to their own names and give back what they do not use
+        // Three are all long and all wrap, so they split evenly, which is what the 9px floor was measured against
         const chipSizeClass = isCrowded
           ? 'flex-1'
           : hasMultipleSets

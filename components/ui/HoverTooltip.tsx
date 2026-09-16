@@ -30,18 +30,12 @@ interface HoverTooltipProps {
   triggerClassName?: string;
   maxRisePx?: number;
   pinViewportBottom?: boolean;
-  // Optional node rendered as a sibling of the panel, outside its overflow-hidden box.
-  // Use this for decorations that should visually "hang" off the panel (e.g. an entity icon
-  // protruding top-left). Absolute positioning is up to the caller.
+  /** Sibling of the panel, outside its overflow-hidden box, for decorations that hang off it. Caller positions it. */
   leadingNode?: ReactNode;
   visualOverflow?: TooltipVisualOverflow;
-  // Hover-intent delay before opening. Triggers packed close together (the
-  // sequence nodes, where one card covers its neighbour) need one so passing
-  // over a trigger on the way somewhere else does not open it; a trigger with
-  // room around it does not, and opens immediately.
+  /** Hover-intent wait, so a pointer crossing a packed trigger (sequence nodes) does not open it. 0 opens immediately. */
   openDelayMs?: number;
-  // Subject colour for the panel's corner fade: an element colour for
-  // character content, a rarity colour for items. Absent means neutral.
+  /** Corner-fade colour: element for character content, rarity for items. Absent means neutral. */
   tint?: string;
 }
 
@@ -53,17 +47,15 @@ type TooltipTriggerProps = React.HTMLAttributes<HTMLElement> & {
 
 const VIEWPORT_PADDING = 8;
 
-// Hover intent. A first card waits so a pointer crossing a trigger on its way
-// elsewhere does not open it. A card opened inside the warm window after any
-// card closed skips both the wait and the enter animation, so browsing
-// adjacent triggers feels instant (the toolbar rule). The clock is shared by
-// every tooltip on the page.
+// Hover intent: a first card waits so a pointer crossing a trigger on its way elsewhere does not open it
+// Opening inside the warm window after any card closed skips both the wait and the enter animation
+// The clock is shared by every tooltip on the page, so browsing adjacent triggers feels instant
 const DEFAULT_OPEN_DELAY_MS = 80;
 const WARM_REOPEN_WINDOW_MS = 250;
 let lastCloseAt = Number.NEGATIVE_INFINITY;
 const isWarm = (): boolean => performance.now() - lastCloseAt < WARM_REOPEN_WINDOW_MS;
 
-// The enter settle grows out of the trigger's side.
+// Enter settle grows out of the trigger's side
 const TRANSFORM_ORIGIN: Record<TooltipPlacement, string> = {
   right: 'left center',
   left: 'right center',
@@ -199,16 +191,15 @@ export function HoverTooltip({
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<TooltipPosition>({ top: 0, left: 0 });
   const [showBottomArrow, setShowBottomArrow] = useState(false);
-  // Overflowing content gets bottom room so the last line clears the arrow;
-  // keyed on overflow, not on the arrow, so reaching the bottom does not jump.
+  // Overflowing content gets bottom room so the last line clears the arrow
+  // Keyed on overflow, not on the arrow, so reaching the bottom does not jump
   const [overflowing, setOverflowing] = useState(false);
-  // Instant opens (warm re-open, keyboard focus) skip the enter animation.
+  // Instant opens (warm re-open, keyboard focus) skip the enter animation
   const [instant, setInstant] = useState(false);
   const [resolvedPlacement, setResolvedPlacement] = useState<TooltipPlacement>(placement);
   const wasOpenRef = useRef(false);
   const tooltipId = useId();
-  // Mirror of isOpen for the tap-toggle below: a touch pointerdown must read
-  // the pre-tap state without re-binding the handler on every open/close.
+  // Tap toggle reads the pre-tap state here, so its pointerdown handler need not re-bind on every open
   const isOpenRef = useRef(false);
   useEffect(() => {
     isOpenRef.current = isOpen;
@@ -234,9 +225,8 @@ export function HoverTooltip({
   }, []);
 
   const handlePointerEnter = useCallback((event: React.PointerEvent) => {
-    // A tap fires enter and down in the same gesture, so on touch the
-    // open/close decision lives in handlePointerDownCapture (tap toggles);
-    // reacting here would make every tap insta-close what it just opened.
+    // A tap fires enter and down in one gesture, so touch decides open/close in handlePointerDownCapture
+    // Reacting here would make every tap insta-close what it just opened
     if (event.pointerType === 'touch') return;
     pointerInsideRef.current = true;
     const warm = isWarm();
@@ -255,8 +245,8 @@ export function HoverTooltip({
   }, [cancelScheduledOpen, openDelayMs]);
 
   const handlePointerLeave = useCallback((event: React.PointerEvent) => {
-    // Touch synthesizes leave right after pointerup; ignoring it keeps the
-    // tap-opened tooltip up. Tap-away dismissal is the document listener below.
+    // Touch synthesizes leave right after pointerup, so ignoring it keeps the tap-opened tooltip up
+    // Tap-away dismissal is the document listener below
     if (event.pointerType === 'touch') return;
     cancelScheduledOpen();
     pointerInsideRef.current = false;
@@ -270,20 +260,19 @@ export function HoverTooltip({
     }
 
     focusWithinRef.current = true;
-    // Keyboard-initiated: no wait, no motion.
+    // Keyboard-initiated: no wait, no motion
     setInstant(true);
     setIsOpen(true);
   }, []);
 
   const handlePointerDownCapture = useCallback((event: React.PointerEvent) => {
-    // A pointer selection may move focus to the trigger. Suppress that synthetic
-    // focus-open for one frame so the pointer decision below always wins;
-    // keyboard focus continues to open the tooltip through handleFocusCapture.
+    // A pointer selection may move focus to the trigger, so that synthetic focus-open is suppressed for one frame
+    // Keyboard focus still opens the tooltip through handleFocusCapture
     suppressPointerFocusRef.current = true;
     focusWithinRef.current = false;
     if (event.pointerType === 'touch') {
-      // Touch has no hover: the first tap opens, a second tap on the trigger
-      // closes. Without this, hover-only content is unreachable on phones.
+      // Touch has no hover, so the first tap opens and a second on the trigger closes
+      // Without this, hover-only content is unreachable on phones
       setInstant(false);
       setIsOpen(!isOpenRef.current);
     } else {
@@ -383,8 +372,8 @@ export function HoverTooltip({
     updatePosition();
   }, [isOpen, updatePosition, content]);
 
-  // Tap-away dismissal for the touch toggle. Mouse already closes on
-  // pointerleave; for touch the trigger never sees the outside tap.
+  // Tap-away dismissal for the touch toggle, since the trigger never sees the outside tap
+  // Mouse already closes on pointerleave
   useEffect(() => {
     if (!isOpen) return;
 

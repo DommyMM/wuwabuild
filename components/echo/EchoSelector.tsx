@@ -15,7 +15,7 @@ interface EchoSelectorProps {
   selectedEchoId?: string | null;
 }
 
-// Active filter chip styling per element/set
+/** Active filter chip styling per element and set */
 const SET_CHIP_ACTIVE: Record<string, string> = {
   'Aero': 'bg-aero/20 border-aero/50 text-aero',
   'Glacio': 'bg-blue-400/20 border-blue-400/50 text-blue-400',
@@ -49,7 +49,7 @@ const SET_CHIP_ACTIVE: Record<string, string> = {
   'Memories': 'bg-fuchsia-300/20 border-fuchsia-300/50 text-fuchsia-300'
 };
 
-// Cost-based card styling (matches weapon/character rarity pattern)
+/** Cost-based card border, mirroring the weapon and character rarity pattern */
 const COST_BORDER: Record<number, string> = {
   4: 'border-yellow-500/50',
   3: 'border-purple-500/50',
@@ -98,7 +98,7 @@ const COST_LABELS: Record<number, string> = {
   1: '1-Cost'
 };
 
-// Ordered set types for filter chips
+/** Set types in filter-chip order */
 const SET_FILTER_ORDER: ElementType[] = [
   'Glacio', 'Fusion', 'Electro', 'Aero', 'Spectro', 'Havoc',
   'ER', 'Attack', 'Healing',
@@ -129,7 +129,6 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
     return () => media.removeEventListener('change', onChange);
   }, []);
 
-  // Filter echoes by set filter
   const filteredEchoesByCost = useMemo(() => {
     const result: Record<number, Echo[]> = {};
 
@@ -183,7 +182,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
     (filteredEchoesByCost[3]?.length ?? 0) +
     (filteredEchoesByCost[1]?.length ?? 0);
 
-  // Render a single echo card, matches weapon/character card pattern
+  // Mirrors the weapon and character card pattern
   const renderEchoCard = (echo: Echo) => {
     const isSelected = selectedEchoId === echo.id;
 
@@ -220,7 +219,7 @@ export const EchoSelector: React.FC<EchoSelectorProps> = ({
     );
   };
 
-  // Render a cost column (header pinned, list scrolls independently)
+  // Header stays pinned while the list scrolls on its own
   const renderCostColumn = (cost: number, singleView = false) => {
     const echoes = filteredEchoesByCost[cost] || [];
 

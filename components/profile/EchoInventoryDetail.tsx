@@ -37,9 +37,12 @@ function formatStatValue(stat: string | null | undefined, value: number | null |
 
 const EYEBROW_CLASS = 'font-ropa text-2xs leading-none uppercase tracking-[0.14em] text-text-primary/60';
 
-// Lazy "Equipped by" strip, phrased like the in-game panel: which of this
-// player's builds equip this echo. Mounts only when a row is expanded, so the
-// fetch is deferred until opened; remounts fresh per echo, so no in-place reset.
+/**
+ * Which of this player's builds equip this echo, phrased like the in-game panel
+ *
+ * - Mounts only on an expanded row, so the fetch waits until one is opened
+ * - Remounts fresh per echo, so there is no in-place reset to handle
+ */
 const EquippedByStrip: React.FC<{
   uid: string;
   echoKey: string;
@@ -99,7 +102,7 @@ const EquippedByStrip: React.FC<{
                     className="absolute right-0 bottom-0 h-4 w-4 rounded-tl bg-black/75 object-contain p-px"
                   />
                 )}
-                {/* Hover flips the tile from portrait to the build's CV readout. */}
+                {/* Hover flips the tile from portrait to the build's CV readout */}
                 <span
                   className="absolute inset-0 flex flex-col items-center justify-center bg-black/72 opacity-0 transition-opacity group-hover/usage:opacity-100"
                   style={{ color: borderColor }}
@@ -148,7 +151,8 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
   const rvTier = getEchoRVTierStyle(rv);
   const level = echo.panel?.level ?? 25;
   const phantom = echo.panel?.phantom ?? false;
-  // Fixed stat every echo of this cost grants at this level (4/3-cost flat ATK, 1-cost flat HP), additive with the rolled main stat and substats
+  // Fixed stat every echo of this cost grants at this level, flat ATK at 4 and 3 cost and flat HP at 1
+  // Additive with the rolled main stat and substats
   const baseStatType = echo.cost === 1 ? 'HP' : echo.cost === 3 || echo.cost === 4 ? 'ATK' : null;
   const baseStatValue = baseStatType ? calculateEchoDefaultStat(echo.cost, level) : 0;
   const baseIcon = baseStatType ? statIconFor(statIcons, baseStatType) : '';
@@ -301,7 +305,7 @@ export const EchoInventoryDetail: React.FC<EchoInventoryDetailProps> = ({ echo, 
                           )}
                           <span className="min-w-0 flex-1 truncate text-sm text-text-primary/75" title={label}>{label}</span>
                           <div className="w-44 shrink-0 sm:w-52">
-                            {/* Value already renders tier-colored at the row end. */}
+                            {/* Value already renders tier-colored at the row end */}
                             <SubstatRollBar
                               rollValues={getSubstatValues(type) ?? []}
                               currentValue={Number(sub.value)}

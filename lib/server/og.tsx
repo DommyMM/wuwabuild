@@ -10,7 +10,7 @@ type OgFont = { name: string; data: Buffer | ArrayBuffer; weight: 400 | 600 | 70
 type OgVerb = 'SCAN' | 'BUILD' | 'RANK';
 type OgMotif = 'scan' | 'card' | 'stack' | 'search';
 
-/** One entry in the right-hand data column of an `index` card (e.g. a top board). */
+/** One entry in the right-hand data column of an `index` card (e.g. a top board) */
 export interface OgRow {
   iconUrl?: string | null;
   label: string;
@@ -33,18 +33,17 @@ interface OgCardData {
   metricValue?: string;
   detailLabel?: string;
   artKind?: 'character' | 'scene' | 'weapon';
-  /** Lit verbs in the SCAN · BUILD · RANK tagline nav; omit to hide the nav. */
+  /** Lit verbs in the SCAN · BUILD · RANK tagline nav. Omit to hide the nav. */
   verbs?: readonly OgVerb[];
-  /** Abstract product motif for `tool` cards. */
+  /** Abstract product motif for `tool` cards */
   motif?: OgMotif;
-  /** Live data rows for `index` cards; falls back to the centered card when empty. */
+  /** Live data rows for `index` cards, empty falls back to the centered card */
   rows?: OgRow[];
 }
 
 export const OG_SIZE = { width: 1200, height: 630 } as const;
 export const OG_CONTENT_TYPE = 'image/png';
 
-// --- palette (matches app design tokens) ---
 const GOLD = '#bfad7d';
 const GOLD_SOFT = '#cdbe8f';
 const TEXT = '#E6E6EA';
@@ -52,7 +51,8 @@ const TEXT_MUTED = '#8b8b93';
 const SILVER_TEXT = 'linear-gradient(176deg,#ffffff 0%,#ededf3 26%,#bcbcc6 52%,#909099 58%,#dcdce4 78%,#fcfcff 100%)';
 const VIGNETTE = 'radial-gradient(125% 135% at 50% 40%, #1d1d23 0%, #131318 46%, #090909 100%)';
 
-const WAVE_RATIO = 1550 / 535; // intrinsic aspect of the tacet waveform asset
+/** Intrinsic aspect of the tacet waveform asset */
+const WAVE_RATIO = 1550 / 535;
 
 const HEX_COLOR_RE = /^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i;
 function normalizeColor(color: string | undefined): string {
@@ -60,7 +60,7 @@ function normalizeColor(color: string | undefined): string {
   return color.length === 9 ? color.slice(0, 7) : color;
 }
 
-// --- local asset loading (bundled & traced via literal new URL) ---
+/** Literal `new URL` so Next traces the wave assets into the function bundle */
 const WAVE_URLS: Record<string, URL> = {
   gold: new URL('./brand/wave-gold.png', import.meta.url),
   glacio: new URL('./brand/wave-glacio.png', import.meta.url),
@@ -71,6 +71,7 @@ const WAVE_URLS: Record<string, URL> = {
   havoc: new URL('./brand/wave-havoc.png', import.meta.url),
   rover: new URL('./brand/wave-rover.png', import.meta.url),
 };
+/** Literal `new URL` so Next traces the font files into the function bundle */
 const FONT_URLS = {
   semibold: new URL('./fonts/PlusJakartaSans-SemiBold.woff', import.meta.url),
   bold: new URL('./fonts/PlusJakartaSans-Bold.woff', import.meta.url),
@@ -169,10 +170,7 @@ async function fetchArt(url: string | null | undefined): Promise<string | null> 
   if (!url || typeof url !== 'string') return null;
   let remoteUrl = url;
   if (url.startsWith('/')) {
-    // Site-relative asset (public/assets mirror). Disk read works in dev and
-    // anywhere the file got traced into the bundle; on Vercel, functions only
-    // contain traced files and public/ is served from the CDN instead — so a
-    // failed read falls through to fetching our own origin.
+    // On Vercel public/ ships to the CDN, not into the function, so a failed disk read falls back to our own origin
     try {
       const filePath = path.join(process.cwd(), 'public', url.slice(1));
       const source = await readFile(filePath);
@@ -199,7 +197,6 @@ async function fetchArt(url: string | null | undefined): Promise<string | null> 
   }
 }
 
-// --- shared pieces ---
 function Vignette() {
   return (
     <div
@@ -238,11 +235,9 @@ function Wordmark({ text, size }: { text: string; size: number }) {
   );
 }
 
-// The tagline doubles as a nav: each tool family owns one verb, and the card
-// for that family lights its verb while the others stay dim. The root card
-// lights all three.
 const TAGLINE_VERBS = ['SCAN', 'BUILD', 'RANK'] as const;
 
+/** Tagline doubles as a nav: a tool card lights its family's verb and dims the rest, the root card lights all three */
 function TaglineNav({ active, marginTop = 24, size = 20 }: { active: readonly OgVerb[]; marginTop?: number; size?: number }) {
   const items: React.ReactNode[] = [];
   TAGLINE_VERBS.forEach((verb, i) => {
@@ -285,7 +280,7 @@ function TaglineNav({ active, marginTop = 24, size = 20 }: { active: readonly Og
   );
 }
 
-// Frequency-ruler ticks along the bottom edge — instrument chrome.
+/** Frequency-ruler ticks along the bottom edge, instrument chrome */
 function TickRuler() {
   return (
     <div
@@ -314,9 +309,8 @@ function TickRuler() {
   );
 }
 
-// --- abstract product motifs (tool cards) ---
-// Wireframe abstractions of each tool's UI: neutral bars on plates, gold only
-// where the tool's "action" happens. No text, so they never fight the title.
+// Motifs wireframe each tool's UI: neutral bars on plates, gold only where the tool acts
+// No text in a motif, so it never fights the title
 const BAR = 'rgba(255,255,255,0.11)';
 const BAR_SOFT = 'rgba(255,255,255,0.07)';
 const PLATE_BG = 'rgba(255,255,255,0.045)';
@@ -344,7 +338,7 @@ function StatRows({ count, width, hot = -1 }: { count: number; width: number; ho
   );
 }
 
-// Import: viewfinder brackets + an echo panel mid-scan.
+/** Import: viewfinder brackets around an echo panel mid-scan */
 function ScanMotif() {
   const corners: React.CSSProperties[] = [
     { top: 0, left: 0, borderTop: `3px solid ${GOLD}`, borderLeft: `3px solid ${GOLD}` },
@@ -395,8 +389,11 @@ function ScanMotif() {
   );
 }
 
-// Edit: a showcase-card fragment mid-tune (one stat row hot) with its echo
-// afterimage behind it — same tilt, or it reads as a second panel.
+/**
+ * Edit: a showcase-card fragment mid-tune, one stat row hot
+ *
+ * - Echo afterimage behind it keeps the same tilt, or it reads as a second panel
+ */
 function CardMotif() {
   return (
     <div style={{ position: 'relative', display: 'flex', width: 330, height: 380 }}>
@@ -447,7 +444,7 @@ function CardMotif() {
   );
 }
 
-// Saves: a cascade of stored cards.
+/** Saves: a cascade of stored cards */
 function StackMotif() {
   const plate = (offset: number, opacity: number, content: boolean) => (
     <div
@@ -489,7 +486,7 @@ function StackMotif() {
   );
 }
 
-// Profiles: a search pill over dimmed result rows.
+/** Profiles: a search pill over dimmed result rows */
 function SearchMotif() {
   const resultRow = (opacity: number) => (
     <div
@@ -546,7 +543,7 @@ const MOTIFS: Record<OgMotif, () => React.ReactElement> = {
   search: SearchMotif,
 };
 
-// One live-data row on an index card (top boards, top builds).
+/** One live-data row on an index card (top boards, top builds) */
 function RowPlate({ index, row, artSrc }: { index: number; row: OgRow; artSrc: string | null }) {
   const cjk = CJK_RE.test(`${row.label} ${row.sub ?? ''}`);
   return (
@@ -702,7 +699,6 @@ async function build(
   const accent = normalizeColor(data.accentColor);
   const chips = data.chips.filter((c) => c.trim().length > 0).slice(0, 3);
 
-  // --- brand hero (homepage / fallback) ---
   if (data.variant === 'site') {
     const wave = await loadWave('gold');
     const waveW = 660;
@@ -718,7 +714,6 @@ async function build(
     );
   }
 
-  // --- tool / index cards: left text column, right motif or live-data rows ---
   if (data.variant === 'tool' || data.variant === 'index') {
     const rows = (data.rows ?? []).slice(0, 3);
     const hasRows = data.variant === 'index' && rows.length > 0;
@@ -777,7 +772,6 @@ async function build(
     // no data and no motif: fall through to the centered card
   }
 
-  // --- entity cards with art (character / weapon / leaderboard) ---
   if (artSrc) {
     const wave = await loadWave(waveKeyFor(data));
     const waveW = 300;
@@ -805,8 +799,7 @@ async function build(
           {wave && (
             <img alt="" src={wave} width={waveW} height={Math.round(waveW / WAVE_RATIO)} style={{ marginTop: 14 }} />
           )}
-          {/* track + sequence — the board identity gets kicker treatment, wiki
-              subtitles stay a muted sentence */}
+          {/* Board identity gets kicker treatment while wiki subtitles stay a muted sentence */}
           {data.variant === 'leaderboard' ? (
             <div
               style={{
@@ -838,7 +831,7 @@ async function build(
               {data.subtitle}
             </div>
           )}
-          {/* weapon — promoted to its own row with a larger plate */}
+          {/* Weapon gets its own row with a larger plate */}
           {secondaryArtSrc && data.secondaryLabel && (
             <div
               style={{
@@ -951,7 +944,7 @@ async function build(
         {/* right art */}
         {isScene ? (
           <div style={{ display: 'flex', width: artColumnWidth, height: '100%', position: 'relative' }}>
-            {/* offset echo plate — a clone of the frame for layered depth (resonance motif) */}
+            {/* Offset echo plate clones the frame for layered depth */}
             <div
               style={{
                 position: 'absolute',
@@ -1006,7 +999,7 @@ async function build(
           </div>
         ) : isWeapon ? (
           <div style={{ display: 'flex', width: artColumnWidth, height: '100%', position: 'relative' }}>
-            {/* offset echo plate — clone of the frame for layered depth (resonance motif) */}
+            {/* Offset echo plate clones the frame for layered depth */}
             <div
               style={{
                 position: 'absolute',
@@ -1019,7 +1012,7 @@ async function build(
                 background: 'rgba(7,7,9,0.55)',
               }}
             />
-            {/* framed weapon — art kept at native 256px inside a 360px matte to avoid upscaling */}
+            {/* Weapon art stays at its native 256px inside a 360px matte, so it never upscales */}
             <div
               style={{
                 position: 'absolute',
@@ -1080,7 +1073,7 @@ async function build(
     );
   }
 
-  // --- centered info card (no art / no data fallback) ---
+  // Centered info card, the fallback when a card has neither art nor rows
   const wave = await loadWave(waveKeyFor(data));
   const waveW = 430;
   return renderImage(

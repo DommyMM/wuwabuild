@@ -2,31 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-/**
- * Lazily fetches one payload per key and caches every key it has seen.
- *
- * Built for the expanded build row, where each collapsible section (moves,
- * substat upgrades, reference benchmark, standings) fetches on first open and
- * must stay cached when the reader flips between boards and back.
- *
- * Semantics worth preserving if this is ever rewritten:
- *  - A resolved `null`/`undefined` payload is a cache hit, not a miss, so a
- *    board with no data never re-requests on every render.
- *  - A failure latches. The effect will not retry until `retry()` clears the
- *    error, so a broken board cannot spin a request loop.
- *  - Work is deferred by a microtask, so React's development double-invoke
- *    aborts the first attempt before it reaches the network.
- *  - Only the newest request per hook is live; the next run and unmount own the
- *    abort. The loading flag is always released, including on abort, so a board
- *    abandoned mid-flight can still be fetched when the reader returns to it.
- */
 interface KeyedResourceOptions<T> {
-  /** Cache identity. An empty key is treated as "nothing to fetch". */
+  /** Cache identity, where an empty key means there is nothing to fetch */
   key: string;
-  /** Gate the fetch (section open, row expanded, board context resolved). */
+  /** Section open, row expanded, board context resolved */
   enabled: boolean;
   fetch: (signal: AbortSignal) => Promise<T>;
-  /** Maps a rejection to the message shown to the reader. */
+  /** Maps a rejection to the message shown to the reader */
   errorMessage: (cause: unknown) => string;
 }
 
@@ -37,11 +19,19 @@ interface KeyedResource<T> {
   retry: () => void;
 }
 
-/** Surfaces the transport's own message when it has one, else `fallback`. */
+/** Surfaces the transport's own message when it has one, else `fallback` */
 export function transportError(fallback: string) {
   return (cause: unknown): string => (cause instanceof Error ? cause.message : fallback);
 }
 
+/**
+ * Lazily fetches one payload per key and caches every key it has seen
+ *
+ * - A resolved null or undefined payload is a cache hit, so a board with no data never re-requests
+ * - A failure latches until `retry()` clears it, so a broken board cannot spin a request loop
+ * - Work is deferred by a microtask, so React's development double-invoke aborts the first attempt before the network
+ * - Only the newest request per hook is live, and the loading flag is released even on abort
+ */
 export function useKeyedResource<T>({
   key,
   enabled,
@@ -53,9 +43,8 @@ export function useKeyedResource<T>({
   const [loadingByKey, setLoadingByKey] = useState<Record<string, boolean>>({});
   const controllerRef = useRef<AbortController | null>(null);
 
-  // Held in refs so the request effect depends only on identity (key/enabled)
-  // and callers can pass inline closures without churning the fetch. Synced in
-  // an effect declared ahead of the request effect, which runs first on mount.
+  // Held in refs so the request effect depends only on key and enabled, letting callers pass inline closures
+  // Synced in an effect declared ahead of the request effect, which therefore runs first on mount
   const fetchRef = useRef(fetch);
   const errorMessageRef = useRef(errorMessage);
   useEffect(() => {
@@ -91,9 +80,8 @@ export function useKeyedResource<T>({
           if (controllerRef.current === controller) {
             controllerRef.current = null;
           }
-          // Released even when aborted. Two requests can never share a key (the
-          // isLoading guard blocks the second, and an abort before the microtask
-          // means the first never started), so this cannot clear a live flag.
+          // Released even when aborted, which cannot clear a live flag because two requests never share a key:
+          // the isLoading guard blocks the second, and an abort before the microtask means the first never started
           setLoadingByKey((prev) => (prev[key] ? { ...prev, [key]: false } : prev));
         });
     });

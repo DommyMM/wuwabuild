@@ -137,9 +137,9 @@ function appendFallbackStatKeys(
 }
 
 /**
- * Convert the backend's board-level displayStats into the four ordered stat columns,
- * honoring the same sort-first behavior as resolveBuildRowStatKeys.
- * Returns null when the payload is missing/incomplete so callers fall back to the per-row heuristic.
+ * The four ordered stat columns from the backend's board-level displayStats, sort key first as resolveBuildRowStatKeys does
+ *
+ * - Null when the payload is missing or short, so callers fall back to the per-row heuristic
  */
 export function resolveBoardDisplayColumns(
   displayStats: readonly LBStatSortKey[] | undefined,

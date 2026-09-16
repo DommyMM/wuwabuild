@@ -22,10 +22,10 @@ interface WeaponHoverCardProps {
 }
 
 /**
- * ATK and the main stat are derived here from the shared level curves
- * (`calculateWeaponStats`), the same call the card's WeaponGroup makes. Every
- * weapon scales on the one ATK_CURVE / STAT_CURVE in LevelCurve.json (x12.5 and
- * x4.5 at 90/90), so callers only say which level, never the multiplier.
+ * ATK and main stat come from the shared level curves (`calculateWeaponStats`), the same call WeaponGroup makes
+ *
+ * - Every weapon scales on the one ATK_CURVE and STAT_CURVE in LevelCurve.json (x12.5 and x4.5 at 90/90)
+ * - Callers therefore name only the level, never the multiplier
  */
 export function WeaponHoverCard({
   children,

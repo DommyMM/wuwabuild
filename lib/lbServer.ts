@@ -4,18 +4,12 @@ import { buildLeaderboardSearchParams, toFiniteNumber, parseBuildListResponsePay
 import { LB_API_BASE } from './apiEndpoints';
 import { loadCharacterDisplayMap } from './server/gameData';
 
-// SSR prefetch TTLs (seconds). These are the *data-freshness* defaults: they mirror
-// the `s-maxage` the LB service emits for the same resource (`cachePolicy` in lb
-// `internal/api/helpers.go`), so a board fetched for SSR is no staler than a client
-// fetch of the same endpoint.
-//
-// IMPORTANT: a fetch's `revalidate` also sets the *page's* ISR floor (Next uses the
-// lowest revalidate in a route). Long-lived ISR pages therefore pass an explicit
-// `revalidateS` to decouple page-regeneration cadence (a cost lever) from data
-// freshness (a UX lever) — the page HTML regenerates rarely while the browser
-// re-fetches live data client-side through the short Cloudflare cache.
-const PREFETCH_TTL_S = 120; // lb cacheList: /build, /leaderboard/{id}, /profile/{uid}.
-const OVERVIEW_PREFETCH_TTL_S = 600; // lb cacheOverview: aggregate overview/reign surfaces.
+// SSR prefetch TTLs in seconds, mirroring the s-maxage the LB service emits for the same resource
+// A board fetched for SSR is therefore no staler than a client fetch of the same endpoint
+// A fetch's revalidate also sets the page's ISR floor, since Next takes the lowest in a route
+// Long-lived ISR pages pass an explicit revalidateS so regeneration cadence stays off data freshness
+const PREFETCH_TTL_S = 120; // lb cacheList: /build, /leaderboard/{id}, /profile/{uid}
+const OVERVIEW_PREFETCH_TTL_S = 600; // lb cacheOverview: aggregate overview and reign surfaces
 
 export async function prefetchBuilds(
   sort: 'finalCV' | 'timestamp' = 'finalCV',
@@ -48,11 +42,14 @@ export async function prefetchBuilds(
   }
 }
 
-// Move breakdown for one build on one board. The home page bakes the first hero
-// slide's profile bar into the ISR HTML with this, so the record card's
-// signature graphic is present at first paint instead of popping in after
-// hydration. 404 (no computed moves) and failures both resolve to null: the
-// bar is an enhancement, never a blocking dependency.
+/**
+ * Move breakdown for one build on one board
+ *
+ * - The home page bakes the first hero slide's profile bar into its ISR HTML, so the record card's
+ *   signature graphic is there at first paint instead of popping in after hydration
+ * - A 404 means no computed moves, and it resolves to null like any failure, since the bar is an
+ *   enhancement and never a blocking dependency
+ */
 export async function prefetchBuildMoves(
   buildId: string,
   weaponId: string,
@@ -88,13 +85,16 @@ export interface ProfileSummary {
   username: string;
   uid: string;
   buildCount: number;
-  /** RFC3339 time of the profile's last submission, or null when lb has none. */
+  /** RFC3339 time of the profile's last submission, null when lb has none */
   updatedAt: string | null;
 }
 
-// Reads the canonical profiles table (uid = immutable identity, username = latest
-// seen) via GET /profile/{uid}. Used for SSR metadata/header — do not derive the
-// owner from an arbitrary build row.
+/**
+ * Reads the canonical profiles table through GET /profile/{uid}, for SSR metadata and the header
+ *
+ * - uid is the immutable identity, username is only the latest seen
+ * - Never derive the owner from an arbitrary build row
+ */
 export async function fetchProfileSummary(uid: string): Promise<ProfileSummary | null> {
   const trimmedUid = uid.trim();
   if (!trimmedUid) return null;
@@ -136,8 +136,7 @@ export async function prefetchLeaderboardOverview(
     }
 
     const result = parseLeaderboardOverviewPayload(await response.json());
-    // Resolve display names/element/portrait server-side so the SSR HTML is
-    // complete; read once and look up per row.
+    // Display name, element and portrait resolve server-side so the SSR HTML is complete
     const displayMap = loadCharacterDisplayMap();
     return result.map((entry) => ({ ...entry, display: displayMap[entry.id] }));
   } catch (err) {

@@ -38,13 +38,11 @@ export const MainStatSelector: React.FC<MainStatSelectorProps> = ({
   const { getMainStatsByCost, calculateMainStatValue, statTranslations } = useGameData();
   const { t } = useLanguage();
 
-  // Get available main stats for this cost
   const mainStats = useMemo(() => {
     if (!cost) return {};
     return getMainStatsByCost(cost);
   }, [cost, getMainStatsByCost]);
 
-  // Build options with calculated values
   const options = useMemo((): StatOption[] => {
     return Object.entries(mainStats).map(([statName, [min, max]]) => {
       const fullDisplayName = statTranslations?.[statName] ? t(statTranslations[statName]) : statName;
@@ -62,7 +60,7 @@ export const MainStatSelector: React.FC<MainStatSelectorProps> = ({
     return options.find(option => option.name === selectedStat)?.fullDisplayName ?? selectedStat;
   }, [options, selectedStat]);
 
-  // Calculate value based on level
+  // Interpolates the cost's min and max for this level
   const getValueForStat = useCallback((statName: string): number | null => {
     const minMax = mainStats[statName];
     if (!minMax) return null;
@@ -70,7 +68,6 @@ export const MainStatSelector: React.FC<MainStatSelectorProps> = ({
     return calculateMainStatValue(min, max, level);
   }, [mainStats, level, calculateMainStatValue]);
 
-  // Handle stat selection
   const handleStatChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const statName = e.target.value || null;
     if (statName) {
@@ -81,7 +78,6 @@ export const MainStatSelector: React.FC<MainStatSelectorProps> = ({
     }
   }, [getValueForStat, onChange]);
 
-  // Format display value
   const formatValue = (value: number | null, statName: string | null): string => {
     if (value === null || statName === null) return '0';
     const isPercent = isPercentStat(statName);
@@ -139,7 +135,6 @@ const SubstatSelector: React.FC<SubstatSelectorProps> = ({
   const { substats, getSubstatValues, statTranslations } = useGameData();
   const { t } = useLanguage();
 
-  // Get available substats
   const availableStats = useMemo((): StatOption[] => {
     if (!substats) return [];
 
@@ -156,7 +151,6 @@ const SubstatSelector: React.FC<SubstatSelectorProps> = ({
       });
   }, [substats, usedStats, selectedStat, getSubstatValues, statTranslations, t]);
 
-  // Get values for selected stat
   const statValues = useMemo(() => {
     if (!selectedStat) return [];
     return getSubstatValues(selectedStat) || [];
@@ -167,7 +161,6 @@ const SubstatSelector: React.FC<SubstatSelectorProps> = ({
     return availableStats.find(option => option.name === selectedStat)?.fullDisplayName ?? selectedStat;
   }, [availableStats, index, selectedStat]);
 
-  // Handle stat type change
   const handleStatChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const statName = e.target.value || null;
     if (statName) {
@@ -180,13 +173,11 @@ const SubstatSelector: React.FC<SubstatSelectorProps> = ({
     }
   }, [getSubstatValues, onChange]);
 
-  // Handle value change
   const handleValueChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value ? parseFloat(e.target.value) : null;
     onChange(selectedStat, value);
   }, [selectedStat, onChange]);
 
-  // Format display value
   const formatValue = (value: number, statName: string): string => {
     const isPercent = isPercentStat(statName);
     return isPercent ? `${value.toFixed(1)}%` : Math.floor(value).toString();
@@ -248,8 +239,7 @@ export const SubstatsList: React.FC<SubstatsListProps> = ({
   onChange,
   disabled = false
 }) => {
-  // Create a used set that excludes the current stat for each substat selector.
-  // Only substats should be unique; main stat should not constrain this pool.
+  // The used set leaves out the row's own stat, and the main stat never constrains the substat pool
   const getUsedStatsForIndex = useCallback((index: number): Set<string> => {
     const used = new Set<string>();
     stats.forEach((stat, i) => {

@@ -88,9 +88,8 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   const { statIcons } = useGameData();
   const scrollportRef = useScrollportVar();
 
-  // Backend board columns (sort-independent, content-stable across refetches).
-  // When present they seed the header and drive the rows; otherwise the rows
-  // fall back to the per-row heuristic and the header keeps its defaults.
+  // Backend board columns, sort-independent and stable across refetches
+  // Present they seed the header and drive the rows, absent the rows use the heuristic and the header its defaults
   const boardColumns = useMemo(
     () => resolveBoardDisplayColumns(displayStats, DAMAGE_SORT_KEY),
     [displayStats],
@@ -100,14 +99,11 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
     () => boardColumns ?? [...DEFAULT_STAT_COLUMNS],
   );
 
-  // Latched once the backend has ever named this board's columns. displayStats
-  // goes empty for the length of a track switch, and without the latch the rows
-  // fall back to the per-row heuristic while the header keeps the old columns,
-  // so the cells briefly show stats their own header does not name.
+  // Latched once the backend has ever named this board's columns, since displayStats goes empty across a track switch
+  // Without the latch the rows fall back to the heuristic while the header keeps its columns, so cells stop matching it
   const [hasBoardColumns, setHasBoardColumns] = useState<boolean>(() => boardColumns !== null);
 
-  // Re-seed the header columns whenever the board's columns actually change
-  // (new character/weapon/track). User column edits persist within a board.
+  // Re-seeds the header whenever the board's own columns change, so a reader's column edits survive within one board
   useEffect(() => {
     if (!boardColumns) return;
     let cancelled = false;
@@ -124,9 +120,8 @@ export const LeaderboardResultsPanel: React.FC<LeaderboardResultsPanelProps> = (
   const isCvColumnActive = sort === 'finalCV' || sort === 'crit_rate' || sort === 'crit_dmg';
   const isStatSortActive = STAT_OPTION_KEYS.includes(sort as StatSortKey);
 
-  // Raw lens: the backend (scoring=raw) already returns rows ordered, ranked, and
-  // valued by tracked damage, so the panel only drops the ER cell tint (ER
-  // is shown but not scored). erTarget === 0 boards have no penalty, so raw ≡ Score.
+  // Raw lens: the backend already orders, ranks and values rows by tracked damage, so the panel only drops the ER tint
+  // A board with erTarget 0 has no penalty, so raw and Score are the same list
   const isRawMode = scoring === 'raw' && erTarget > 0;
 
   const statOptions = useMemo<SortMenuOption[]>(() => (

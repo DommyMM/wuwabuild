@@ -1,8 +1,7 @@
 import { EchoPanelState, Echo } from '@/lib/echo';
 import { StatName } from '@/lib/constants/statMappings';
 
-// Calculate the default stat value for an echo based on its cost and level.
-// 4-cost and 3-cost echoes provide ATK, 1-cost echoes provide HP.
+/** 4- and 3-cost echoes give ATK, 1-cost echoes give HP */
 export const calculateEchoDefaultStat = (cost: number, level: number): number => {
   const normalLevels = Math.floor(level - Math.floor(level / 5));
   const bonusLevels = Math.floor(level / 5);
@@ -20,8 +19,6 @@ export const calculateEchoDefaultStat = (cost: number, level: number): number =>
   }
 };
 
-// Sum up all default echo stats from equipped echo panels.
-// Returns separate totals for ATK (from 4-cost and 3-cost) and HP (from 1-cost).
 export const sumEchoDefaultStats = (
   echoPanels: EchoPanelState[],
   getEcho: (id: string | null) => Echo | null
@@ -45,7 +42,6 @@ export const sumEchoDefaultStats = (
   return { atk: totalATK, hp: totalHP };
 };
 
-// Sum main stats of a specific type from all echo panels.
 export const sumMainStats = (statType: StatName, panels: EchoPanelState[]): number => {
   return panels.reduce((total, panel) => {
     if (panel.stats.mainStat.type === statType && panel.stats.mainStat.value) {
@@ -55,7 +51,6 @@ export const sumMainStats = (statType: StatName, panels: EchoPanelState[]): numb
   }, 0);
 };
 
-// Sum substats of a specific type from all echo panels.
 export const sumSubStats = (statType: StatName, panels: EchoPanelState[]): number => {
   return panels.reduce((total, panel) => (
     total + panel.stats.subStats.reduce((subTotal, stat) => {
@@ -67,7 +62,6 @@ export const sumSubStats = (statType: StatName, panels: EchoPanelState[]): numbe
   ), 0);
 };
 
-// Get the total cost of all equipped echoes.
 export const getTotalEchoCost = (
   echoPanels: EchoPanelState[],
   getEcho: (id: string | null) => Echo | null
@@ -79,13 +73,11 @@ export const getTotalEchoCost = (
   }, 0);
 };
 
-// Create default echo stats structure.
 const createDefaultEchoStats = () => ({
   mainStat: { type: null, value: null },
   subStats: Array(5).fill(null).map(() => ({ type: null, value: null }))
 });
 
-// Create a default echo panel state.
 export const createDefaultEchoPanelState = (): EchoPanelState => ({
   id: null,
   level: 0,

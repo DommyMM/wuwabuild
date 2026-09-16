@@ -41,8 +41,7 @@ function wait(ms: number): Promise<void> {
   return new Promise(resolve => window.setTimeout(resolve, ms));
 }
 
-// Serialize admission across all local workers so increasing image concurrency
-// cannot create a burst that the public per-IP gateway will reject.
+/** Serializes admission across local workers so raising image concurrency cannot burst past the per-IP gateway limit */
 async function acquireBulkOcrSlot(): Promise<void> {
   let release!: () => void;
   const previous = bulkOcrGate;
@@ -86,8 +85,11 @@ function applyLimit(items: BulkItem[], limit: number | null) {
   return limit && limit > 0 ? items.slice(0, limit) : items;
 }
 
-// File mtimes are stamped to the R2 upload date by sync_r2.py, so lastModified
-// is a reliable "uploaded on" timestamp for date-window reruns.
+/**
+ * Date-input string from a file mtime
+ *
+ * - The R2 backup sync stamps mtimes to the upload date, so lastModified reads as "uploaded on" for date-window reruns
+ */
 function toDateInput(ms: number): string {
   const date = new Date(ms);
   const year = date.getFullYear();
@@ -101,7 +103,7 @@ function dateRangeBounds(fromStr: string, toStr: string): { from: number | null;
     if (!value) return null;
     const [year, month, day] = value.split('-').map(Number);
     if (!year || !month || !day) return null;
-    // endOfDay rolls to the next midnight so the `to` day is fully inclusive.
+    // endOfDay rolls to the next midnight so the `to` day is fully inclusive
     return new Date(year, month - 1, day + (endOfDay ? 1 : 0)).getTime();
   };
   return { from: parse(fromStr, false), to: parse(toStr, true) };
@@ -127,9 +129,8 @@ function prepareBulkSubmitState(
   const trimmedUid = savedState.watermark.uid.trim();
   let buildState = savedState;
 
-  // convert() already fills the signature weapon when the OCR weapon is empty;
-  // mirror that decision here to surface it in the per-item message (and as an
-  // idempotent safety net) instead of submitting the fallback silently.
+  // convert() already fills the signature weapon when OCR read none, so this mirrors it to name it in the message
+  // Idempotent, so it doubles as a safety net rather than submitting the fallback silently
   const fallback = resolveImportWeaponFallback(data, savedState.characterId);
   if (fallback) {
     if (!buildState.weaponId) buildState = { ...buildState, weaponId: fallback.id };
@@ -138,7 +139,7 @@ function prepareBulkSubmitState(
     warnings.push('missing weapon');
   }
 
-  // An unreadable watermark is submitted as uid 0: listed as its own entry with no profile.
+  // An unreadable watermark submits as uid 0, which lists as its own entry with no profile
   if (!/^[0-9]{9}$/.test(trimmedUid)) {
     if (trimmedUid !== '0') buildState = { ...buildState, watermark: { ...buildState.watermark, uid: '0' } };
     warnings.push('UID unreadable');
@@ -256,8 +257,7 @@ export function BulkImportPageClient() {
     return { min, max };
   }, [allItems]);
 
-  // Count matching the date window before the limit is applied, so the UI can
-  // show "N match dates · M queued" honestly.
+  // Counted before the limit applies, so the UI can show "N match dates · M queued" honestly
   const dateMatchCount = useMemo(
     () => filterByDate(allItems, dateFrom, dateTo).length,
     [allItems, dateFrom, dateTo],
@@ -278,7 +278,7 @@ export function BulkImportPageClient() {
     }));
   };
 
-  // Single source of truth for the queue: date window first, then limit.
+  /** Only place the queue is derived, applying the date window before the limit */
   const buildQueue = (
     source: BulkItem[],
     limit: number | null,
@@ -302,7 +302,7 @@ export function BulkImportPageClient() {
     commitQueue(nextItems, selectionLimit, dateFrom, dateTo);
   };
 
-  // Re-derive the queue from any subset of changed selection controls.
+  /** Re-derives the queue from any subset of the selection controls, leaving the rest at their current values */
   const applySelection = (next: { limit?: number | null; from?: string; to?: string }) => {
     if (isRunning) return;
     const limit = next.limit !== undefined ? next.limit : selectionLimit;
@@ -458,7 +458,7 @@ export function BulkImportPageClient() {
           </div>
         </div>
 
-        {/* Date window — file mtime == R2 upload date, so this is "uploaded between". */}
+        {/* File mtime is the R2 upload date, so this window reads as "uploaded between" */}
         <div className="flex flex-col gap-3 rounded-md border border-border bg-background-secondary/40 p-3">
           <div className="flex flex-wrap items-end gap-3">
             <label className="flex flex-col gap-1 text-xs text-text-primary/60">

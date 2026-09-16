@@ -26,10 +26,10 @@ function mostCommon(counts: Record<string, number>): { key: string; count: numbe
 }
 
 /**
- * Derives a unique, data-driven summary of how the top-ranked builds for a character are actually played
- * Returns null when there isn't enough data to be meaningful (caller renders nothing).
+ * Summarises how the top-ranked builds for a character are actually played
  *
- * Reads only the default board (top builds by damage)
+ * - Reads only the default board, top builds by damage
+ * - Null under MIN_SAMPLE builds, where the caller renders nothing
  */
 export async function getLeaderboardInsight(characterId: string, revalidateS?: number | false): Promise<LeaderboardInsight | null> {
     const data = await prefetchLeaderboard(characterId, {}, revalidateS);
@@ -39,7 +39,7 @@ export async function getLeaderboardInsight(characterId: string, revalidateS?: n
     const weaponNames = loadWeaponNames();
     const fetters = loadFetterSummaries();
 
-    // Most common weapon (players keep their own weapon even on a weapon-scoped board).
+    // Most common weapon, players keep their own even on a weapon-scoped board
     const weaponCounts: Record<string, number> = {};
     for (const b of builds) {
         const id = b.weapon?.id;
@@ -47,8 +47,8 @@ export async function getLeaderboardInsight(characterId: string, revalidateS?: n
     }
     const topWeapon = mostCommon(weaponCounts);
 
-    // Most common dominant active echo set. Activation thresholds come from
-    // Fetters.json because modern sets can activate at 1, 2, or 3 pieces.
+    // Most common dominant active echo set
+    // Activation thresholds come from Fetters.json because modern sets can activate at 1, 2 or 3 pieces
     const setCounts: Record<string, number> = {};
     for (const b of builds) {
         const sets = b.echoSummary?.sets ?? {};
@@ -65,7 +65,6 @@ export async function getLeaderboardInsight(characterId: string, revalidateS?: n
     }
     const topSet = mostCommon(setCounts);
 
-    // Median Crit Value.
     const cvs = builds
         .map((b) => b.finalCV || b.cv)
         .filter((n) => Number.isFinite(n) && n > 0)
@@ -90,7 +89,7 @@ export async function getLeaderboardInsight(characterId: string, revalidateS?: n
     };
 }
 
-/** Render the insight as a server-rendered prose sentence for the character page. */
+/** Renders the insight as prose for the character page */
 export function formatInsightProse(characterName: string, insight: LeaderboardInsight): string {
     const lead = `Among the top ${insight.sampleSize} ranked ${characterName} builds on WuWaBuilds`;
 

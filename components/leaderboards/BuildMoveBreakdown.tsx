@@ -16,9 +16,9 @@ import { scrollElementIntoViewBelowNav } from './scrollToElementBelowNav';
 type TooltipState = {
   x: number;
   y: number;
-  /** Above the anchor (discs) or below it (ribbon segments, so the readout never covers the strip). */
+  /** Below for ribbon segments so the readout never covers the strip, above for discs */
   placement: 'above' | 'below';
-  /** The slot's type colour, the hover card's corner tint. */
+  /** The slot's type colour, used as the hover card's corner tint */
   tint: string;
   title: string;
   subtitle: string;
@@ -28,18 +28,18 @@ type TooltipState = {
 type View = 'abilities' | 'rotation';
 
 const TOOLTIP_EDGE_MARGIN = 130;
-// Covers the longest play sequence: strip stagger capped at ~320ms, then the
-// ribbon and ten staggered table bars growing together.
+/** Covers the longest play sequence: strip stagger capped at 320ms, then the ribbon and ten staggered table bars together */
 const PLAY_MS = 1000;
 const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60';
 const HATCH = `repeating-linear-gradient(135deg, ${STATUS_NEGATIVE_COLOR} 0 2px, transparent 2px 5px)`;
 const FIGURE = 'font-gowun tabular-nums';
-// Every type with a glyph of its own gets it on its chip, so the chips and the
-// rows show one face per type. The four kit buckets take their DMG Bonus stat
-// icon (the one the build row's pills use, so a share and the stat it lives on
-// read as one thing); a type that is its own tab takes the kit button; a
-// negative status takes the element icon. Echo and coordinated damage have no
-// glyph and keep the swatch.
+/**
+ * Which glyph a damage type wears, so chips and rows show one face per type
+ *
+ * - The four kit buckets take the same DMG Bonus stat icon the build row's pills use, so a share and its stat read as one
+ * - A type that is its own tab takes the kit button, and a negative status takes the element icon
+ * - Echo and coordinated damage have no glyph, so they keep the swatch
+ */
 const TYPE_STAT: Record<string, string> = {
   basic_attack: 'Basic Attack DMG Bonus',
   heavy_attack: 'Heavy Attack DMG Bonus',
@@ -52,12 +52,10 @@ const TYPE_TAB: Record<string, string> = {
   forte_circuit: 'circuit',
   tune_break: 'tune-break',
 };
-// The chip wears its type as a tint on the frame, not on the glyph or the
-// text: the game's icons are drawn to sit black or white, and small text in a
-// saturated colour on this ground is hard to read.
+/** Type tint sits on the frame, not the glyph or text, since the game's icons are drawn to sit black or white */
 const CHIP_REST = 'border-[color-mix(in_srgb,var(--type)_45%,transparent)] bg-[color-mix(in_srgb,var(--type)_10%,transparent)] hover:border-[color-mix(in_srgb,var(--type)_80%,transparent)]';
 const CHIP_PINNED = 'border-[color-mix(in_srgb,var(--type)_95%,transparent)] bg-[color-mix(in_srgb,var(--type)_20%,transparent)]';
-// The hover card's shell (HoverTooltip.tsx), on a readout that keeps its own state.
+/** HoverTooltip's shell, borrowed by a readout that keeps its own state */
 const HOVER_SHELL = 'hover-card-panel relative isolate overflow-hidden rounded-xl border border-white/10 p-3 shadow-[0_18px_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)]';
 
 function formatPercentFigure(value: number): string {
@@ -69,9 +67,9 @@ type EquationToken =
   | { kind: 'term'; label: string; value: string; score?: boolean };
 
 /**
- * "Damage × factor (Energy Regen er% of target%) = Score". Modifiers apply
- * in payload order against the running score, so a factor that follows an
- * additive bonus wraps everything before it in parentheses.
+ * Renders "Damage × factor (Energy Regen er% of target%) = Score"
+ *
+ * - Modifiers apply in payload order against the running score, so a factor after an additive bonus parenthesizes what precedes it
  */
 const ScoreEquation: React.FC<{ rawLabel: string; raw: number; modifiers: ProcessedModifier[]; score: number }> = ({
   rawLabel,
@@ -124,18 +122,17 @@ interface BuildMoveBreakdownProps {
   moves: LBMoveEntry[];
   isHealing?: boolean;
   /**
-   * The board's own score for this build. The local sum of per-move floats
-   * lands an integer or two away from the backend total after rounding, which
-   * showed up as the row and this panel disagreeing about the same figure.
-   * Ignored unless it agrees with the local sum, so a stale or mismatched
-   * board can never be presented as this rotation's total.
+   * The board's own score for this build, preferred so the row and this panel print the same figure
+   *
+   * - Ignored unless it agrees with the local sum, so a stale board is never shown as this rotation's total
+   * - The local sum of per-move floats lands an integer or two off the backend total after rounding
    */
   scoreOverride?: number;
-  /** The character's per-tab skill icons (`Characters.json` skillIcons). */
+  /** Per-tab skill icons, keyed as `Characters.json` skillIcons is */
   skillIcons?: Record<string, string>;
-  /** Element icon, drawn for status damage that has no kit button. */
+  /** Element icon, drawn for status damage that has no kit button */
   elementIcon?: string;
-  /** Stat icons by stat name (`Stats.json`), for the types that have a DMG Bonus stat. */
+  /** Stat icons keyed by `Stats.json` name, for the types that have a DMG Bonus stat */
   statIcons?: Record<string, string> | null;
   onRetry: () => void;
 }
@@ -151,15 +148,15 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   statIcons,
   onRetry,
 }) => {
-  // Row keys under the pointer or focus (a merged strip slot spans several),
-  // joined so re-entering the same target is a no-op state update.
+  // Row keys under the pointer or focus, joined into one string so re-entering the same target is a no-op update
+  // A merged strip slot covers several rows, hence keys rather than a key
   const [hoverKeys, setHoverKeys] = useState<string | null>(null);
-  // Legend hover previews a type; legend click pins it (keyboard and touch reach it too).
+  // Legend hover previews a type while a click pins it, which is also how keyboard and touch reach it
   const [typeFocus, setTypeFocus] = useState<string | null>(null);
   const [pinnedType, setPinnedType] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [foldOpen, setFoldOpen] = useState(false);
-  // The row a strip click asked for; read once the table has rendered it open.
+  // The row a strip click asked for, read back once the table has rendered it open
   const pendingReveal = useRef<string | null>(null);
   const [view, setView] = useState<View>('abilities');
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
@@ -186,8 +183,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
     return () => observer.disconnect();
   }, [stripNode]);
 
-  // The rotation plays once when the data first lands, then the animation
-  // classes come off so a resize or re-render never replays it.
+  // The rotation plays once on first data, then the animation classes come off so a resize never replays it
   useEffect(() => {
     if (!hasData) return;
     const timer = setTimeout(() => setPlaying(false), PLAY_MS);
@@ -196,14 +192,13 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
 
   const movesByKey = useMemo(() => new Map<string, ProcessedMove>(breakdown.moves.map((move) => [move.key, move])), [breakdown.moves]);
   const rotation = useMemo(() => (isHealing ? EMPTY_ROTATION : buildRotation(breakdown.moves)), [breakdown.moves, isHealing]);
-  // A zero-damage entry (an echo cast that only sets up a trigger) is a real
-  // press, so it keeps its place in the rotation, but it is not an ability row.
+  // A zero-damage entry, like an echo cast that only sets up a trigger, is a real press so it stays in the
+  // rotation, but it is not an ability row
   const abilityMoves = useMemo(() => breakdown.moves.filter((move) => move.damage > 0), [breakdown.moves]);
   const mainScaleStat = useMemo(() => dominantScaleStat(abilityMoves), [abilityMoves]);
   const foldKeys = useMemo(() => foldedKeys(abilityMoves, rawDamage), [abilityMoves, rawDamage]);
 
-  // Healing is scored as one window, but its source hits are the player-facing
-  // peers: they become the rows and the profile's pieces.
+  // Healing is scored as one window, but its source hits are what a player recognises, so they become the rows
   const healSources = useMemo<HealSource[]>(() => {
     if (!isHealing) return [];
     return breakdown.moves
@@ -254,8 +249,8 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
     setHoverKeys(keys && keys.length > 0 ? keys.join('\n') : null);
   }, []);
 
-  // A character's status damage is its own element, so a status type takes
-  // the element icon; the set is read off the payload rather than hard-coded.
+  // A character's status damage is its own element, so a status type takes the element icon
+  // Read off the payload rather than hard-coded
   const statusTypes = useMemo(
     () => new Set(breakdown.moves.filter((move) => move.skillTab === 'status').flatMap((move) => move.moveTypes)),
     [breakdown.moves],
@@ -318,9 +313,8 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
     });
   }, []);
 
-  // A strip click opens the slot's row (and the fold, if the row lives there)
-  // and then brings the row into view. Open only, never toggle: a second click
-  // or a double click on an icon must not close a row the reader cannot see.
+  // A strip click opens the slot's row, and the fold if the row lives there, then scrolls to it
+  // Open only, never toggle, because a second click must not close a row the reader cannot see
   const revealRows = useCallback((slot: RotationSlot) => {
     const keys = slot.rowKeys.filter((key) => movesByKey.has(key));
     if (keys.length === 0) return;
@@ -339,7 +333,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
     pendingReveal.current = null;
     const node = document.getElementById(rowDomId(key));
     if (!node) return;
-    // The card takes 180ms to reach its height; measure it once it has.
+    // The card takes 180ms to reach its height, so measure only once it has
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const timer = window.setTimeout(() => scrollElementIntoViewBelowNav(node), reduced ? 0 : 200);
     return () => window.clearTimeout(timer);
@@ -347,8 +341,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
 
   const slotCount = stripSlots.length + rotation.statusSlots.length;
   const stepMs = Math.min(26, 320 / Math.max(1, slotCount));
-  // The table bars grow with the ribbon, and no later than 250ms in: the
-  // figures are readable before their bars exist.
+  // Bars grow with the ribbon and no later than 250ms in, since the figures are readable before their bars exist
   const barMotion = { playing, baseDelay: Math.min(250, Math.round(slotCount * stepMs) + 120) };
   const sharesNote = `Shares are of ${isHealing ? 'healing' : 'damage'}, before ${[
     hasEnergyRegen ? 'Energy Regen' : null,
@@ -358,8 +351,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   return (
     <section className="@container w-full" aria-label={isHealing ? 'Heal breakdown' : 'Move breakdown'}>
       {isLoading && (
-        // Mirrors the real layout (score, icons, ribbon, chips, rows) so the
-        // panel does not jump when the data lands.
+        // Mirrors the real layout so the panel does not jump when the data lands
         <div className="animate-pulse rounded-lg border border-border/45 bg-background-secondary/20 px-6 pt-5 pb-4 @max-[40rem]:px-3.5">
           <div className="flex items-end justify-between gap-3">
             <div className="h-3 w-28 rounded bg-white/8" />
@@ -394,9 +386,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
 
       {hasData && (
         <div className="rounded-lg border border-border/45 bg-background-secondary/20 px-6 pt-5 pb-2.5 @max-[40rem]:px-3.5 @max-[40rem]:pt-4 @max-[40rem]:pb-2">
-          {/* One line: what follows, named at the left, and the score at the
-              right. The build row above already carries the score, so here it
-              is a figure beside the rotation, not a banner over it. */}
+          {/* One line, name left and score right, because the build row above already carries the score */}
           <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
             {hasStrip ? (
               <div className={`pb-0.5 @max-[40rem]:hidden ${EYEBROW}`}>
@@ -571,11 +561,9 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
       )}
 
       {tooltip && (
-        // The readout keeps its own state (HoverTooltip makes every trigger a
-        // tab stop, and a ribbon segment must not be one) but wears the hover
-        // card's shell: ground, tint, radius, shadow and enter motion. It stays
-        // mounted while the pointer walks the strip, so only the first open
-        // animates, the toolbar rule.
+        // Own state rather than HoverTooltip, which makes every trigger a tab stop and a ribbon segment must not be one,
+        // but the same shell: ground, tint, radius, shadow, enter motion. Stays mounted across the strip so only the
+        // first open animates, the toolbar rule
         <div
           aria-hidden
           className="pointer-events-none fixed z-60"

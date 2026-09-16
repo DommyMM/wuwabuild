@@ -32,23 +32,19 @@ export const Modal: React.FC<ModalProps> = ({
   const panelRef = useRef<HTMLDivElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
 
-  // Handle escape key press
   const handleEscape = useCallback((event: KeyboardEvent) => {
     if (closeOnEscape && event.key === 'Escape') {
       onClose();
     }
   }, [closeOnEscape, onClose]);
 
-  // Handle click outside modal content
   const handleBackdropClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     if (closeOnOutsideClick && event.target === event.currentTarget) {
       onClose();
     }
   }, [closeOnOutsideClick, onClose]);
 
-  // Escape listener (gated by closeOnEscape) and body scroll lock (always
-  // while open — previously the lock was skipped whenever Escape was disabled,
-  // and the cleanup still reset body overflow unconditionally).
+  // Scroll lock runs for as long as the modal is open, closeOnEscape gating only the key listener
   useEffect(() => {
     if (!isOpen) return;
 
@@ -61,9 +57,8 @@ export const Modal: React.FC<ModalProps> = ({
     };
   }, [isOpen, closeOnEscape, handleEscape]);
 
-  // Focus containment: aria-modal promises it, so deliver it — initial focus
-  // moves into the panel, Tab cycles inside it, and focus returns to the
-  // opener on close. (The Navigation drawer implements the same contract.)
+  // Focus containment that aria-modal promises: focus enters the panel, Tab cycles inside, close restores the opener
+  // The Navigation drawer implements the same contract
   useEffect(() => {
     if (!isOpen) return;
     const panel = panelRef.current;
@@ -120,7 +115,6 @@ export const Modal: React.FC<ModalProps> = ({
         className={`relative flex max-h-9/10 w-[calc(100vw-1rem)] md:w-auto md:max-w-[90vw] flex-col overflow-hidden rounded-lg border border-border bg-background-secondary shadow-xl outline-none ${contentClassName}`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header with title and close button */}
         {(title || showCloseButton) && (
           <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
             {title && (
@@ -140,7 +134,6 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
         )}
 
-        {/* Modal content, scrolls internally */}
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
           {children}
         </div>

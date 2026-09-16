@@ -10,8 +10,8 @@ import { loadCharacterRaw } from '@/lib/server/gameData';
 import { getLeaderboardInsight, formatInsightProse } from '@/lib/server/leaderboardInsight';
 import { CharacterReferenceSections } from './CharacterReferenceSections';
 
-// The leaderboard insight prose is data-driven and shifts as builds are submitted;
-// regenerate daily (the page is force-static by the (game) layout default).
+// Leaderboard insight prose is data-driven and shifts as builds land, so it regenerates daily
+// The page itself is force-static by the (game) layout default
 export const revalidate = 86400;
 
 type GenericDict = Record<string, unknown>;

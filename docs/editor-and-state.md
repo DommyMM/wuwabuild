@@ -1,69 +1,52 @@
-# Frontend Editor and State
+# Editor and State
 
-This doc explains provider boundaries and editor state flow in `wuwabuilds/`.
+Provider boundaries and how editor state flows. Contexts live in `contexts/`, editor components in
+`components/edit/`.
 
-## Provider Topology
+## Provider topology
 
-- Root providers (`app/layout.tsx` → `RootProviders` in `contexts/index.tsx`):
-  - `LanguageProvider`
-- Tool route providers (`app/(game)/layout.tsx` → `ToolProviders` in `contexts/index.tsx`):
-  - `GameDataProvider`
-  - `ToastProvider`
-  - `GameDataLoadingGate` (always renders children so server-rendered HTML reaches crawlers; shows a non-blocking error banner on load failure, never a loading state — see `docs/seo-audit-findings.md`). Because of this, anything resolved through the client `GameDataContext` (e.g. `getCharacter`/`getWeapon`) can briefly show a fallback until the client JSON fetch lands — SSR pages that need correct names in the initial HTML should resolve them server-side (`lib/server/gameData.ts`), not via the client context.
-- Editor-level providers (`EditorProviders` in `contexts/index.tsx`, used by `/edit`, `/characters/[id]`, `/weapons/[id]`, and profile expanded cards):
-  - `BuildProvider`
-  - `StatsProvider`
+Three nested layers, each mounted by a different boundary:
 
-## Responsibilities
+- `RootProviders` (`app/layout.tsx`) holds `LanguageProvider`, so language selection survives on every
+  route including the static legal pages
+- `ToolProviders` (`app/(game)/layout.tsx`) holds `GameDataProvider`, `ToastProvider` and
+  `GameDataLoadingGate`, so the game-data JSON loads once per session for tool routes only
+- `EditorProviders` holds `BuildProvider` and `StatsProvider`, mounted by `/edit`, `/characters/[id]`,
+  `/weapons/[id]` and profile expanded cards
 
-- `GameDataProvider`:
-  - Loads core JSON datasets.
-  - Caches and reuses data across tool-route session usage.
-- `BuildProvider`:
-  - Holds active build state through reducer logic.
-  - Persists draft changes to local storage with debounce.
-  - Can disable persistence (`persistDraft={false}`) for read-only renderers such as profile leaderboard cards.
-- `StatsProvider`:
-  - Computes derived stats and CV from build + game data.
+`GameDataLoadingGate` always renders children so server-rendered HTML reaches crawlers, and shows a
+non-blocking error banner on load failure rather than a loading state. Because of that, anything
+resolved through the client `GameDataContext` (`getCharacter`, `getWeapon`) can briefly show a fallback
+until the client JSON fetch lands. An SSR page that needs correct names in its initial HTML must resolve
+them server-side through `lib/server/gameData.ts`, never through the client context.
 
-## Editor Flow
+`BuildProvider` persists draft changes to local storage with a debounce, and takes `persistDraft={false}`
+for read-only renderers such as profile leaderboard cards.
 
-1. User edits character/weapon/echo/forte data.
-2. Build reducer updates canonical client build state.
-3. Stats provider recalculates derived outputs.
-4. UI sections consume derived and raw state.
-5. Draft is persisted locally for recovery.
+## Editor flow
 
-Flows that open a discovered build in the editor must check the current draft before replacing it. If a different character build is already loaded, confirm the replacement first (see `BuildExpanded`'s replace-draft dialog); read-only profile card renderers never persist their temporary state.
+An edit updates canonical build state through the build reducer, `StatsProvider` recalculates derived
+stats and CV from build plus game data, and the draft persists locally for recovery.
 
-The import flow is the exception: it replaces the draft without prompting. `saveDraftBuild` records a content-hash baseline on every programmatic load (import, saves, leaderboard "open in editor"), while manual editing in `/edit` writes the draft key directly and leaves the baseline stale. When an import displaces a draft whose content drifted from the baseline (manual work), it auto-snapshots that draft into local saves first (`snapshotBuildToSaves`, deduped by content hash), then opens a completion dialog over the scan results with leaderboard/profile/editor destinations instead of redirecting into `/edit`.
+Flows that open a discovered build in the editor must check the current draft before replacing it. If a
+different character's build is already loaded, confirm the replacement first, as `BuildExpanded`'s
+replace-draft dialog does. Read-only profile card renderers never persist their temporary state.
 
-## Route Shapes
+Import is the exception and replaces the draft without prompting. `saveDraftBuild` records a content-hash
+baseline on every programmatic load (import, saves, leaderboard "open in editor"), while manual editing in
+`/edit` writes the draft key directly and leaves the baseline stale. When an import displaces a draft whose
+content drifted from that baseline, meaning manual work, it first auto-snapshots the draft into local saves
+(`snapshotBuildToSaves`, deduped by content hash), then opens a completion dialog over the scan results
+offering leaderboard, profile and editor destinations instead of redirecting into `/edit`.
 
-- `/edit`, `/characters/[id]`, `/weapons/[id]`:
-  - use `EditorProviders`
-  - persist draft edits locally
-- `/profile/[uid]` expanded cards:
-  - wrap leaderboard builds in `BuildProvider` + `StatsProvider`
-  - explicitly disable draft persistence
+## Route shapes
 
-## Non-Obvious Constraints
+`/edit`, `/characters/[id]` and `/weapons/[id]` use `EditorProviders` and persist draft edits locally.
+Expanded cards on `/profile/[uid]` wrap leaderboard builds in `BuildProvider` and `StatsProvider` with
+draft persistence explicitly disabled.
 
-- `ForteState` uses 5 ordered branches:
-  - normal attack
-  - skill
-  - circuit
-  - liberation
-  - intro
-- Echo constraints must remain valid for backend acceptance:
-  - max total cost 12
-  - max two 4-cost echoes
-  - max three 3-cost echoes
-- Watermark username / UID can be seeded from OCR and carried through save/import flows.
+## Constraints
 
-## Implementation Hotspots
-
-- Build context: `contexts/BuildContext.tsx`
-- Stats context: `contexts/StatsContext.tsx`
-- Game data context: `contexts/GameDataContext.tsx`
-- Editor components: `components/edit/`
+- `ForteState` has 5 ordered branches: normal attack, skill, circuit, liberation, intro
+- Echo panels must stay valid for backend acceptance: max total cost 12, max two 4-cost, max three 3-cost
+- Watermark username and UID can be seeded from OCR and carried through the save and import flows

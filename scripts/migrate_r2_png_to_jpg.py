@@ -3,7 +3,7 @@ Maintenance helper: copy supported R2 images to JPEG q90 keys.
 
 Usage:
   python scripts/migrate_r2_png_to_jpg.py             # Safe preview: local download/conversion only
-  python scripts/migrate_r2_png_to_jpg.py --apply     # Upload JPEG copies; originals are preserved
+  python scripts/migrate_r2_png_to_jpg.py --apply     # Upload JPEG copies, originals are preserved
 
 Requires:
   pip install boto3 python-dotenv Pillow
@@ -139,7 +139,7 @@ def process_object(key: str, dry_run: bool) -> dict:
             "final_kb": size_kb,
         }
 
-    # Each thread gets its own client (not thread-safe)
+    # boto3 clients are not thread-safe, so each thread builds its own
     s3 = get_s3_client()
 
     data = s3.get_object(Bucket=BUCKET, Key=key)["Body"].read()
@@ -149,7 +149,7 @@ def process_object(key: str, dry_run: bool) -> dict:
     jpeg_data = data if already_jpeg else to_jpeg(data)
     final_kb = len(jpeg_data) / 1024
 
-    # Save locally
+    # Local copy is written even in a dry run, so a preview can be inspected before uploading
     local_path.write_bytes(jpeg_data)
 
     if key.endswith(".jpg") and already_jpeg:
@@ -168,9 +168,7 @@ def process_object(key: str, dry_run: bool) -> dict:
             Body=jpeg_data,
             ContentType="image/jpeg",
         )
-        # Preserve the original. Deleting/rewriting keys requires a coordinated
-        # reference migration for reports and database rows and is intentionally
-        # outside this maintenance helper.
+        # Original is kept, since rewriting keys needs a coordinated reference migration for reports and DB rows
 
     return {
         "key": key,

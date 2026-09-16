@@ -3,33 +3,29 @@ import { STATUS_NEGATIVE_COLOR } from '../constants';
 import { HOVER_RING, Highlight, LABEL_MIN_COLUMN, LeaderInput, RIBBON_HEIGHT, RibbonSegment, RotationSlot, Span, layoutColumns, layoutLeaders, layoutRibbon, leaderPath, rowDomId } from './model';
 import { SkillTabDisc } from './SkillTabDisc';
 
-/** Caption line plus its margin under the discs, when captions show. */
+/** Caption line plus its margin under the discs, when captions show */
 const CAPTION_BAND = 34;
-/** The caption's margin above it (`mt-1.5`). */
+/** Caption's top margin, mirrors its `mt-1.5` */
 const CAPTION_GAP = 6;
-/** A caption's height until it is measured: one line at 12px, line-height 1.1. */
+/** A caption's height until it is measured: one line at 12px, line-height 1.1 */
 const CAPTION_LINE = 13;
-/** Air between a caption's last line and the leader that leaves it. */
+/** Air between a caption's last line and the leader that leaves it */
 const LEADER_INSET = 3;
-/**
- * Air between the slot block and the ribbon. The hover leaders live here: each
- * drops from under its caption, runs along a rail just above the ribbon, and
- * stems down onto its segments, so none crosses a neighbour.
- */
+/** Air between the slot block and the ribbon, where the hover leaders run so none crosses a neighbour */
 const RIBBON_GAP = 24;
-/** The leaders' rail, above the ribbon's top edge. */
+/** The leaders' rail, this far above the ribbon's top edge */
 const RAIL_RISE = 10;
 
 type SlotReadout = (slot: RotationSlot, anchor: HTMLElement, placement?: 'above' | 'below') => void;
 
 interface RotationStripProps {
-  /** Measured container width; nothing is drawn until it is known. */
+  /** Measured container width, nothing is drawn until it is known */
   width: number;
   buttonSlots: RotationSlot[];
   statusSlots: RotationSlot[];
-  /** The ribbon's segments in order: casts, status damage, score bonuses. */
+  /** The ribbon's segments in order: casts, status damage, score bonuses */
   ribbon: RibbonSegment[];
-  /** Score removed by penalties (Energy Regen), hatched over the ribbon's end. */
+  /** Score removed by penalties (Energy Regen), hatched over the ribbon's end */
   lostDamage: number;
   highlight: Highlight;
   playing: boolean;
@@ -37,7 +33,7 @@ interface RotationStripProps {
   slotLabel: (slot: RotationSlot) => string;
   onSlotEnter: SlotReadout;
   onSlotLeave: () => void;
-  /** Click: open the slot's row in the table and bring it into view. */
+  /** Opens the slot's row in the table and brings it into view */
   onSlotClick: (slot: RotationSlot) => void;
   skillIcons?: Record<string, string>;
   elementIcon?: string;
@@ -50,18 +46,12 @@ function discFor(columnWidth: number): { className: string; size: number } {
 }
 
 /**
- * The rotation as a guide writes it, over the rotation as damage: the
- * character's skill icons in cast order, and under them one ribbon in the same
- * order whose segments are each cast's damage. Nothing links the two at rest.
- * Hovering a slot, a segment or a table row rings the disc and the segments of
- * every run of that ability and draws one hairline leader per run, from just
- * under its caption onto the centre of each of its segments: two "Iai" slots
- * light together, each on its own casts, and a ×3 slot shows three teeth. The
- * leaders are one SVG group with the opacity on the group, so runs that share
- * a rail composite once and never read whiter where they overlap. The leader
- * is chrome, not data: neutral, 1px, axis-aligned. Clicking a slot opens its
- * row below and scrolls only as far as needed to show it; the strip itself is
- * never pinned.
+ * The rotation as a guide writes it, over the rotation as damage
+ *
+ * - Skill icons in cast order, and under them one ribbon in the same order whose segments are each cast's damage
+ * - Nothing links the two at rest, so hovering a slot, a segment or a table row rings every run of that ability
+ * - One hairline leader per run, all in one SVG group with the opacity on the group, so shared rails never read whiter
+ * - Clicking a slot opens its row below and scrolls only as far as needed, the strip itself is never pinned
  */
 export const RotationStrip: React.FC<RotationStripProps> = ({
   width,
@@ -88,10 +78,7 @@ export const RotationStrip: React.FC<RotationStripProps> = ({
   const height = ribbonTop + RIBBON_HEIGHT;
   const slotById = new Map(slots.map((slot) => [slot.id, slot]));
 
-  // Captions run one or two lines, so each leader starts where its own caption
-  // ends rather than under a fixed two-line band, where it floated. A resize
-  // observer reports every caption once on attach and again whenever a width
-  // change reflows it.
+  // Captions run one or two lines, so each leader starts where its own caption ends
   const captionNodes = useRef(new Map<string, HTMLSpanElement>());
   const [captionHeights, setCaptionHeights] = useState<Record<string, number>>({});
   const slotKey = slots.map((slot) => slot.id).join('|');
@@ -117,7 +104,7 @@ export const RotationStrip: React.FC<RotationStripProps> = ({
   if (width <= 0) return <div style={{ height }} />;
 
   const { spans, lostWidth } = layoutRibbon(ribbon, width, lostDamage);
-  // Each slot's segments on the ribbon, in cast order, for its leader.
+  // Each slot's segments on the ribbon, in cast order, for its leader
   const slotSpans = new Map<string, Span[]>();
   ribbon.forEach((segment, index) => {
     if (!segment.slotId) return;
@@ -135,8 +122,7 @@ export const RotationStrip: React.FC<RotationStripProps> = ({
   return (
     <div className="relative select-none" style={{ height }} onPointerLeave={onSlotLeave}>
       {leaders.length > 0 && (
-        // Mounted only while something is lit, so the fade plays on the first
-        // hover and not as the pointer walks from one target to the next.
+        // Mounted only while lit, so the fade plays on first hover and not as the pointer walks between targets
         <svg
           aria-hidden
           className="pointer-events-none absolute inset-0"
@@ -244,12 +230,12 @@ export const RotationStrip: React.FC<RotationStripProps> = ({
                 width: span.w,
                 backgroundColor: segment.color,
                 opacity: dimmed ? 0.3 : 1,
-                // Inset, so a lit segment brightens without growing.
+                // Inset, so a lit segment brightens without growing
                 boxShadow: lit ? HOVER_RING : undefined,
               }}
               onPointerEnter={(event) => {
                 if (event.pointerType !== 'mouse' || !slot) return;
-                // Below the ribbon, so the readout never covers the leaders.
+                // Below the ribbon, so the readout never covers the leaders
                 onSlotEnter(slot, event.currentTarget, 'below');
               }}
             />

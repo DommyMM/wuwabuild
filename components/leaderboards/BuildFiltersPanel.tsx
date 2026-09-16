@@ -194,17 +194,16 @@ const getRoverFilterLabel = (element: Element): string => `Rover: ${element}`;
 
 const OP_SYMBOL: Record<LBStatFilterOp, string> = { gte: '≥', lte: '≤' };
 
-/** Chip/label text for one stat threshold, e.g. "Crit Rate ≥ 70%" or "ATK ≥ 2500". */
+/** Chip text for one stat threshold, like "Crit Rate ≥ 70%" or "ATK ≥ 2500" */
 const statThresholdLabel = (filter: LBStatThreshold): string => {
   const suffix = isLBPercentStatSortKey(filter.stat) ? '%' : '';
   return `${getLBStatLabel(filter.stat)} ${OP_SYMBOL[filter.op]} ${filter.value}${suffix}`;
 };
 
-// Section header inside the filter dropdown (matches the categorical section rows).
+/** Section header inside the filter dropdown, matching the categorical section rows */
 const dropdownSectionHeaderClass = 'border-b border-border/60 bg-background-secondary px-3 py-2 text-xs font-semibold uppercase tracking-wide text-accent';
 
-// Resolves a typed query to a stat-threshold option, so typing a stat name (or its
-// code, e.g. "er") prefills the builder. Needs ≥2 chars to avoid noisy single-letter hits.
+/** Stat a typed name or code prefills the threshold builder with, requiring 2 characters so single letters do not match */
 function matchStatByQuery(query: string): LBStatSortKey | null {
   if (query.length < 2) return null;
   for (const key of STAT_OPTION_KEYS) {
@@ -216,8 +215,7 @@ function matchStatByQuery(query: string): LBStatSortKey | null {
   return null;
 }
 
-// Closes a popover on Escape or a pointer-down outside its container. `setOpen` is
-// a stable useState dispatch, so the listeners re-bind only when open state flips.
+/** Closes a popover on Escape or a pointer-down outside its container, re-binding only when the open state flips */
 function useOutsideDismiss(
   ref: React.RefObject<HTMLDivElement | null>,
   isOpen: boolean,
@@ -297,9 +295,8 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   const pageSizeMenuRef = useRef<HTMLDivElement | null>(null);
   const filterAreaRef = useRef<HTMLDivElement | null>(null);
   const activeRowRef = useRef<HTMLButtonElement | null>(null);
-  // Scrolling the list moves rows under a stationary cursor, which still emits
-  // pointer events. Both refs keep that from stealing the cursor back from the
-  // keyboard, and keep hover off the scroll path entirely.
+  // Scrolling moves rows under a stationary cursor, which still emits pointer events, so both refs keep that from
+  // stealing the cursor back from the keyboard
   const pointerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const navIntentRef = useRef<'keyboard' | 'pointer'>('keyboard');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -308,8 +305,8 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   const [isFilterMode, setIsFilterMode] = useState(false);
   const [activeItemIndex, setActiveItemIndex] = useState(-1);
 
-  // The dropdown hosts interactive controls (stat builder inputs), so it closes on a
-  // pointer-down outside the whole filter area / Escape — not on the search input's blur.
+  // Dismissed on Escape or a pointer-down outside the whole filter area, not on the search input's blur,
+  // because the dropdown hosts the stat builder's own inputs
   useOutsideDismiss(filterAreaRef, isDropdownOpen, setIsDropdownOpen);
 
   const sequenceSet = useMemo(() => new Set(sequences), [sequences]);
@@ -395,8 +392,8 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   const normalizedQuery = trimmedFilterQuery.toLowerCase();
   const isExactUidQuery = /^\d{9}$/.test(trimmedFilterQuery);
 
-  // Structured-filter sections appear when the query is empty or clearly targets them,
-  // so a plain username/UID search doesn't surface the sequence toggles / stat builder.
+  // Structured sections appear only on an empty query or one that clearly targets them, so a username or UID
+  // search does not surface the sequence toggles and stat builder
   const statQueryMatch = matchStatByQuery(normalizedQuery);
   const showStatSection = normalizedQuery === '' || statQueryMatch !== null;
   const showSequenceSection = normalizedQuery === '' || /^s\d?$/.test(normalizedQuery) || normalizedQuery.startsWith('seq');
@@ -636,17 +633,16 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
     handleFilterQueryChange('');
   };
 
-  // No cursor until the user navigates: opening the dropdown must not look like a
-  // row is already hovered. Enter still falls back to the first item.
+  // No cursor until the reader navigates, so opening never looks like a row is already hovered, but Enter
+  // still falls back to the first item
   const normalizedActiveItemIndex = useMemo(() => {
     if (!isDropdownOpen || visibleItems.length === 0) return -1;
     if (activeItemIndex < 0 || activeItemIndex >= visibleItems.length) return -1;
     return activeItemIndex;
   }, [activeItemIndex, isDropdownOpen, visibleItems.length]);
 
-  // Keyboard-only: `block: 'nearest'` is a no-op for fully visible rows, so
-  // scrolling on hover would only ever fire on the partially visible first/last
-  // row and nudge the list out from under the pointer.
+  // Keyboard only, because `block: 'nearest'` is a no-op on a fully visible row, so scrolling on hover would fire
+  // only at the partly visible first and last rows and nudge the list out from under the pointer
   useEffect(() => {
     if (!isDropdownOpen || normalizedActiveItemIndex < 0) return;
     if (navIntentRef.current !== 'keyboard') return;
@@ -969,10 +965,8 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
                   previous.subSection !== item.subSection
                 )
               );
-              // Full-bleed like every other row in this panel (Max Rows, SortHeaderMenu,
-              // LeaderboardRow). An inset pill needs a gutter, and a gutter has nothing
-              // to sit against at the first and last row, where it meets a section rule
-              // on one side and the container's rounded corner on the other.
+              // Full-bleed like every other row in this panel, because an inset pill needs a gutter and the first
+              // and last rows have nothing to sit against: a section rule one side, a rounded corner the other
               const isActiveRow = isFilterMode && index === normalizedActiveItemIndex;
 
               return (

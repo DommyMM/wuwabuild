@@ -11,7 +11,7 @@ interface OverflowMarqueeProps {
     stopOverflowPx?: number;
 }
 
-// Scroll text only when it overflows the available width.
+/** Scrolls text only when it overflows the available width */
 export const OverflowMarquee: React.FC<OverflowMarqueeProps> = ({
     text,
     textClassName = '',

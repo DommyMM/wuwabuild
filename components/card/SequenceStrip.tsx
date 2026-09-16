@@ -15,18 +15,17 @@ interface SequenceStripProps {
   sequence: number;
   element: string;
   characterName?: I18nString;
-  /**
-   * Overlay variant renders on top of the character art (CharacterPanel), so
-   * every node gets a solid dark backing to survive arbitrary custom art.
-   */
+  /** Renders over the character art, which gives every node a solid dark backing so custom art cannot swallow it */
   overlay?: boolean;
   activeHoverStat?: StatHoverKey | null;
   onHoverStatChange?: (next: StatHoverKey | null) => void;
 }
 
-// The nodes are stacked a few pixels apart, so a card opened from one covers
-// its neighbour. Waiting for the pointer to settle means reaching for the card
-// does not open the node it passes over on the way.
+/**
+ * Wait before a node opens its card, because nodes are stacked close enough that one card covers its neighbour
+ *
+ * - Reaching for the open card no longer opens the node the pointer crosses on the way
+ */
 const NODE_OPEN_DELAY_MS = 120;
 
 export const SequenceStrip: React.FC<SequenceStripProps> = ({
@@ -37,8 +36,8 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
   const color = ELEMENT_COLOR[element] ?? '#ffffff';
   const hasActiveHover = Boolean(activeHoverStat);
 
-  // Chains with an unconditional stat bonus (e.g. Zani S2 Crit Rate +20%)
-  // participate in the stat cross-link, keyed by their 1-based sequence.
+  // Chains with an unconditional stat bonus (Zani S2 Crit Rate +20%, say) join the stat cross-link
+  // Keyed by 1-based sequence
   const hoverKeysBySequence = React.useMemo(() => {
     const keys = new Map<number, StatHoverKey[]>();
     for (const bonus of getChainSequenceBonuses(chains)) {
@@ -67,7 +66,7 @@ export const SequenceStrip: React.FC<SequenceStripProps> = ({
         const active = i < sequence;
         const chainName = resolveLocalizedText(chain?.name);
         const chainDescription = resolveLocalizedText(chain?.description);
-        // Locked chains do not feed the stat panel, so only unlocked ones link.
+        // Locked chains do not feed the stat panel, so only unlocked ones link
         const nodeHoverKeys = active ? (hoverKeysBySequence.get(i + 1) ?? []) : [];
         const isHoverMatch = Boolean(activeHoverStat && nodeHoverKeys.includes(activeHoverStat));
         const stateClass = active

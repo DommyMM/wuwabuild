@@ -12,7 +12,7 @@ interface HomePageProps {
     };
     slides: HomeHeroSlide[];
     records: HomeBoardRecord[];
-    /** Server-fetched move profile for slides[0], baked into the ISR HTML. */
+    /** Server-fetched move profile for slides[0], baked into the ISR HTML */
     initialProfile: TypeTotal[] | null;
 }
 

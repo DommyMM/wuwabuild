@@ -8,9 +8,8 @@ import { processMoves, type TypeTotal } from '@/lib/moveBreakdown';
 import { prefetchLeaderboardOverview, prefetchBuilds, prefetchBuildMoves } from '@/lib/lbServer';
 import { loadCharacterSummary, loadWeaponSummary } from '@/lib/server/gameData';
 
-// The homepage is an hourly editorial/stat snapshot. Unlike the interactive build
-// and leaderboard tables, it does not refetch after hydration; this avoids an API
-// request per landing-page visit for content where hourly freshness is sufficient.
+// The homepage is an hourly editorial and stat snapshot, never refetched after hydration
+// That saves an API request per landing-page visit, where hourly freshness is enough
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
@@ -33,7 +32,7 @@ function reignLabelFor(reignSince: string): string | null {
     return `#1 for ${days} ${days === 1 ? 'day' : 'days'}`;
 }
 
-/** Deterministic shuffle so the hero lineup reorders once per ISR window, not per request. */
+/** Deterministic shuffle so the hero lineup reorders once per ISR window, not per request */
 function shuffleSeeded<T>(items: T[], seed: number): T[] {
     const arr = [...items];
     let s = seed >>> 0;
@@ -48,13 +47,13 @@ function shuffleSeeded<T>(items: T[], seed: number): T[] {
     return arr;
 }
 
-/** Resolve one showcase slide from the overview payload plus local display data. */
+/** Resolve one showcase slide from the overview payload plus local display data */
 function resolveHeroSlide(record: HomeBoardRecord): HomeHeroSlide | null {
     const splashUrl = loadCharacterSummary(record.characterId)?.splashUrl ?? null;
     if (!splashUrl) return null;
     const weapon = record.topWeaponId ? loadWeaponSummary(record.topWeaponId) : null;
-    // Deep link to the record itself, not just its board: pin the weapon the record
-    // was set on and the build id, so the leaderboard opens with that row expanded.
+    // Deep link to the record, not just its board: the weapon it was set on plus the build id
+    // The leaderboard then opens with that row already expanded
     const href = record.topBuildId
         ? buildLeaderboardHref(record.characterId, {
             track: record.trackKey,
@@ -120,18 +119,17 @@ export default async function Home() {
         };
     });
 
-    // Hero showcase rotates board-level records so lower-sequence tracks can appear too.
+    // Hero showcase rotates board-level records so lower-sequence tracks can appear too
     const slideCandidates = shuffleSeeded(
         records.filter((record) => !record.isHeal && record.topDamage > 0),
-        // eslint-disable-next-line react-hooks/purity -- Server-rendered ISR seed; HTML is cached for the matching revalidate window.
+        // eslint-disable-next-line react-hooks/purity -- Server-rendered ISR seed, cached for the matching revalidate window
         Math.floor(Date.now() / (revalidate * 1000)),
     );
     const slides = slideCandidates.map(resolveHeroSlide)
         .filter((slide): slide is HomeHeroSlide => slide !== null);
 
-    // The first slide is what every visitor sees at first paint, so its move
-    // profile is baked into the ISR HTML (one upstream call per revalidate
-    // window). Later slides keep the lazy client fetch.
+    // Every visitor sees the first slide at first paint, so its move profile is baked into the ISR HTML
+    // One upstream call per revalidate window, later slides keeping the lazy client fetch
     const first = slides[0];
     let initialProfile: TypeTotal[] | null = null;
     if (first?.buildId && first.weaponId) {

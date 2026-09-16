@@ -14,12 +14,11 @@ interface EchoHoverCardProps {
   echo: Echo;
   placement?: HoverCardPlacement;
   triggerClassName?: string;
-  // The sonata set this echo is actually equipped into. When provided, the card
-  // shows only that set (colorized) instead of every set the echo can roll.
+  /** Sonata set this echo is equipped into. When set, the card shows only that one, colorized, instead of every rollable set. */
   resolvedFetter?: CDNFetter | null;
 }
 
-// Prop IDs for the six damage-element bonuses (from PhantomFetter AddProp).
+/** Prop IDs for the six damage-element bonuses, from PhantomFetter AddProp */
 const DMG_PROP_ID_TO_COLOR: Record<number, string> = {
   22: 'var(--color-glacio)',
   23: 'var(--color-fusion)',
@@ -29,8 +28,7 @@ const DMG_PROP_ID_TO_COLOR: Record<number, string> = {
   27: 'var(--color-havoc)',
 };
 
-// A sonata set's accent color comes from its damage-element bonus, if it has one.
-// Utility sets (Energy Regen, Healing, ATK%) have no element color → undefined.
+/** A set's accent comes from its damage-element bonus, so utility sets (ER, Healing, ATK%) return undefined */
 export function getFetterElementColor(fetter: CDNFetter): string | undefined {
   const propGroups: Array<Array<{ id: number }>> = [];
   for (const effect of Object.values(fetter.pieceEffects ?? {})) {

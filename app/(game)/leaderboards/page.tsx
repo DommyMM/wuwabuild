@@ -3,9 +3,9 @@ import { LeaderboardOverviewClient } from '@/components/leaderboards/overview/Le
 import { prefetchLeaderboardOverview } from '@/lib/lbServer';
 import { loadBoardDisplayCatalog } from '@/lib/server/gameData';
 
-// ISR page cadence (cost lever). The overview client already background-refreshes on
-// mount through the short Cloudflare API cache, so a longer HTML window costs no
-// freshness. Pass `revalidate` to the prefetch so it doesn't drag the page below hourly.
+// ISR page cadence is a cost lever, not a freshness one
+// The overview client background-refreshes on mount through the short Cloudflare API cache
+// revalidate is passed to the prefetch so it does not drag the page below hourly
 export const revalidate = 3600;
 
 export const metadata: Metadata = {

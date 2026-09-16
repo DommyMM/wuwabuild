@@ -9,14 +9,11 @@ import { HoverCard } from '@/components/ui/HoverCard';
 import { SubstatRollBar } from './StatTierBars';
 
 /**
- * Two emphasis systems land on the same chips, so they get two different colors:
+ * Two emphasis systems land on the same chips, so they get two colors
  *
- * - **gold** is the *selection* (persistent): the substats this build is judged on,
- *   seeded from the character's preferred stats and toggled on the summary row.
- * - **white** is the *cross-link* (transient): the stat row you are hovering in the
- *   card's stat table, which lights up every chip feeding it.
- *
- * Hover wins while it is active, then the selection state resumes.
+ * - Gold is the persistent selection: the substats this build is judged on, seeded from the character's preferred stats
+ * - White is the transient cross-link: the hovered row in the card's stat table lights every chip feeding it
+ * - Hover wins while it is active, then the selection state resumes
  */
 export type EchoChipState =
   | 'plain'     // nothing selected, nothing hovered
@@ -102,18 +99,18 @@ interface EchoSubstatChipProps {
   statType: string;
   value: number;
   state?: EchoChipState;
-  /** When false the roll-quality tier color is dropped and the value reads plain white. */
+  /** When false the roll-quality tier color is dropped and the value reads plain white */
   showRollQuality?: boolean;
   size?: keyof typeof SIZE_CLASS;
   onHoverChange?: (isHovering: boolean) => void;
 }
 
 /**
- * One substat row on an echo panel. Tier quality is carried by the *text* color over a
- * neutral plate, so five stacked read as a column of numbers rather than a stack of
- * colored bars. Icon and value stay together as one semantic unit; row positions vary
- * between echoes, so distant right-alignment would not create a useful comparison
- * column. The hover card plots the roll against every value the substat could land on.
+ * One substat row on an echo panel
+ *
+ * - Tier quality rides the text color over a neutral plate, so five stacked read as a column of numbers
+ * - Icon and value stay one unit since row positions vary between echoes, so right-alignment would compare nothing
+ * - The hover card plots the roll against every value the substat could land on
  */
 export const EchoSubstatChip: React.FC<EchoSubstatChipProps> = ({
   statType,

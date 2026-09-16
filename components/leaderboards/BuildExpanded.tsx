@@ -140,9 +140,8 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   const [hasManuallyInteracted, setHasManuallyInteracted] = useState(false);
   const [isReplaceDraftOpen, setIsReplaceDraftOpen] = useState(false);
 
-  // The full card lives on the owner's profile, so that is where a discovered
-  // build goes. Only a build with no profile to go to (redacted uid) opens in
-  // the editor from here.
+  // A discovered build goes to the owner's profile, where the full card lives, so only a build with a redacted
+  // uid opens in the editor from here
   const profileHref = useMemo(() => {
     if (!entry.owner.uid) return null;
     const params = new URLSearchParams({ buildId: entry.id });
@@ -186,9 +185,8 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   };
 
 
-  // Default selection: the character's preferred substats that this build
-  // actually rolled. Same helper as ProfileCard and the editor card, so every
-  // surface highlights the same chips for the same build.
+  // The character's preferred substats this build actually rolled, off the same helper ProfileCard and the editor
+  // card use, so every surface highlights the same chips
   const autoSelectedSubstats = useMemo(() => (
     detail
       ? getAvailablePreferredSubstats(
@@ -220,15 +218,13 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
     });
   };
 
-  // Calculate total roll count for selected substats
   const totalSelectedRolls = useMemo(() => {
     return detailSubstatSummary
       .filter((summary) => activeSelectedSubstats.has(summary.type))
       .reduce((sum, summary) => sum + summary.count, 0);
   }, [activeSelectedSubstats, detailSubstatSummary]);
 
-  // Calculate overall RV for selected substats.
-  // Uses detailSubstatSummary (already has total + count per stat), no need to re-iterate panels.
+  // Off detailSubstatSummary, which already carries total and count per stat, so the panels are not walked again
   const overallRV = useMemo(() => {
     if (activeSelectedSubstats.size === 0 || detailSubstatSummary.length === 0) return 0;
 
@@ -242,7 +238,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
     return calculateSelectedStatsRV(selectedMap, getSubstatValues);
   }, [activeSelectedSubstats, detailSubstatSummary, getSubstatValues]);
 
-  // Stat pills plus the RV pill decide how tightly the row is set.
+  // Stat pills plus the RV pill decide how tightly the row is set
   const summaryClasses = getSummaryRowClasses(detailSubstatSummary.length + 1, 'expansion');
 
   return (
@@ -253,24 +249,17 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
-          // Entering panel: ease-out so the first frame moves immediately.
-          // Under reduced motion the height step is instant and only the
-          // opacity crossfade remains.
+          // Ease-out so the first frame moves immediately, and under reduced motion only the opacity crossfade remains
           transition={prefersReducedMotion
             ? { duration: 0.12, ease: 'linear' }
             : { duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-          // `overflow-clip`, not `hidden`: clip does not create a scroll box,
-          // so the sticky pin below tracks the table's horizontal scroller.
-          // Hover cards portal out to the body, so nothing needs to escape.
+          // `overflow-clip` rather than `hidden` because clip creates no scroll box, so the sticky pin below tracks
+          // the table's own scroller, and hover cards portal to the body anyway
           className="overflow-clip border-t border-border/50 bg-black/15 tracking-wide"
         >
-          {/* w-full like any row: a definite width would re-add the shell's 2px
-              borders to the w-max wrapper and force 2px of scroll. The
-              expansion is a fixed design-space layout (a 5-column echo grid),
-              so it is never capped to the visible scrollport at any width —
-              that crushes the panels into each other. It keeps the desktop
-              layout and is reached by the table's own horizontal scroll, and
-              only the controls in BuildSimulationSection follow the scroller. */}
+          {/* w-full like any row, since a definite width re-adds the shell's 2px borders to the w-max wrapper and
+              forces 2px of scroll. The expansion keeps its fixed design-space layout at every width, because capping
+              it to the scrollport crushes the 5-column echo grid, so the table's own scroll reaches it. */}
           <div className="w-full">
           <div className={`${LB_EXPANDED_SHELL} min-w-0 space-y-4 py-4`}>
             {isDetailLoading && <BuildExpandedSkeleton showForte={surface !== 'leaderboard_character'} />}

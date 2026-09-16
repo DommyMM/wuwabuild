@@ -15,10 +15,10 @@ import { ProfileCard } from './ProfileCard';
 
 interface ProfileBuildCardStageProps {
   buildId: string;
-  /** The table row. The featured region has no row, so the loaded detail stands in (it is a superset). */
+  /** Table row, absent in the featured region where the loaded detail stands in as a superset */
   entry?: LBBuildRowEntry;
   detail: LBBuildDetailEntry | undefined;
-  /** False while the host is still animating its width; the card mounts only once it is true. */
+  /** False while the host animates its width, so the card mounts only once it flips true */
   isLayoutSettled: boolean;
   isDetailLoading: boolean;
   detailError: string | null | undefined;
@@ -26,9 +26,9 @@ interface ProfileBuildCardStageProps {
   characterName: string;
   regionBadge: RegionBadge | null;
   onRetryDetail: (buildId: string) => void;
-  /** Board key (`weaponId:trackKey`) the card should open on, when the caller knows it. */
+  /** Board key `weaponId:trackKey` to open on, when the caller knows it */
   initialStandingKey?: string | null;
-  /** Fired when the card's first frame is ready; hosts use it to sequence their own reveal. */
+  /** Fired on the card's first ready frame so hosts can sequence their own reveal */
   onVisualReady?: () => void;
 }
 
@@ -36,10 +36,10 @@ const INDICATOR_DELAY_MS = 200;
 const INDICATOR_MIN_VISIBLE_MS = 400;
 
 /**
- * Standard progress-indicator timing: opens that finish within the delay show
- * nothing at all (an indicator flashing for a moment reads slower than no
- * indicator), and one that does appear stays up a minimum time so it never
- * flickers. Warm reopens resolve inside the delay and stay indicator-free.
+ * Progress-indicator timing that leaves short waits, warm reopens included, indicator-free
+ *
+ * - Nothing shows before INDICATOR_DELAY_MS because a momentary flash reads slower than no indicator
+ * - Once shown it stays INDICATOR_MIN_VISIBLE_MS so it never flickers
  */
 const useLoadingIndicator = (isActive: boolean): boolean => {
   const [isVisible, setIsVisible] = useState(false);
@@ -82,10 +82,9 @@ const ProfileBuildLoading: React.FC<{ showIndicator: boolean }> = ({ showIndicat
 );
 
 /**
- * The profile's card view of one build: ProfileCard, its action bar, and the
- * leaderboard bench beneath it. Placement-agnostic. The table row and the
- * featured-build region above the filters both render this, so a build reads
- * identically whichever way the reader arrived at it.
+ * Profile's card view of one build: ProfileCard with the leaderboard bench beneath it
+ *
+ * - Placement-agnostic, so a table row and the featured region render a build identically
  */
 export const ProfileBuildCardStage: React.FC<ProfileBuildCardStageProps> = ({
   buildId,
@@ -102,9 +101,8 @@ export const ProfileBuildCardStage: React.FC<ProfileBuildCardStageProps> = ({
   onVisualReady,
 }) => {
   const router = useRouter();
-  // Mirrors the card's board picker for ranked cards. When "Original forte" is
-  // selected, ProfileCard still reports an equipped/best fallback board so the
-  // bench remains usable while the card itself shows the original forte grid.
+  // Mirrors the card's board picker, and on "Original forte" ProfileCard still reports a fallback board
+  // Keeps the bench usable while the card itself shows the original forte grid
   const [activeBoard, setActiveBoard] = useState<RankBoard | null>(null);
   const [isCardVisualReady, setIsCardVisualReady] = useState(false);
   const [isReplaceDraftOpen, setIsReplaceDraftOpen] = useState(false);
@@ -113,8 +111,7 @@ export const ProfileBuildCardStage: React.FC<ProfileBuildCardStageProps> = ({
     onVisualReady?.();
   }, [onVisualReady]);
 
-  // Loads this build into the editor as the working draft. The profile is the
-  // only public surface that offers it, since the leaderboards hand off here.
+  /** Loads this build into the editor as the working draft, replacing whatever was there */
   const openInEditor = useCallback(() => {
     if (!detail) return;
     posthog.capture('profile_open_in_editor_click', {
@@ -143,16 +140,12 @@ export const ProfileBuildCardStage: React.FC<ProfileBuildCardStageProps> = ({
   const canMountCard = isLayoutSettled && !isDetailLoading && !detailError && Boolean(detail);
   const showError = isLayoutSettled && !isDetailLoading && Boolean(detailError);
   const isLoadingActive = !isLayoutSettled || isDetailLoading || (canMountCard && !isCardVisualReady);
-  // The width stage is choreography with its own visible motion, not waiting,
-  // so its 150ms never counts toward the indicator delay. Only genuine
-  // post-settle loading (detail fetch, art download) can summon the dots;
-  // otherwise a shrink-then-reopen would flash them while a same-width reopen
-  // does not.
+  // Width stage is choreography with its own motion, not waiting, so its 150ms never counts toward the indicator delay
+  // Only post-settle loading (detail fetch, art download) summons the dots, or a shrink-then-reopen would flash them
   const isIndicatorEligible = isLayoutSettled
     && (isDetailLoading || (canMountCard && !isCardVisualReady));
   const showIndicator = useLoadingIndicator(isIndicatorEligible);
-  // The reveal waits out an already-visible indicator's minimum display time;
-  // when the indicator never fired, the card reveals the moment it is ready.
+  // Reveal waits out a visible indicator's minimum display time, or fires the moment the card is ready
   const isStageRevealed = isCardVisualReady && !showIndicator;
 
   return (
@@ -172,8 +165,7 @@ export const ProfileBuildCardStage: React.FC<ProfileBuildCardStageProps> = ({
           className="profile-build-card-stage space-y-4"
           data-ready={isStageRevealed}
         >
-          {/* ProfileCard is mounted only after width settles. Its first
-              visible frame already has the splash palette. */}
+          {/* Mounted only after width settles, so its first visible frame already carries the splash palette */}
           <ProfileCard
             entry={entry}
             detail={detail}

@@ -11,12 +11,12 @@ interface ImportCompleteProps {
   characterName: string;
   uploaded: boolean;
   lbAction: 'created' | 'updated' | null;
-  /** Human-readable reason shown when the build stayed local. */
+  /** Human-readable reason shown when the build stayed local, null when it uploaded */
   localReason: string | null;
   leaderboardHref: string | null;
   isLeaderboardLinkLoading: boolean;
   profileHref: string | null;
-  /** Set once "Save a copy" ran, to freeze the link into a confirmation. */
+  /** Set once "Save a copy" ran, which freezes the link into a confirmation */
   savedCopyName: string | null;
   onNavigate: (destination: ImportDestination) => void;
   onImportAnother: () => void;

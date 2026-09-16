@@ -47,18 +47,15 @@ interface BuildContextType {
   state: BuildState;
   dispatch: React.Dispatch<BuildAction>;
 
-  // Character actions
   setCharacter: (id: string | null, roverElement?: string) => void;
   setCharacterLevel: (level: number) => void;
   setRoverElement: (element: string) => void;
   setSequence: (sequence: number) => void;
 
-  // Weapon actions
   setWeapon: (id: string | null) => void;
   setWeaponLevel: (level: number) => void;
   setWeaponRank: (rank: number) => void;
 
-  // Echo actions
   setEchoPanel: (index: number, panel: Partial<EchoPanelState>) => void;
   setEchoPanels: (panels: EchoPanelState[]) => void;
   reorderEchoPanels: (from: number, to: number) => void;
@@ -69,17 +66,14 @@ interface BuildContextType {
   setEchoLevel: (index: number, level: number) => void;
   setEchoPhantom: (index: number, phantom: boolean) => void;
 
-  // Forte actions
   setForte: (forte: ForteState) => void;
   setForteLevel: (col: number, level: number) => void;
   setForteNode: (col: number, pos: 'top' | 'middle', active: boolean) => void;
   maxAllFortes: () => void;
   resetFortes: () => void;
 
-  // Watermark actions
   setWatermark: (watermark: Partial<WatermarkState>) => void;
 
-  // State management
   loadState: (savedState: SavedState) => void;
   resetBuild: () => void;
   getSavedState: () => SavedState;
@@ -130,8 +124,7 @@ function normalizeEchoPanels(rawPanels: unknown): EchoPanelState[] {
   });
 }
 
-// Parse a persisted draft. The provider restores it after hydration so the
-// server and first client render stay aligned.
+/** Parse a persisted draft, restored by the provider after hydration so server and first client render stay aligned */
 function loadDraftFromStorage(): BuildState | null {
   const saved = loadDraftBuild();
   if (!saved) return null;
@@ -149,7 +142,7 @@ function stripDirtyFromState(state: BuildState): SavedState {
   return rest;
 }
 
-// Helper: clone forte and update a single column
+/** Clones forte so a column update leaves the previous state untouched */
 function updateForteCol(forte: ForteState, col: number, updater: (entry: ForteEntry) => ForteEntry): ForteState {
   const next = forte.map(e => [...e]) as ForteState;
   next[col] = updater(next[col]);
@@ -320,7 +313,7 @@ export function BuildProvider({
     dispatch({ type: 'LOAD_STATE', payload: stripDirtyFromState(draft) });
   }, [persistDraft, providedInitialState]);
 
-  // Auto-persist to localStorage (debounced 500ms)
+  // Auto-persist the draft to localStorage
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!persistDraft) return;
@@ -334,7 +327,6 @@ export function BuildProvider({
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [persistDraft, state]);
 
-  // Character actions
   const setCharacter = useCallback((id: string | null, roverElement?: string) => {
     dispatch({ type: 'SET_CHARACTER', payload: { id, roverElement } });
   }, []);
@@ -351,7 +343,6 @@ export function BuildProvider({
     dispatch({ type: 'SET_SEQUENCE', payload: sequence });
   }, []);
 
-  // Weapon actions
   const setWeapon = useCallback((id: string | null) => {
     dispatch({ type: 'SET_WEAPON', payload: id });
   }, []);
@@ -364,7 +355,6 @@ export function BuildProvider({
     dispatch({ type: 'SET_WEAPON_RANK', payload: rank });
   }, []);
 
-  // Echo actions
   const setEchoPanel = useCallback((index: number, panel: Partial<EchoPanelState>) => {
     dispatch({ type: 'SET_ECHO_PANEL', payload: { index, panel } });
   }, []);
@@ -415,7 +405,6 @@ export function BuildProvider({
     dispatch({ type: 'SET_ECHO_PANEL', payload: { index, panel: { phantom } } });
   }, []);
 
-  // Forte actions
   const setForte = useCallback((forte: ForteState) => {
     dispatch({ type: 'SET_FORTE', payload: forte });
   }, []);
@@ -436,12 +425,10 @@ export function BuildProvider({
     dispatch({ type: 'RESET_FORTES' });
   }, []);
 
-  // Watermark actions
   const setWatermark = useCallback((watermark: Partial<WatermarkState>) => {
     dispatch({ type: 'SET_WATERMARK', payload: watermark });
   }, []);
 
-  // State management
   const loadState = useCallback((savedState: SavedState) => {
     dispatch({ type: 'LOAD_STATE', payload: savedState });
   }, []);
@@ -460,7 +447,6 @@ export function BuildProvider({
     dispatch({ type: 'MARK_CLEAN' });
   }, []);
 
-  // Context value
   const value = useMemo<BuildContextType>(() => ({
     state,
     dispatch,

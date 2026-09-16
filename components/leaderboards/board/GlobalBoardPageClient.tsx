@@ -30,7 +30,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   const { characters, weaponList, fetters } = useGameData();
   const { t } = useLanguage();
   const lastTrackedFilterSignatureRef = useRef<string | null>(null);
-  // initialData is always the default query result. Only use it when the URL has no params.
+  // initialData is always the default query result, so use it only when the URL carries no params
   const isDefaultQuery = searchParams.toString() === '';
   const ssrData = isDefaultQuery ? initialData : null;
   const buildListSigRef = useRef(createRowsSignature(ssrData?.builds ?? [], ssrData?.total ?? 0));
@@ -60,11 +60,9 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   const [total, setTotal] = useState(() => ssrData?.total ?? 0);
   const buildsRef = useRef<LBBuildRowEntry[]>(builds);
   const [settledQueryKey, setSettledQueryKey] = useState<string | null>(() => {
-    // Never pre-settle. Even when SSR data covers the default query, leave it pending
-    // so the effect runs one silent background refresh on mount: the page's ISR HTML
-    // is now hourly, so this pulls near-live data through the short Cloudflare API
-    // cache. SSR rows stay visible (builds.length > 0 → isRefreshing, not a skeleton)
-    // and createRowsSignature diffs the result so an unchanged board never re-renders.
+    // Never pre-settle, so the effect runs one background refresh on mount even when SSR covers the default query
+    // The ISR HTML is hourly, so that refresh pulls near-live rows through the short Cloudflare API cache
+    // SSR rows stay visible as a refresh, not a skeleton, and createRowsSignature stops an unchanged board re-rendering
     return null;
   });
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
@@ -224,7 +222,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
     queueMicrotask(() => {
       if (!active) return;
       resetBuildDetailRequestState();
-      // Skip localStorage cache only for the default query when SSR data already covers it.
+      // Skip the localStorage cache only for the default query, where SSR data already covers it
       if (cachedResponse && !(ssrData && currentQueryKey === '')) {
         buildListSigRef.current = createRowsSignature(cachedResponse.builds, cachedResponse.total);
         setBuilds(cachedResponse.builds);
@@ -254,7 +252,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
         if (querySnapshot.page > nextPageCount) {
           setPage(nextPageCount);
         }
-        // Diff check: skip setState if data hasn't changed (avoids re-render on silent revalidation).
+        // Skip setState when the rows are unchanged, so a silent revalidation causes no re-render
         const nextSig = createRowsSignature(response.builds, response.total);
         if (nextSig !== buildListSigRef.current) {
           buildListSigRef.current = nextSig;

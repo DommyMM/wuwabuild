@@ -1,16 +1,11 @@
-"""
-Sync the in-game glossary (TermConfig) to public/Data/Terms.json.
+"""Sync the in-game glossary (TermConfig) to public/Data/Terms.json.
 
-Character, weapon and echo text links keywords as ``<te href=850008>Spectro
-Frazzle</te>``. The id is a TermConfig row. Wuthery dumps the table
-(``ConfigDBParsed/TermConfig.json``) but only with its Chinese key, and no
-TextMap resolves the localized title and body, so Encore's ``/{lang}/term`` is
-the only source that returns readable entries. Encore's own markup is rewritten
-back into the game's conventions on the way in.
+Character, weapon and echo text links keywords as ``<te href=850008>Spectro Frazzle</te>``, where the id is a row.
+Wuthery dumps the table with its Chinese key only, and no TextMap resolves the localized title and body.
+So Encore's ``/{lang}/term`` is the only readable source, and its markup is rewritten to the game's on the way in.
 
-Scope is reachability, not the whole table: only terms our shipped text actually
-links, plus anything those terms link in turn. That keeps sequences, weapons and
-combat statuses and drops the ~550 lore entries nothing on the site points at.
+Scope is reachability, not the whole table: terms our shipped text links, plus anything those link in turn.
+That keeps sequences, weapons and combat statuses and drops the ~550 lore entries nothing on the site points at.
 
 Usage:
     python sync_terms.py                 # all site languages
@@ -34,8 +29,7 @@ from game_text import collect_term_ids, normalize_encore_markup
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "public" / "Data"
 OUTPUT = DATA_DIR / "Terms.json"
-# The languages the site offers. Encore has no `uk` (the game has no Ukrainian
-# glossary), and the frontend's `t()` already falls back to English.
+# Languages the site offers, minus `uk` since the game has no Ukrainian glossary and `t()` falls back to English
 LANGUAGES = ("en", "ja", "ko", "zh-Hans", "zh-Hant", "de", "es", "fr", "th")
 SOURCE_FILES = ("Characters.json", "Weapons.json", "Echoes.json", "Fetters.json")
 
@@ -58,7 +52,7 @@ def _term_entry(payload: Any) -> dict[str, str] | None:
         return None
     title = str(payload.get("TermTitle") or "").strip()
     description = str(payload.get("TermDesc") or "").strip()
-    # Untranslated rows come back as literal "???" rather than blank.
+    # Untranslated rows come back as literal "???" rather than blank
     if title in ("", "???") and description in ("", "???"):
         return None
     return {
@@ -70,10 +64,8 @@ def _term_entry(payload: Any) -> dict[str, str] | None:
 def _fetch_term(session: requests.Session, lang: str, term_id: int) -> tuple[int, dict[str, str] | None]:
     """One term from the per-id route.
 
-    The `/term` list route truncates every description mid-sentence (and often
-    mid-tag, which is how a raw `<span ...` reached the UI), so the id-addressed
-    route is the only complete source. That costs one request per term per
-    language, which is why the reachable set is kept small.
+    The `/term` list route truncates every description mid-sentence, often mid-tag, so only this route is complete
+    It costs one request per term per language, which is why the reachable set is kept small
     """
     try:
         return term_id, _term_entry(encore_request_json(session, lang, f"term/{term_id}"))
@@ -94,8 +86,8 @@ def build(languages: tuple[str, ...]) -> list[dict[str, Any]]:
     wanted = _linked_term_ids()
     print(f"Linked from shipped data: {len(wanted)} terms")
 
-    # A term's own body links further terms, and only the full body shows them,
-    # so the closure walks English details until it stops finding new ids.
+    # A term's own body links further terms and only the full body shows them
+    # So the closure walks English details until it stops finding new ids
     english: dict[int, dict[str, str]] = {}
     frontier = set(wanted)
     while frontier:
@@ -132,9 +124,8 @@ def build(languages: tuple[str, ...]) -> list[dict[str, Any]]:
             },
         })
 
-    # Normalization should leave only the game's own markup. Anything else with
-    # a "<" in it is a tag that survived, which is what a truncated source looks
-    # like by the time it reaches the page.
+    # Normalization should leave only the game's own markup
+    # Any other "<" is a tag that survived, which is what a truncated source looks like once it reaches the page
     known_markup = re.compile(r"</?color(?:=[^>]+)?>|</?te(?:\s+href=\d+)?\s*>", re.IGNORECASE)
     broken = [
         r["id"] for r in records

@@ -33,15 +33,11 @@ const MIN_CUSTOM_IMAGE_HEIGHT = 600;
 interface ProfileCardProps {
   entry: LBBuildRowEntry;
   detail: LBBuildDetailEntry;
-  /** Reports the board the expanded bench should analyze. May differ when ranking is hidden. */
+  /** Board the expanded bench should analyze, which stays on an equipped or best board when ranking is hidden */
   onActiveBoardChange?: (board: RankBoard | null) => void;
-  /** Fires after the initial art palette is ready for a flash-free reveal. */
+  /** Fires once the initial art palette is ready, for a flash-free reveal */
   onVisualReady?: () => void;
-  /**
-   * Board (`weaponId:trackKey`) to open on. A reader arriving from a
-   * leaderboard or a rankings tile has just looked at one specific board, so
-   * the card shows that number rather than re-picking its own default.
-   */
+  /** Board `weaponId:trackKey` to open on, so a reader from a leaderboard or tile keeps the number they just saw */
   initialStandingKey?: string | null;
 }
 
@@ -142,13 +138,11 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
   );
   const [isArtEditMode, setIsArtEditMode] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  // An unknown key falls through to pickDefaultBoard in activeBoard below.
+  // An unknown key falls through to pickDefaultBoard in activeBoard below
   const [selectedStandingKey, setSelectedStandingKey] = useState<string | null>(initialStandingKey);
   const [manualSubstatSelection, setManualSubstatSelection] = useState<Set<string> | null>(null);
 
-  // Standings fetch lives at the orchestrator level (not inside BuildProvider)
-  // because the AdjustRankingButton in the action bar also needs the full board
-  // action bar sits outside the BuildProvider subtree if we want toggling rankings to not re-mount the card.
+  // Held here rather than in BuildContext, so the rank section and the action bar's ranking button share one list
   const [standingsResult, setStandingsResult] = useState<StandingsResult>({ key: '', standings: [] });
   const abortRef = useRef<AbortController | null>(null);
 
@@ -241,13 +235,11 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
       const match = availableBoards.find((b) => b.key === selectedStandingKey);
       if (match) return match;
     }
-    // Anchor the card to the uploaded weapon and closest eligible sequence
-    // board before allowing explicit comparison selections.
+    // With no explicit pick, anchor to the uploaded weapon and the closest eligible sequence board
     return pickDefaultBoard(availableBoards, equippedWeaponId, entry.sequence);
   }, [showOriginalForte, availableBoards, selectedStandingKey, equippedWeaponId, entry.sequence]);
 
-  // Deep link to this build's row on the shown board: the rank module is the
-  // way from a card to its leaderboard.
+  /** Deep link to this build's row on the shown board, the rank module being the card's way to its leaderboard */
   const activeBoardHref = useMemo(() => (
     activeBoard
       ? buildLeaderboardHref(characterId, {
@@ -263,8 +255,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
     activeBoard ?? pickDefaultBoard(availableBoards, equippedWeaponId, entry.sequence)
   ), [activeBoard, availableBoards, equippedWeaponId, entry.sequence]);
 
-  // Let the expansion shell mirror the picker for ranked cards. When the user
-  // hides ranking for original forte, keep the bench on an equipped/best board.
+  // Bench mirrors the picker, and holds an equipped or best board when ranking is hidden for original forte
   useEffect(() => {
     onActiveBoardChange?.(analysisBoard);
   }, [analysisBoard, onActiveBoardChange]);
@@ -384,18 +375,10 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
     <BuildProvider initialState={initialState} persistDraft={false}>
       <StatsProvider>
         <div className="flex flex-col gap-3">
-            {/* The cardRef wraps both the card AND the substat row so the download
-                captures them together (Akasha-style). The card is a 1440px
-                design-space artifact and must never be re-laid-out at the host's
-                width: the art (w-3/10), stats table (flex-1) and echo row shrink
-                while the w-120 column and every font/icon/padding stay fixed, so
-                a narrower host crushes the echo panels and wraps their CV badges.
-                CardScaler pins 1440 and shrinks with a transform (never a
-                re-layout), matching BuildEditor, and the exporter still captures
-                a true design-space node. This runs at every width: the host is
-                the build row, which is table-width on phones too, so a phone
-                gets the desktop layout and reaches it with the table's own
-                horizontal scroll rather than a second nested scroller. */}
+            {/* cardRef wraps the card and the substat row so the download captures both
+                Card is a 1440px design-space artifact, and a narrower host crushes the echo panels
+                CardScaler pins 1440 and shrinks by transform, never re-layout, so the export node stays design-space
+                Host is table-width on phones too, so a phone gets the desktop layout on the table's own scroll */}
             <CardScaler
               ref={cardRef}
               designWidth={BUILD_CARD_DESIGN_WIDTH}

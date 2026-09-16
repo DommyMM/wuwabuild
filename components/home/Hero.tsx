@@ -13,7 +13,7 @@ interface HeroProps {
     slides: HomeHeroSlide[];
     totalBuilds: number;
     totalLeaderboards: number;
-    /** Server-fetched move profile for slides[0], so the first paint already has the bar. */
+    /** Server-fetched move profile for slides[0], so the first paint already has the bar */
     initialProfile: TypeTotal[] | null;
 }
 
@@ -22,8 +22,7 @@ const profileKeyOf = (slide: HomeHeroSlide | null) => (
 );
 
 const ROTATE_MS = 6500;
-// prefers-reduced-motion as an external store: SSR assumes reduced (no
-// hairline in the server markup), the client snapshot corrects it on hydration.
+// prefers-reduced-motion as an external store: SSR assumes reduced, the client snapshot corrects on hydration
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 function subscribeReducedMotion(onChange: () => void) {
     const query = window.matchMedia(REDUCED_MOTION_QUERY);
@@ -32,11 +31,10 @@ function subscribeReducedMotion(onChange: () => void) {
 }
 const getReducedMotion = () => window.matchMedia(REDUCED_MOTION_QUERY).matches;
 const getReducedMotionServer = () => true;
-// Scan-line wipe duration — must stay in sync between the clip reveals and
-// the sweeping line, so all of them read it from here via inline styles.
+/** Scan-line wipe duration, read from here by inline styles so the clip reveals and the sweeping line stay in sync */
 const SCAN_MS = 500;
 
-// Element glow tints behind the splash art (element colors belong to gameplay data, and the art is gameplay).
+/** Glow RGB triplets behind the splash art, keyed by element */
 const ELEMENT_GLOW_RGB: Record<string, string> = {
     glacio: '65, 174, 251',
     fusion: '240, 116, 78',
@@ -50,15 +48,14 @@ const ELEMENT_GLOW_RGB: Record<string, string> = {
 export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }: HeroProps) {
     const [index, setIndex] = useState(0);
     const [paused, setPaused] = useState(false);
-    // Bumps on hover release so the timer hairline remounts and restarts in
-    // sync with the rearmed countdown; slide changes restart it via index.
+    // Bumps on hover release so the timer hairline remounts in sync with the rearmed countdown
+    // Slide changes restart it through index
     const [resumes, setResumes] = useState(0);
-    // The record being scanned out: held under the incoming slide for the
-    // wipe's duration so the sweep replaces content instead of fading it.
+    // Record being scanned out, held under the incoming slide for the wipe's duration
+    // The sweep replaces content instead of fading it
     const [leaving, setLeaving] = useState<HomeHeroSlide | null>(null);
-    // Touch users cannot hover to pause, so the first deliberate touch on the
-    // record card stops rotation for good. The card is a link, and a swap timed
-    // under a thumb would open a board the user never chose.
+    // Touch users cannot hover to pause, so the first touch on the record card stops rotation for good
+    // The card is a link, and a swap timed under a thumb would open a board the user never chose
     const [stopped, setStopped] = useState(false);
     const reducedMotion = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, getReducedMotionServer);
     const rotates = slides.length >= 2 && !reducedMotion && !stopped;
@@ -82,12 +79,9 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
 
     const active = slides[index] ?? null;
 
-    // The record's own damage profile, fetched for whichever slide is showing.
-    // This is the one thing on the page only this site can render: the board's
-    // rank-1 run broken down by move type, straight from the damage engine.
-    // Purely additive, so a failed or slow fetch just omits the bar.
-    // Seeded with the server-fetched profile for slides[0]: the first paint
-    // renders the bar from the ISR HTML, and the seeded key never refetches.
+    // Showing slide's damage profile: the board's rank-1 run by move type, straight from the damage engine
+    // Purely additive, so a slow or failed fetch just omits the bar
+    // Seeded from slides[0], so the first paint renders the bar out of the ISR HTML and never refetches it
     const [profiles, setProfiles] = useState<Record<string, TypeTotal[]>>(() => {
         const firstKey = profileKeyOf(slides[0] ?? null);
         return firstKey && initialProfile && initialProfile.length > 0
@@ -109,8 +103,8 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
                 setProfiles((prev) => ({ ...prev, [activeProfileKey]: processMoves(moves).typeTotals }));
             })
             .catch(() => {
-                // Let a later pass retry: rotating away aborts in-flight requests,
-                // and the bar is an enhancement, never a blocking failure.
+                // Let a later pass retry, since rotating away aborts in-flight requests
+                // The bar is an enhancement, never a blocking failure
                 requestedRef.current.delete(activeProfileKey);
             });
         return () => controller.abort();
@@ -132,9 +126,7 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
                         return (
                             <div
                                 key={`${slide.characterId}:${slide.trackKey}`}
-                                // Settle duration lives in CSS so the art can arrive and
-                                // rest. Pinning it to ROTATE_MS made it drift for the whole
-                                // slide and never come to rest.
+                                // Settle duration lives in CSS so the art arrives and rests instead of drifting the whole slide
                                 className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === index ? 'hero-settle opacity-100' : 'opacity-0'}`}
                             >
                                 {glowRgb && (
@@ -143,9 +135,7 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
                                         style={{ background: `radial-gradient(700px 520px at var(--hero-glow-x,76%) 55%, rgba(${glowRgb}, 0.13), transparent 70%)` }}
                                     />
                                 )}
-                                {/* Mobile shows a center slice of the full-height art, so it reuses the
-                                    per-character card offsets (as % of the image's own width) to keep the
-                                    character centered. Desktop stays right-anchored. */}
+                                {/* Mobile centers a slice with the per-character card offsets (% of image width), desktop stays right-anchored */}
                                 {(i === prevIndex || i === index || i === nextIndex) && (
                                     <img
                                         src={slide.splashUrl}
@@ -169,14 +159,12 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
                     </span>
                     <span className="block text-[40px] md:text-6xl leading-[1.02] tracking-[-0.03em]">
                         Scan your build<br />
-                        {/* Italic leans right and the tracking is negative, so the word
-                            space optically collapses. Em-based padding scales with size. */}
+                        {/* Italic leans right into negative tracking, so the word space collapses. Em padding scales with size. */}
                         <span className="text-accent italic font-normal pr-[0.08em]">Rank</span> your damage
                     </span>
                 </h1>
 
-                {/* State the differentiator plainly: this is a ranking engine, not OCR
-                    plus a list. Search-by-UID is a genre convention, the simulation is not. */}
+                {/* The differentiator, plainly: search-by-UID is a genre convention, the simulation is not */}
                 <p className="mt-5 max-w-xl text-base md:text-lg leading-normal text-text-primary/70">
                     Search any player, or import your own from a wuwa-bot image.
                     Every board runs the same rotation, weapon, and team, so your echoes are the only differentiating factor.
@@ -189,17 +177,15 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
                 )}
 
                 <div id="home-profile-search" className="mt-7 scroll-mt-24">
-                    {/* The placeholder example is the first slide's record holder: a
-                        real, searchable name and UID that teach both input forms. */}
+                    {/* Placeholder example is the first slide's record holder, a real searchable name and UID */}
                     <ProfileSearch
                         exampleName={slides[0]?.owner || undefined}
                         exampleUid={slides[0]?.ownerUid || undefined}
                     />
                 </div>
 
-                {/* Search is the primary action (its gold submit is the only solid accent
-                    fill in the hero); import steps down to an outline so a first-timer with
-                    a screenshot still sees it without it outweighing search. */}
+                {/* Search is the primary action, its gold submit the only solid accent fill in the hero */}
+                {/* Import steps down to an outline so a screenshot-first visitor still sees it */}
                 <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3 md:gap-x-6">
                     <HomeLink
                         href="/import"
@@ -253,9 +239,8 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
                             characterId={active.characterId}
                             className="group relative block overflow-hidden rounded-lg border border-border bg-background-secondary/75 backdrop-blur-sm transition-colors hover:border-accent/40"
                         >
-                            {/* Countdown hairline (charge): fills over the slide duration, freezes
-                                while hovered (rotation is paused), restarts when the countdown
-                                rearms. Its end-of-cycle spike hands off to the scan below. */}
+                            {/* Countdown hairline: fills over the slide, freezes while hovered, restarts when the countdown rearms */}
+                            {/* Its end-of-cycle spike hands off to the scan below */}
                             {rotates && (
                                 <span className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5" aria-hidden>
                                     <span
@@ -266,9 +251,8 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
                                 </span>
                             )}
 
-                            {/* The shell never remounts; records swap inside it via a scan-line
-                                wipe (discharge) — the leaving record holds in place while the next
-                                is revealed left-to-right behind the sweep. */}
+                            {/* The shell never remounts, records swap inside it via a scan-line wipe */}
+                            {/* The leaving record holds in place while the next is revealed left-to-right behind the sweep */}
                             <div className="relative">
                                 {leaving && (
                                     <div
@@ -294,8 +278,7 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
                                     aria-hidden
                                 />
                             </div>
-                            {/* Stable footer under the swapping record: makes the card's
-                                clickability explicit (a cold visitor's zero-asset action). */}
+                            {/* Stable footer under the swapping record, so the card's clickability stays explicit */}
                             <div className="flex items-center justify-end border-t border-border/60 px-4 py-2">
                                 <span className="font-mono text-3xs uppercase tracking-[0.16em] text-accent/70 transition-colors group-hover:text-accent">
                                     Open board →
@@ -309,23 +292,19 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
     );
 }
 
-/* Inner record rows, padding included, so the leaving and incoming copies
-   stack pixel-identically and the clip reveal tracks the card's full width. */
+/** Inner record rows with their padding, so leaving and incoming copies stack pixel-identically under the clip reveal */
 function RecordSlideContent({ slide, profile }: { slide: HomeHeroSlide; profile: TypeTotal[] | null }) {
     return (
         <div className="px-4 py-3.5">
-            {/* Title, sequence, and reign share one line. The old "Board record"
-                label was a static line of chrome, and "#1 for N days" already says
-                what this is. Character and track read as one char-sig title with the
-                sequence pill trailing, mirroring LeaderboardCharacterHeader. */}
+            {/* Title, sequence and reign share one line, character and track reading as one char-sig title */}
+            {/* Mirrors LeaderboardCharacterHeader */}
             <div className="flex items-center gap-2 min-w-0">
                 <span className={`truncate text-lg font-semibold leading-tight ${slide.element ? `char-sig ${slide.element}` : 'text-text-primary'}`}>
                     {slide.trackLabel ? `${slide.name} - ${slide.trackLabel}` : slide.name}
                 </span>
                 {slide.seqLevel > 0 && (
-                    // Caps and digits have no descenders, so in a leading-none box the
-                    // glyphs sit high and the empty descender space below reads as extra
-                    // bottom padding. 1px more top than bottom re-centers it optically.
+                    // Caps and digits have no descenders, so in a leading-none box the empty space below reads as padding
+                    // 1px more top than bottom re-centers the pill optically
                     <span className={`shrink-0 rounded-full border px-2 pt-1.25 pb-1 text-3xs font-semibold leading-none tracking-wide ${LB_SEQ_BADGE_COLORS[slide.seqLevel]}`}>
                         S{slide.seqLevel}
                     </span>
@@ -342,9 +321,7 @@ function RecordSlideContent({ slide, profile }: { slide: HomeHeroSlide; profile:
                     <div className="font-gowun text-[26px] leading-none text-accent tabular-nums">
                         {Math.round(slide.damage).toLocaleString('en-US')}
                     </div>
-                    {/* No ↗ here: the whole card links to the board, not to this
-                        player's profile, and an arrow on the owner line promised a
-                        profile link it does not deliver. */}
+                    {/* No arrow on the owner line: the whole card links to the board, not the player's profile */}
                     <div className="mt-1.5 truncate font-mono text-3xs text-text-primary/50">
                         by {slide.owner || 'Anonymous'}
                     </div>
@@ -366,9 +343,8 @@ function RecordSlideContent({ slide, profile }: { slide: HomeHeroSlide; profile:
                 )}
             </div>
 
-            {/* Where that damage came from, by move type, from the same engine and
-                the same palette as the full breakdown panel. Renders only once the
-                fetch lands, so the card never reserves space for missing data. */}
+            {/* Damage by move type, same engine and palette as the full breakdown panel */}
+            {/* Renders only once the fetch lands, so the card never reserves space for missing data */}
             {profile && profile.length > 0 && (
                 <div className="mt-3">
                     <div className="flex h-1.5 gap-px overflow-hidden rounded-full">
@@ -380,9 +356,8 @@ function RecordSlideContent({ slide, profile }: { slide: HomeHeroSlide; profile:
                             />
                         ))}
                     </div>
-                    {/* Two labels, never wrapping: three long type names spill onto a
-                        second line and the card starts to look ragged. The bar above
-                        still carries every segment, so this is a key, not the data. */}
+                    {/* Two labels, never wrapping, since three long type names spill onto a second line */}
+                    {/* The bar above carries every segment, so this is a key, not the data */}
                     <div className="mt-1.5 flex items-center gap-x-2.5 overflow-hidden font-mono text-3xs uppercase tracking-widest text-text-primary/50">
                         {profile.slice(0, 2).map((total) => (
                             <span key={total.type} className="flex shrink-0 items-center gap-1 whitespace-nowrap">

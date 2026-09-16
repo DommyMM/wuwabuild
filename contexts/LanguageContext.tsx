@@ -4,8 +4,11 @@ import { createContext, useContext, useState, useCallback, useEffect, useMemo, R
 import type { I18nString } from '@/lib/character';
 import { getLocalStorageItem, setLocalStorageItem } from '@/lib/clientStorage';
 
-// Supported languages matching I18nString from character.ts
-// countryCode is used with flag-icons library (lowercase ISO 3166-1 alpha-2)
+/**
+ * Supported languages, matching I18nString in character.ts
+ *
+ * - countryCode is the lowercase ISO 3166-1 alpha-2 code the flag-icons library wants
+ */
 export const SUPPORTED_LANGUAGES = {
   en: { name: 'English', nativeName: 'English', countryCode: 'us' },
   ja: { name: 'Japanese', nativeName: '日本語', countryCode: 'jp' },
@@ -64,7 +67,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     void setLocalStorageItem('wuwabuilds-language', lang);
   }, []);
 
-  // Translation helper - returns text in current language, falls back to English
+  // Falls back to English when the current language has no entry
   const t = useCallback((text: I18nString | Record<string, string | undefined>): string => {
     return (text as Record<string, string | undefined>)[language] || text.en || '';
   }, [language]);

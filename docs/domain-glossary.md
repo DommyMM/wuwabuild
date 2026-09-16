@@ -1,33 +1,41 @@
 # Domain Glossary
 
-Common terms used by the frontend and leaderboard backend.
+Terms shared by the frontend and the leaderboard service. Definitions live here, behavior lives in
+`leaderboards.md`.
 
-## Core Terms
+## Core
 
-- **Build**: Character setup with weapon, echoes, forte, and metadata.
-- **Track**: Leaderboard scenario variant such as `s0` or `s1`.
-- **Sequence**: Character sequence stage used in damage computation.
-- **Weapon ID**: Canonical CDN weapon ID used by both services.
-- **UID**: Player identifier used for competitive dedup.
+- **Build**: character setup with weapon, echoes, forte and metadata
+- **Track**: leaderboard scenario variant such as `s0` or `s1`
+- **Sequence**: character sequence stage used in damage computation
+- **Weapon ID**: canonical CDN weapon ID, shared by both services
+- **UID**: player identifier used for competitive dedup
 
-## Leaderboard Terms
+## Leaderboard
 
-- **`damage_map`**: Flat backend map `<weaponId>_<sequenceKey>` -> Score.
-- **Score**: The ranked board value — rotation damage × `min(1, ER / erTarget)`. Equals raw damage on boards without an `erTarget` or once ER meets it.
-- **`erTarget`**: Per-track minimum Energy Regen the board expects (`LBTrack.erTarget`). Absent/0 = no ER requirement. Replaces the old ER bracket tabs — there is no longer a separate filtered view, the score itself scales.
-- **`calculations`**: Per-weapon detailed output (`stats`, `moves`, `upgrades`).
-- **`globalRank`** (for `/leaderboard/{characterId}` rows):
-  - Always returned in responses.
-  - A property of the build on its board (character + weapon + track), always measured against the deduped canonical board. Filters hide rows and sorts reorder them; neither renumbers rank, so a browse row carries the same rank it would on the default board.
-  - `> 0` means frontend can show a competitive rank badge.
-  - `0` means frontend should treat the row as unranked: a ghost row, or a build with no damage on this board.
-- **Ghost build**: Deep-linked build returned even when the current view does not contain it (deduped out or excluded by a filter).
-- **Standings**: Rank/damage of one build across all weapon x track boards.
-- **Dedup**: One representative row per player, picked by the board's ranked metric (Score, or CV with no weapon). On by default for a Score sort, including with board filters applied; off for any other sort and for a `uid`/`username` search, where every submitted build appears with its true board rank. `?dedup=0` / `?dedup=1` override either way. Dedup selects which rows appear; it never changes rank.
+- **Board identity**: character plus weapon plus track. Nothing else selects a ranked list, and this is
+  what the canonical URL encodes.
+- **Score**: the ranked board value, rotation damage × `min(1, ER / erTarget)`. Equals raw damage on a
+  board with no `erTarget`, or once ER meets it.
+- **`erTarget`**: per-track minimum Energy Regen the board expects (`LBTrack.erTarget`). Absent or 0
+  means no ER requirement, and the score scales in place rather than splitting the board into brackets.
+- **`damage_map`**: flat backend map of `<weaponId>_<sequenceKey>` to Score
+- **`calculations`**: per-weapon detailed output (`stats`, `moves`, `upgrades`)
+- **`globalRank`**: a build's position on its board, always measured against the deduped canonical board
+  with no view filter applied. Always returned. `> 0` is a showable competitive rank, `0` means unranked:
+  a ghost row, or a build with no damage on this board. Filters hide rows and sorts reorder them, so
+  neither renumbers rank.
+- **Ghost build**: a deep-linked build returned even though the current view does not contain it, because
+  dedup removed it or a filter excluded it
+- **Standings**: rank and damage of one build across every weapon × track board
+- **Dedup**: one representative row per player, picked by the board's ranked metric (Score, or CV with no
+  weapon selected). On for a Score sort, including with board filters applied, since filters narrow the
+  candidate pool first. Off for any other sort and for a `uid` or `username` search, where every submitted
+  build appears at its true board rank. `?dedup=0` and `?dedup=1` override either way. Dedup selects which
+  rows appear, never what rank they carry.
 
-## Key Conventions
+## Conventions
 
-- `stats` keys are snake_case.
-- `upgrades` keys are snake_case.
-- Echo panel constraints: max total cost 12, max two 4-cost, max three 3-cost.
-- `ForteState` order: normal attack, skill, circuit, liberation, intro.
+- `stats` and `upgrades` keys are snake_case
+- Echo panel limits: max total cost 12, max two 4-cost, max three 3-cost
+- `ForteState` order: normal attack, skill, circuit, liberation, intro

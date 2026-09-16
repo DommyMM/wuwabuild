@@ -1,8 +1,6 @@
-"""
-Sync Echoes to public/Data/Echoes.json.
+"""Sync Echoes to public/Data/Echoes.json.
 
-Fetches phantom data from CDN, filters to 5-star echoes,
-deduplicates by English name, merges phantom skin variants into base echoes.
+Fetches phantom data from CDN, filters to 5-star echoes, dedupes by English name, folds skin variants into the base.
 
 Usage:
     python sync_echoes.py --fetch                     # Sync from CDN
@@ -28,7 +26,6 @@ from cdn_config import (
 
 CDN_LIST_API = f"{CDN_BASE}/api/fs/list"
 CDN_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Phantom"
-# Scripts in /scripts; output in /public/Data
 OUTPUT_FILE = Path(__file__).parent.parent / "public/Data/Echoes.json"
 
 STAT_PATTERNS = [
@@ -44,7 +41,7 @@ STAT_PATTERNS = [
     (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Heavy Attack DMG(?: Bonus)?\b", re.I), "Heavy Attack DMG Bonus"),
     (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Energy Regen", re.I), "Energy Regen"),
     (re.compile(r"\{(\d+)\}\s*(?:more\s+)?Healing Bonus", re.I), "Healing Bonus"),
-    # Reversed phrasing, e.g. Adam Smasher: "their Crit. Rate is increased by {4}".
+    # Reversed phrasing, e.g. Adam Smasher "their Crit. Rate is increased by {4}"
     (re.compile(r"Crit\.?\s*Rate\s+is\s+increased\s+by\s+\{(\d+)\}", re.I), "Crit Rate"),
     (re.compile(r"Crit\.?\s*DMG\s+is\s+increased\s+by\s+\{(\d+)\}", re.I), "Crit DMG"),
 ]
@@ -61,11 +58,9 @@ _BUFF_DURATION_RE = re.compile(r"for\s*\{\d+\}s\b", re.I)
 def _trim_timed_extra_clause(sentence: str) -> str:
     """Drop a trailing "and additionally gains X for {N}s when ..." clause.
 
-    Calamity Effigy states a permanent main-slot bonus and a trigger-gated,
-    duration-limited second bonus of the same stat in one sentence. Only the
-    first is a first-panel stat; keeping both publishes the temporary buff as
-    an always-on echo bonus, and as an identical stat/value pair it is
-    indistinguishable from the permanent one downstream.
+    Calamity Effigy states a permanent main-slot bonus and a timed second bonus of the same stat in one sentence
+    Only the first is a first-panel stat, and keeping both would publish the timed buff as always-on
+    Downstream cannot tell them apart, since the stat and value pair is identical
     """
     match = _TIMED_EXTRA_CLAUSE_RE.search(sentence)
     if match and _BUFF_DURATION_RE.search(sentence[match.end():]):
@@ -76,9 +71,8 @@ def _trim_timed_extra_clause(sentence: str) -> str:
 def _iter_echo_equip_sentences(desc: str):
     """Yield only clauses that describe a bonus from equipping the Echo.
 
-    Restricting stat parsing to these clauses lets game text omit the word
-    "Bonus" (Thousand-Puppet Pavilion) without treating active-skill damage
-    placeholders elsewhere in the description as always-on stat bonuses.
+    Restricting stat parsing here lets game text omit the word "Bonus" (Thousand-Puppet Pavilion)
+    Active-skill damage placeholders elsewhere in the description then never read as always-on bonuses
     """
     for paragraph in re.split(r"\n+", desc):
         for sentence in _SENTENCE_BOUNDARY_RE.split(paragraph.strip()):
@@ -101,20 +95,20 @@ def _extract_character_condition(desc: str, match_start: int, match_end: int) ->
     if not sentence:
         return None
 
-    # Pattern: "When Lucy or Rebecca has this Echo equipped ..." (named characters
-    # only — generic "the Resonator with/who has this Echo equipped" is no condition).
+    # "When Lucy or Rebecca has this Echo equipped ...", named characters only
+    # A generic "the Resonator who has this Echo equipped" is no condition
     has_match = re.search(r"\bWhen\s+([A-Z].*?)\s+(?:has|have)\s+this\s+Echo\s+equipped", sentence)
     if has_match and "resonator" not in has_match.group(1).lower():
         conditions = [t.strip() for t in re.split(r"\s+or\s+|,", has_match.group(1)) if t.strip()]
         if conditions:
             return conditions
 
-    # Pattern: "... main slot by Aemeath ..."
+    # "... main slot by Aemeath ..."
     by_match = re.search(r"\bby\s+([A-Z][A-Za-z]+)\b", sentence)
     if by_match:
         return [by_match.group(1)]
 
-    # Pattern: "When Resonator: Aero or Cartethyia equips this Echo ..."
+    # "When Resonator: Aero or Cartethyia equips this Echo ..."
     resonator_match = re.search(r"\bResonator:\s*([^.]+?)\s+equips\b", sentence, re.I)
     if resonator_match:
         raw_targets = resonator_match.group(1)
@@ -172,7 +166,7 @@ def fetch_encore_echo_name_index() -> dict[int, str]:
             "to write echoes with blank names"
         ) from exc
 
-    # api-v2 answers with a bare array; the legacy host wraps it in {"Echo": [...]}.
+    # api-v2 answers with a bare array while the legacy host wraps it in {"Echo": [...]}
     if isinstance(payload, dict):
         rows = payload.get("Echo", [])
     elif isinstance(payload, list):
@@ -204,8 +198,7 @@ def _apply_name_fallback(raw: dict, encore_names: dict[int, str]) -> dict:
 def _sanitize_skill_params(params: Any) -> Any:
     """Normalize the per-level value arrays that fill the description's {N} slots.
 
-    Emitted as ``arrayString`` regardless of how the source spelled it, so the
-    frontend has one key to read.
+    Emitted as ``arrayString`` however the source spelled it, so the frontend has one key to read
     """
     if not isinstance(params, list):
         return params
@@ -231,10 +224,8 @@ def transform_echo(raw: dict, encore_names: dict[int, str] | None = None) -> dic
         "element": raw["element"],
         "icon": icon_path,
         "skill": {
-            # Keep the full i18n object so the frontend can localize; was .en-only.
-            # Sanitized for the same reason weapon effects are: echo skill text
-            # carries {Cus:Ipt,...} / {Cus:Sap,...} tokens that would otherwise
-            # render literally in the echo hover card.
+            # Full i18n object, so the frontend can localize
+            # Sanitized because echo skill text carries {Cus:Ipt,...} tokens that would render literally in the card
             "description": sanitize_i18n_value(raw["skill"].get("descriptionEx") or {}),
             "params": _sanitize_skill_params(raw["skill"].get("levelDescriptionStrArray")),
         },

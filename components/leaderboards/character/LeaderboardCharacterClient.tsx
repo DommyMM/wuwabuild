@@ -46,25 +46,23 @@ function createBoardConfigKey(weaponId: string, track: string): string {
 interface LeaderboardCharacterClientProps {
   characterId: string;
   initialData?: LBLeaderboardResponse | null;
-  /**
-   * Server-resolved English name/icon maps, used as the fallback tier while the
-   * client `GameDataContext` catalog downloads. See `LBBoardDisplay`.
-   */
+  /** Server-resolved English name/icon maps, the fallback tier while the client GameDataContext catalog downloads */
   boardDisplay?: LBBoardDisplay | null;
 }
 
 /**
- * A `?buildId=` deep link: a transient one-shot "reveal this build" command, NOT persistent view state.
- * Once resolved we remember the build client-side for the session so we can re-pin it (as a ghost row)
- * whenever the user returns to the exact view it belongs to without resending buildId to the API
+ * A `?buildId=` deep link, a one-shot "reveal this build" command rather than persistent view state
+ *
+ * - Once resolved the build is kept for the session, so returning to its exact view re-pins it as a ghost row
+ * - That re-pin is client-side, so buildId never goes back to the API
  */
 interface DeepLink {
   id: string;
-  /** The build's data, kept so it can be re-pinned on return without re-querying. */
+  /** The build's data, kept so it can be re-pinned on return without re-querying */
   entry: LBLeaderboardEntry | null;
-  /** Serialized view (weapon/track/filters/page) the build belongs to; null until resolved/anchored. */
+  /** Serialized view (weapon/track/filters/page) the build belongs to, null until resolved and anchored */
   homeSig: string | null;
-  /** True when it arrived via client navigation and still needs one buildId fetch to resolve its page. */
+  /** Arrived via client navigation, so one buildId fetch is still owed to resolve its page */
   needsResolve: boolean;
 }
 
@@ -91,7 +89,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     return 0;
   })();
 
-  // Config metadata (weapon tabs, track tabs) is safe to seed from initialData regardless of query.
+  // Config metadata (weapon tabs, track tabs) is safe to seed from initialData whatever the query
   const [configWeaponIds, setConfigWeaponIds] = useState<string[]>(() => initialData?.weaponIds ?? []);
   const [configTracks, setConfigTracks] = useState<LBTrack[]>(() => initialData?.tracks ?? []);
   const [configTeamCharacterIds, setConfigTeamCharacterIds] = useState<string[]>(() => initialData?.teamCharacterIds ?? []);
@@ -106,8 +104,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
 
   const initialEntries = mergeGhostBuild(initialData?.builds ?? [], initialData?.ghostBuild);
 
-  // View state comes from the URL. A later buildId response may intentionally
-  // override the page after the backend locates the requested build.
+  // View state comes from the URL, but a buildId response may override the page once the backend locates that build
   const [page, setPage] = useState(() => initialSnapshot.page);
   const [pageSize, setPageSize] = useState(() => initialSnapshot.pageSize);
   const [sort, setSort] = useState<LBLeaderboardSortKey>(() => initialSnapshot.sort);
@@ -122,16 +119,13 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const [sequences, setSequences] = useState<number[]>(() => initialSnapshot.sequences);
   const [statFilters, setStatFilters] = useState<LBStatThreshold[]>(() => initialSnapshot.statFilters);
   const [filterQuery, setFilterQuery] = useState('');
-  // Scoring lens over the same board: 'adjusted' is the canonical ER-scaled
-  // Score, while 'raw' asks the backend for the tracked damage before ER scaling.
-  // Heal tracks are normalized back to adjusted mode by the query resolver.
+  // Scoring lens over the same board: 'adjusted' is the ER-scaled Score, 'raw' the tracked damage before ER scaling
+  // The query resolver normalizes heal tracks back to adjusted
   const [scoring, setScoring] = useState<ScoringMode>(() => initialSnapshot.scoring ?? DEFAULT_SCORING);
 
   const leaderboardSigRef = useRef(createRowsSignature(initialEntries, initialData?.total ?? 0));
   const [entries, setEntries] = useState<LBLeaderboardEntry[]>(() => initialEntries);
-  // Identifies the exact API query that produced `entries`. The ISR payload is
-  // always the canonical default query, even when the address bar requests a
-  // different weapon, track, filter, sort, or page.
+  // The ISR payload is always the default query, so this pins which query actually produced `entries`
   const [entriesQueryKey, setEntriesQueryKey] = useState<string | null>(() => {
     if (!initialData) return null;
     const initialServerSnapshot = parseInitialLeaderboardQuery(new URLSearchParams(), {
@@ -146,30 +140,27 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   });
   const entriesRef = useRef<LBLeaderboardEntry[]>(initialEntries);
   const [total, setTotal] = useState(() => initialData?.total ?? 0);
-  // Board-level stat columns from the backend (same four for every row on this board). Empty array → rows fall back to the per-row heuristic.
+  // Board-level stat columns from the backend, the same four for every row on this board
+  // Empty means rows fall back to the per-row heuristic
   const [boardDisplayStats, setBoardDisplayStats] = useState<LBStatSortKey[]>(() => initialData?.displayStats ?? []);
 
-  // See DeepLink doc above. initialData is the default board and never carries a buildId
-  // resolution, so resolve on the client whenever the deep-linked build isn't already in
-  // the default rows (the fetch effect re-fetches with its buildId to pin the page/ghost).
+  // initialData is the default board and never carries a buildId resolution
+  // A deep-linked build missing from those rows resolves on the client, with a re-fetch on its buildId to pin the page
   const [deepLink, setDeepLink] = useState<DeepLink | null>(() => {
     const id = initialSnapshot.buildId;
     if (!id) return null;
     const entry = initialEntries.find((e) => e.id === id) ?? initialData?.ghostBuild ?? null;
     return { id, entry, homeSig: null, needsResolve: !entry };
   });
-  // Auto-expand a deep-linked build exactly once per reveal.
+  // Holds the build already auto-expanded, so a reveal expands exactly once
   const expandedDeepLinkRef = useRef<string | null>(null);
-  // Used to suppress the URL sync effect for one cycle when a standings click updates weapon/track state.
+  // Suppresses the URL sync effect for one cycle when a standings click updates weapon/track state
   const suppressUrlSyncRef = useRef(false);
-  // Material board/page selections should create useful browser history. Rapid filter
-  // edits and canonical cleanup replace the current entry instead.
+  // Board and page selections push history, rapid filter edits and canonical cleanup replace the current entry
   const pendingHistoryModeRef = useRef<'push' | 'replace'>('replace');
   const observedSearchParamsRef = useRef(searchParamsString);
-  // Never pre-settle. initialData is always the *default* board (the route is ISR, not
-  // per-query dynamic), so leave the query pending and let the fetch effect run on mount.
-  // Query identity below decides whether those server rows are a valid background-refresh
-  // seed or must be hidden while the requested variant loads.
+  // Never pre-settle: the route is ISR, so initialData is always the default board and the fetch effect runs on mount
+  // Query identity decides whether those server rows seed a background refresh or must hide while the variant loads
   const [settledQueryKey, setSettledQueryKey] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<{ queryKey: string; message: string } | null>(null);
   const { expandedIds, toggleExpandedId } = useExpandedRows();
@@ -189,7 +180,6 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const defaultWeaponId = configWeaponIds[0] ?? initialData?.weaponIds?.[0] ?? initialData?.activeWeaponId ?? '';
   const defaultTrackKey = configTracks[0]?.key ?? initialData?.tracks?.[0]?.key ?? initialData?.activeTrack ?? DEFAULT_LB_TRACK;
 
-  // Selected weapon derived from active tab
   const weaponId = useMemo(
     () => configWeaponIds[weaponIndex] ?? initialSnapshot.weaponId ?? '',
     [configWeaponIds, initialSnapshot.weaponId, weaponIndex],
@@ -199,9 +189,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     [configTracks, track],
   );
   const configMatchesCurrentBoard = configBoardKey === createBoardConfigKey(weaponId, track);
-  // Active track's ER target: Score = tracked value × min(1, ER/target); 0 = no requirement.
+  // Active track's ER target: Score = tracked value × min(1, ER/target), 0 means no requirement
   const erTarget = activeTrackConfig?.erTarget ?? 0;
-  // The query snapshot is buildId-free: buildId is a transient command, not part of the view state.
+  // The snapshot is buildId-free: buildId is a transient command, not part of the view state
   const currentQuerySnapshot = useMemo(() => resolveLeaderboardQuerySnapshot({
     page,
     pageSize,
@@ -226,27 +216,25 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     [currentQuerySnapshot],
   );
 
-  // Serialized "view" (everything except the deep-link buildId): used to anchor the reveal and to re-pin
-  // it whenever the user returns to that exact view.
+  // Serialized view, everything except the deep-link buildId, so the reveal can be anchored and re-pinned on return
   const viewSig = useMemo(
     () => serializeLeaderboardQuery(currentQuerySnapshot, { defaultWeaponId, defaultTrack: defaultTrackKey }),
     [currentQuerySnapshot, defaultTrackKey, defaultWeaponId],
   );
-  // On the deep link's home view while it's still settling (homeSig === null) or once anchored to this view.
+  // On the deep link's home view while it is still settling (homeSig null) or once anchored to this view
   const onDeepLinkHome = !!deepLink && (deepLink.homeSig === null || deepLink.homeSig === viewSig);
-  // Sent to the API only to resolve a freshly-arrived deep link's page — never otherwise, so it can't force the page.
+  // Sent to the API only to resolve a freshly-arrived deep link's page, never otherwise, so it cannot force the page
   const resolveBuildId = deepLink?.needsResolve ? deepLink.id : undefined;
-  // In the URL + highlighted only while on the reveal's home view.
+  // In the URL and highlighted only while on the reveal's home view
   const revealBuildId = deepLink && onDeepLinkHome ? deepLink.id : undefined;
-  // Re-pin the remembered build as a ghost row when the user is back on its home view (client-side, no re-query).
+  // Re-pins the remembered build as a ghost row back on its home view, client-side with no re-query
   const displayEntries = useMemo(
     () => (onDeepLinkHome && deepLink?.entry ? mergeGhostBuild(entries, deepLink.entry) : entries),
     [deepLink, entries, onDeepLinkHome],
   );
 
-  // Native History API changes are integrated with Next's useSearchParams without
-  // requesting a new RSC payload. Resync state only when the address bar changed
-  // independently (Back/Forward, a same-route Link, or a manual query edit).
+  // Native History API writes reach Next's useSearchParams without an RSC payload
+  // Resync state only when the address bar changed independently: Back/Forward, a same-route Link, a manual query edit
   useEffect(() => {
     if (observedSearchParamsRef.current === searchParamsString) return;
     observedSearchParamsRef.current = searchParamsString;
@@ -284,23 +272,19 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     return () => { cancelled = true; };
   }, [configWeaponIds, currentQuerySnapshot, defaultTrackKey, defaultWeaponId, initialSnapshot, revealBuildId, searchParamsString]);
 
-  // Capture a deep link that arrives via client navigation (a standings click on the same route).
-  // MUST be registered before the URL sync effect (effects run in order) so suppressing it prevents the
-  // URL sync from immediately reverting the buildId / weapon / track the click navigated to.
+  // Captures a deep link arriving via client navigation, a standings click on the same route
+  // Registered before the URL sync effect since effects run in order, so suppression stops the sync reverting the click
   useEffect(() => {
     const urlBuildId = initialSnapshot.buildId;
     if (!urlBuildId || deepLink?.id === urlBuildId) return;
-    // A fresh build to reveal: start a resolving fetch and adopt the weapon/track from the URL.
+    // A fresh build to reveal: start a resolving fetch and adopt the weapon/track from the URL
     const urlWeaponId = initialSnapshot.weaponId;
     const urlTrack = initialSnapshot.track;
     const stateWeaponId = configWeaponIds[weaponIndex] ?? '';
     const syncWeaponTrack = urlWeaponId !== stateWeaponId || urlTrack !== track;
-    // Suppress one URL-sync cycle (set synchronously) for ANY fresh deep-link capture, not only ones that
-    // also change weapon/track. The URL already carries the new buildId, so there is nothing for the sync
-    // effect to contribute this commit — and if it runs it does so with the *previous* deepLink id
-    // (revealBuildId) and replaces the URL back to it. That stale write then ping-pongs against this
-    // capture, most visibly when the old and new builds share a weapon+track board (same-board dupes),
-    // where the weapon/track guard below would otherwise leave the sync effect un-suppressed.
+    // Suppress one URL-sync cycle for every fresh deep-link capture, not only ones that also change weapon/track
+    // The URL already carries the new buildId, so a sync this commit runs with the previous id and writes it back
+    // That stale write ping-pongs against the capture when the old and new builds share a weapon+track board
     suppressUrlSyncRef.current = true;
     const idx = urlWeaponId ? configWeaponIds.indexOf(urlWeaponId) : -1;
     let cancelled = false;
@@ -315,7 +299,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     return () => { cancelled = true; };
   }, [configWeaponIds, deepLink?.id, initialSnapshot.buildId, initialSnapshot.track, initialSnapshot.weaponId, track, weaponIndex]);
 
-  // Anchor the deep link to its home view once it has resolved (page settled), so it can be re-pinned on return.
+  // Anchors the deep link to its home view once resolved, so it can be re-pinned on return
   useEffect(() => {
     if (!deepLink || deepLink.needsResolve || deepLink.homeSig !== null) return;
     let cancelled = false;
@@ -326,9 +310,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     return () => { cancelled = true; };
   }, [deepLink, viewSig]);
 
-  // URL sync — buildId is written only while on the reveal's home view (revealBuildId),
-  // so navigating away drops it and returning re-adds it. Native history keeps this
-  // shareable without the redundant Next/RSC navigation that router.replace caused.
+  // buildId is written only while on the reveal's home view, so navigating away drops it and returning re-adds it
+  // Native history keeps the URL shareable without the extra RSC navigation router.replace triggers
   useEffect(() => {
     if (suppressUrlSyncRef.current) {
       suppressUrlSyncRef.current = false;
@@ -352,7 +335,6 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     }
   }, [characterId, currentQuerySnapshot, defaultTrackKey, defaultWeaponId, revealBuildId, searchParamsString]);
 
-  // Query key for effect dependency
   const queryKey = useMemo(() => JSON.stringify({
     characterId,
     ...leaderboardQuery,
@@ -407,7 +389,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     });
   }, [characterId, direction, echoMains.length, echoSets.length, filterSignature, pageSize, queryKey, regionPrefixes.length, scoring, sequences.length, settledQueryKey, sort, statFilters.length, track, uid, username, weaponId]);
 
-  // Fetch leaderboard data. Runs when the view changes (queryKey) or a fresh deep link needs resolving.
+  // Fetches the board when the view changes or a fresh deep link needs resolving
   useEffect(() => {
     const shouldResolveDeepLink = Boolean(resolveBuildId) && fetchError?.queryKey !== queryKey;
     const needFetch = settledQueryKey !== queryKey || shouldResolveDeepLink;
@@ -416,7 +398,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     const controller = new AbortController();
     let active = true;
 
-    // buildId is injected into the request only to resolve a fresh deep link's page — it is never part of queryKey.
+    // buildId enters the request only to resolve a fresh deep link's page, it is never part of queryKey
     const requestQuery = resolveBuildId ? { ...leaderboardQuery, buildId: resolveBuildId } : leaderboardQuery;
 
     listLeaderboard(
@@ -428,14 +410,13 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
         if (!active) return;
         setFetchError(null);
 
-        // If page was overridden by backend for ghost resolution, sync it.
+        // Backend may move the page to land the ghost build, so follow it
         if (response.page !== page) setPage(response.page);
 
         const nextPageCount = Math.max(1, Math.ceil(response.total / pageSize));
         if (page > nextPageCount) setPage(nextPageCount);
 
-        // Insert ghost build at the correct position by damage if present.
-        // Skip if the build already appears in the regular results (e.g. deep-linked to its own page).
+        // Ghost build slots in by damage, unless it already appears in the regular results
         const mergedBuilds = mergeGhostBuild(response.builds, response.ghostBuild);
         const responseQueryKey = JSON.stringify({
           characterId,
@@ -453,8 +434,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
           setEntries(mergedBuilds);
           setTotal(response.total);
         }
-        // Set even when the row signature is unchanged: identical content returned
-        // for a different query is still now a valid result for that query.
+        // Set even when the signature is unchanged: identical rows for a different query still answer that query
         setEntriesQueryKey(responseQueryKey);
         if (response.weaponIds.length > 0) setConfigWeaponIds(response.weaponIds);
         setConfigTracks(response.tracks);
@@ -474,7 +454,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
           setTrack(response.activeTrack);
         }
 
-        // Resolving fetch for a fresh deep link: remember the build, then stop sending its buildId.
+        // Resolving fetch for a fresh deep link: remember the build, then stop sending its buildId
         if (resolveBuildId) {
           const resolved = response.ghostBuild ?? mergedBuilds.find((b) => b.id === resolveBuildId) ?? null;
           setDeepLink((prev) => (prev && prev.id === resolveBuildId
@@ -521,7 +501,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     retryBuildDetail(id);
   }, [retryBuildDetail]);
 
-  // Auto-expand + scroll to a deep-linked build, exactly once per reveal, when it first appears in the rows.
+  // Auto-expand and scroll to a deep-linked build once per reveal, when it first appears in the rows
   useEffect(() => {
     const id = deepLink?.id;
     if (!id || expandedDeepLinkRef.current === id) return;
@@ -541,7 +521,6 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     });
   }, [deepLink?.id, expandedIds, handleToggleExpand, visibleEntries]);
 
-  // Filter helpers
   const addRegion = useCallback((value: string) => {
     setRegionPrefixes((prev) => (prev.includes(value) ? prev : [...prev, value]));
     setPage(1);
@@ -612,7 +591,6 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     setPage(1);
   }, [setEchoMains, setEchoSets, setFilterQuery, setPage, setRegionPrefixes, setSequences, setStatFilters, setUid, setUsername]);
 
-  // Computed
   const character = characters.find((c) => c.id === characterId) ?? null;
   const characterName = character
     ? formatCharacterDisplayName(character, {
@@ -622,9 +600,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     : boardDisplay?.characters[characterId]?.name ?? `Character ${characterId}`;
 
   const setOptions = useMemo<SetOption[]>(() => {
-    // Seed filters from the compact server catalog so set names, icons, and
-    // thresholds are available on first paint. Localized client entries replace
-    // matching ids once the full game-data catalog finishes loading.
+    // Seed from the compact server catalog so set names, icons and piece counts are there on first paint
+    // Localized client entries replace matching ids once the full game-data catalog loads
     const optionsById = new Map<number, SetOption>();
     for (const [setId, display] of Object.entries(boardDisplay?.sets ?? {})) {
       const id = Number(setId);
@@ -674,16 +651,13 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
     statFilters.length > 0
   );
 
-  // Mirrors the backend dedup policy (db.DedupMode.resolve) so the footer can say
-  // which list the reader is looking at. Score is the only sort a weapon board
-  // ranks by, and a uid/username search is the one filter that turns dedup off —
-  // board filters narrow the pool but still show one row per player.
+  // Mirrors the backend dedup policy so the footer can say which list the reader is looking at
+  // Score is the only sort a weapon board ranks by, and a uid/username search is the one filter that turns dedup off
+  // Board filters narrow the pool but still show one row per player
   const isDeduped = sort === DEFAULT_LB_SORT && !uid.trim() && !username.trim();
 
   const visibleTotal = entriesMatchCurrentQuery ? total : 0;
-  // While a switch is in flight `total` still holds the previous board's count, and
-  // leaning on it keeps next/skip/last enabled across the fetch. Collapsing to the
-  // current page instead greyed the controls out and snapped them back every time.
+  // While a switch is in flight `total` holds the previous count, and leaning on it keeps next/skip/last enabled
   const normalizedPageCount = entriesMatchCurrentQuery
     ? Math.max(1, Math.ceil(visibleTotal / pageSize))
     : Math.max(1, Math.ceil(total / pageSize), page);

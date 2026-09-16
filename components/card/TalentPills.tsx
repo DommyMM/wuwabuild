@@ -15,8 +15,7 @@ interface TalentPillsProps {
   maxLevel?: number;
 }
 
-// Canonical column order: Normal · Skill · Circuit · Liberation · Intro.
-// Maps to character.skillIcons keys.
+/** Canonical column order, and also the keys into character.skillIcons */
 const SKILL_KEYS: readonly ['normal-attack', 'skill', 'circuit', 'liberation', 'intro'] = [
   'normal-attack',
   'skill',
@@ -128,7 +127,7 @@ export const TalentPills: React.FC<TalentPillsProps> = ({ character, forte, maxL
           />
         ) : undefined;
 
-        // The level chip labels the value rows below, which are read at this level.
+        // Level chip labels the value rows below, which are read at this level
         const chips: HoverCardChipModel[] = [{ label: SKILL_LABEL[key] || key }];
         chips.push({ label: `Lv.${selectedLevel}` });
 

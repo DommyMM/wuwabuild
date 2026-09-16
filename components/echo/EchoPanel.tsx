@@ -12,7 +12,7 @@ import { X } from 'lucide-react';
 import { getEchoPaths } from '@/lib/paths';
 import Marquee from 'react-fast-marquee';
 
-// Scrolls text only when it overflows the available width.
+/** Scrolls text only when it overflows the available width */
 function EchoName({ text, className }: { text: string; className?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLSpanElement>(null);
@@ -81,12 +81,10 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
     setEchoPhantom
   } = useBuild();
 
-  // Get the echo data
   const echo = useMemo(() => {
     return panelState.id ? getEcho(panelState.id) : null;
   }, [panelState.id, getEcho]);
 
-  // Check if this echo has phantom variant
   const canBePhantom = useMemo(() => {
     return echo ? hasPhantomVariant(echo) : false;
   }, [echo]);
@@ -94,12 +92,10 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
   const activeElement = activeElementForPanel(panelState, echo);
 
 
-  // Handle echo selection
+  // Picking an echo also seeds its default sonata set and the first main stat for its cost
   const handleEchoSelect = useCallback((selectedEcho: Echo) => {
-    // Set the echo and auto-select first element if multi-element
     const defaultSetId = defaultSetIdForEcho(selectedEcho);
 
-    // Get main stats for this cost to auto-select first main stat
     const mainStats = getMainStatsByCost(selectedEcho.cost);
     const mainStatKeys = Object.keys(mainStats);
     const defaultMainStat = mainStatKeys[0] || null;
@@ -117,12 +113,10 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
     });
   }, [index, panelState.level, panelState.stats.subStats, getMainStatsByCost, calculateMainStatValue, setEchoPanel]);
 
-  // Handle level change
   const handleLevelChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const level = parseInt(e.target.value, 10);
     setEchoLevel(index, level);
 
-    // Recalculate main stat value if a main stat is selected
     if (panelState.stats.mainStat.type && echo) {
       const mainStats = getMainStatsByCost(echo.cost);
       const statMinMax = mainStats[panelState.stats.mainStat.type];
@@ -133,17 +127,14 @@ export const EchoPanel: React.FC<EchoPanelProps> = ({
     }
   }, [index, echo, panelState.stats.mainStat.type, getMainStatsByCost, calculateMainStatValue, setEchoLevel, setEchoMainStat]);
 
-  // Handle main stat change
   const handleMainStatChange = useCallback((type: string | null, value: number | null) => {
     setEchoMainStat(index, type, value);
   }, [index, setEchoMainStat]);
 
-  // Handle substat change
   const handleSubstatChange = useCallback((subIndex: number, type: string | null, value: number | null) => {
     setEchoSubStat(index, subIndex, type, value);
   }, [index, setEchoSubStat]);
 
-  // Handle clear
   const handleClear = useCallback(() => {
     clearEchoPanel(index);
   }, [index, clearEchoPanel]);

@@ -1,322 +1,74 @@
 # PostHog Tracking Plan
 
-Canonical PostHog reference for the frontend repo.
-
-This doc answers:
-- What events exist now.
-- Which properties each event carries.
-- Why each event matters.
-- Guardrails to avoid noisy analytics.
-- Which dashboards to build first.
+Event names and property lists live at the call sites, so this doc holds what no call site shows: the naming convention, which surface instruments what, the events whose timing cannot be read off the code around them, and the dashboards worth building first.
 
 ## Implementation Rules
 
-- Initialize PostHog only in `instrumentation-client.ts`.
-- Keep feature tracking as direct `posthog.capture(...)` calls in component files.
-- Use snake_case event names and property names.
-- Track meaningful actions only (intent, completion, failure, discovery depth, retention).
-- Do not emit events for every slider/input keystroke.
+- Initialize PostHog only in `instrumentation-client.ts`
+- Feature tracking is a direct `posthog.capture(...)` call in the component that owns the action, no wrapper layer
+- snake_case for event names and property names
+- Track intent, completion, failure, discovery depth and retention only
+- No event per slider tick or keystroke
 
 ## Initialization
 
-Current init path:
-- `instrumentation-client.ts`
+`instrumentation-client.ts` is the only init path. It runs in the browser, only when `NODE_ENV` is production and `NEXT_PUBLIC_POSTHOG_KEY` is set, so dev sessions and key-less deploys are silent rather than partly instrumented.
 
-Current init settings:
-- only initializes in the browser and only in production
-- `api_host: '/ingest'`
-- `ui_host: 'https://us.posthog.com'`
-- `defaults: '2026-01-30'`
-- `capture_exceptions: true`
+Every automatic capture is off: autocapture, rageclick, dead clicks, heatmaps, exceptions, session recording, surveys, product tours. Pageviews are the one exception, since `defaults: '2026-01-30'` enables them. Errors reach PostHog only through the explicit `posthog.captureException` calls in catch blocks.
+
+Traffic goes to `api_host: '/ingest'`, which `next.config.ts` rewrites to `us.i.posthog.com` (and `/ingest/static/*` to `us-assets.i.posthog.com`) so ad blockers do not see a third-party host. That rewrite needs `skipTrailingSlashRedirect: true`, which is why it sits in the same config. `ui_host` stays `https://us.posthog.com` so toolbar links resolve.
 
 ## Pageview Behavior
 
-- With `defaults: '2026-01-30'`, PostHog inherits the newer `capture_pageview: 'history_change'` default.
-- In the installed SDK, history-change pageviews are keyed off `window.location.pathname`.
-- Practical effect for this app:
-  - route changes like `/builds` -> `/leaderboards` create pageviews
-  - query-only changes like `/builds?page=1` -> `/builds?page=2` do not create extra PostHog pageviews
-- Filter usage is intentionally measured with `discovery_filter_apply`, not pageviews.
+`defaults: '2026-01-30'` inherits `capture_pageview: 'history_change'`, and the installed SDK's history hook compares `window.location.pathname` only. So `/builds` -> `/leaderboards` is a pageview and `/builds?page=1` -> `/builds?page=2` is not. Filter and page churn on the discovery surfaces rewrites the query string constantly, so measure it with `discovery_filter_apply`, never with pageview counts.
 
-## Event Catalog (Current)
+## Event Catalog
 
-### Acquisition
+Names are `snake_case`, read `<surface>_<object>_<verb>`, present tense: `import_start`, `discovery_result_expand`, `saves_export_all`. The surface prefix is the analytics grouping, not the route, so a build card downloaded from the editor is `build_card_download` while the same action on a profile is `profile_card_download`.
 
-#### `home_cta_click`
-- Purpose: track which homepage CTA users choose.
-- Properties:
-  - `cta`: `import` | `edit` | `builds` | `leaderboards` | `profile` | `changelog`
-  - `section`: `hero` | `search` | `boards_index` | `news` | `guide`
-  - `character_id`: string (only on links tied to a specific character: board index rows, the hero record panel)
-- Note: `section: search` fires when the profile search navigates to a profile (submit, result click, or recent click). It carries an extra `surface` property (`home` | `profiles` | `nav`) since the search box also lives on `/profiles` and in the navbar lookup popover.
+Nothing is registered as a super property, so the only properties every event shares are PostHog's own. Two conventions carry across the hand-written ones: `character_id` is on anything that knows one and is null rather than absent when it does not, and every event in the import chain carries `scan_id` so one upload's events stitch together.
 
-### Import and OCR Flow
+Instrumented surfaces, one file each unless noted:
 
-#### `import_start`
-- Purpose: user begins the import flow.
-- Properties:
-  - `method`: `drop` | `browse` | `paste`
-  - `has_existing_draft`: boolean
+- Acquisition: `components/home/HomeLink.tsx` wraps every internal homepage link so the sections around it stay server-rendered. `components/home/ProfileSearch.tsx` fires the same event on a search navigation.
+- Import and OCR: `components/import/ImportPageClient.tsx` holds the whole chain, from pre-OCR validation through the completion dialog and the issue report.
+- Editor: `components/edit/BuildEditor.tsx` for the session start, card generate, card download and ranking hand-off. `components/save/SaveBuildModal.tsx` for the save itself.
+- Discovery: `components/leaderboards/board/GlobalBoardPageClient.tsx` for `/builds`, `components/leaderboards/character/LeaderboardCharacterClient.tsx` for `/leaderboards/[characterId]`, `components/leaderboards/BuildExpanded.tsx` for the two actions inside an expanded row.
+- Profile: `components/profile/ProfileCard.tsx` for the card download, `components/profile/ProfileBuildCardStage.tsx` for open-in-editor.
+- Saves: `components/save/SavesPageClient.tsx` for load, delete, import, export-all and the one-time legacy migration.
 
-#### `import_validation_fail`
-- Purpose: user input fails before OCR.
-- Properties:
-  - `reason`: `bad_dimensions` | `bad_file_type` | `file_too_large` | `decode_failed`
-  - `file_type`: string | null
-  - `width`: number (only for bad dimensions)
-  - `height`: number (only for bad dimensions)
-  - `file_size`: number (only when the file is too large)
-  - `max_file_size`: number (only when the file is too large)
+### Events that do not read off the call site
 
-#### `ocr_complete`
-- Purpose: OCR completed and its concurrent source-image persistence was resolved or left running with quality diagnostics.
-- Properties:
-  - `duration_ms`: number
-  - `failed_regions_count`: number
-  - `failed_regions`: `RegionKey[]`
-  - `has_character`: boolean
-  - `has_weapon`: boolean
-  - `has_uid`: boolean
-  - `character_id`: string | null
-  - `unsupported_language`: boolean
-  - `has_source_image_key`: boolean (deterministic optimistic key available for build provenance)
-  - `has_confirmed_training_image_key`: boolean (R2 already confirmed the object)
-  - `scan_id`: string | null
-  - `r2_result`: `stored` | `already_present` | `pending` | `failed` | `timed_out` | `disabled` | null
-  - `r2_ms`: number | null
-  - `timings`: backend timing object | null
-
-#### `build_image_link`
-- Purpose: meaningful outcome of the fire-and-forget historical `POST /build/link-image` call after a scan (screenshot ↔ existing build row attachment).
-- Emission rule: capture actual writes and ambiguous matches only. Expected fresh-scan misses and already-linked rows are silent.
-- Properties:
-  - `linked`: boolean
-  - `method`: `echoHash` | `panels` | null
-  - `reason`: `ambiguous` | null
-  - `character_id`: string | null
-  - `scan_id`: string | null
-
-#### `leaderboard_submit_result`
-- Purpose: final outcome of leaderboard submission attempt.
-- Properties:
-  - `result`: `created` | `updated` | `warning` | `skipped` | `error`
-  - `reason`: string
-  - `damage_computed`: boolean
-  - `character_id`: string | null
-  - `has_source_image_key`: boolean
-  - `scan_id`: string | null
-
-#### `import_complete`
-- Purpose: import finished (leaderboard outcome settled, draft claimed) and the completion dialog is shown. Fires before the user picks a destination.
-- Properties:
-  - `character_id`: string | null
-  - `uploaded_to_lb`: boolean (leaderboard submit succeeded)
-  - `lb_action`: `created` | `updated` | null
-  - `has_source_image_key`: boolean
-  - `scan_id`: string | null
-
-#### `import_destination_click`
-- Purpose: destination chosen on the post-import completion dialog.
-- Properties:
-  - `destination`: `leaderboard` | `profile` | `editor` | `import_another` | `save_copy`
-  - `character_id`: string | null
-  - `uploaded_to_lb`: boolean
-
-#### `ocr_issue_report_submit`
-- Purpose: OCR issue report submitted.
-- Properties:
-  - `reason`: issue reason enum
-  - `has_note`: boolean
-  - `has_training_image_key`: boolean
-  - `character_id`: string | null
-  - `scan_id`: string | null
-
-### Editor Outcomes
-
-#### `editor_start`
-- Purpose: first meaningful editor interaction (first dirty transition).
-- Properties:
-  - `character_id`: string | null
-  - `weapon_id`: string | null
-
-#### `build_card_generate`
-- Purpose: user generates card output.
-- Properties:
-  - `character_id`: string | null
-  - `character_name`: string | null
-  - `format`: `webp` | `png`
-  - `byte_size`: number
-  - `export_width`: number
-  - `weapon_id`: string | null
-  - `sequence`: number
-
-#### `build_card_download`
-- Purpose: user downloads card output from the editor.
-- Properties:
-  - `character_id`: string | null
-  - `character_name`: string | null
-  - `weapon_id`: string | null
-  - `sequence`: number
-
-#### `profile_card_download`
-- Purpose: user downloads a build card from the profile surface.
-- Properties:
-  - `character_id`: string | null
-  - `character_name`: string | null
-  - `build_id`: string
-  - `format`: `webp` | `png`
-  - `byte_size`: number
-  - `export_width`: number
-
-#### `leaderboard_open_from_editor`
-- Purpose: user opens ranking page from editor.
-- Properties:
-  - `character_id`: string | null
-  - `weapon_id`: string | null
-  - `sequence`: number
-
-#### `build_save`
-- Purpose: local save/update completed.
-- Properties:
-  - `is_update`: boolean
-  - `character_id`: string | null
-  - `weapon_id`: string | null
-  - `sequence`: number
-  - `cv`: number
-  - `echo_count`: number
-
-### Discovery (`/builds` and `/leaderboards/[characterId]`)
-
-#### `discovery_filter_apply`
-- Purpose: meaningful filter/sort/search state applied.
-- Properties:
-  - `surface`: `builds` | `leaderboard_character`
-  - `character_id`: string (leaderboard surface only)
-  - `weapon_id`: string | null (leaderboard surface only)
-  - `track_key`: string | null (leaderboard surface only)
-  - `character_count`: number (builds surface only)
-  - `weapon_count`: number (builds surface only)
-  - `region_count`: number
-  - `has_uid_search`: boolean
-  - `has_username_search`: boolean
-  - `echo_set_count`: number
-  - `echo_main_count`: number
-  - `sort`: sort key
-  - `direction`: `asc` | `desc`
-  - `page_size`: number
-
-#### `discovery_result_expand`
-- Purpose: user expands a row for deeper inspection.
-- Properties:
-  - `surface`: `builds` | `leaderboard_character`
-  - `character_id`: string | null
-  - `track_key`: string | null
-
-#### `leaderboard_tab_change`
-- Purpose: user changes weapon or track tab.
-- Properties:
-  - `character_id`: string
-  - `weapon_id`: string | null
-  - `track_key`: string | null
-  - `tab_kind`: `weapon` | `track`
-
-#### `discovery_view_in_profile_click`
-- Purpose: user follows a discovered build to its owner's profile (the primary action on leaderboard expansions).
-- Properties:
-  - `surface`: `builds` | `leaderboard_character`
-  - `character_id`: string | null
-  - `track_key`: string | null
-  - `weapon_id`: string | null
-
-#### `discovery_open_in_editor_click`
-- Purpose: user opens discovered build in editor. Only offered when the build has no profile to go to (redacted uid).
-- Properties:
-  - `surface`: `builds` | `leaderboard_character`
-  - `character_id`: string | null
-  - `track_key`: string | null
-  - `weapon_id`: string | null
-
-#### `profile_open_in_editor_click`
-- Purpose: user opens a build from the profile surface into the editor.
-- Properties:
-  - `character_id`: string | null
-  - `weapon_id`: string | null
-
-### Saves Lifecycle
-
-#### `saves_load`
-- Purpose: load saved build into editor.
-- Properties:
-  - `build_id`: string
-  - `character_id`: string | null
-  - `weapon_id`: string | null
-
-#### `saves_delete`
-- Purpose: delete saved build.
-- Properties:
-  - `build_id`: string
-  - `character_id`: string | null
-  - `weapon_id`: string | null
-
-#### `saves_import`
-- Purpose: import build JSON into local saves.
-- Properties:
-  - `count`: number
-  - `format`: `json`
-  - `skipped`: number (legacy conversion path only)
-
-#### `saves_export_all`
-- Purpose: export all local saves.
-- Properties:
-  - `build_count`: number
-
-#### `legacy_migration_complete`
-- Purpose: old-save migration completed.
-- Properties:
-  - `migrated_count`: number
-  - `skipped_count`: number
+- `editor_start` fires once per editor mount, on the first dirty transition. It is a first-interaction signal, not a page visit.
+- `home_cta_click` with `section: 'search'` comes from the profile search wherever it lives, so it also fires on `/profiles` and from the navbar popover. Its `surface` property says which, and the event is not homepage-only despite the name.
+- `build_image_link` reports the fire-and-forget `POST /build/link-image` after a scan, and captures only real writes and ambiguous matches. A fresh scan normally has no existing row to attach to, so the silent misses are the expected case and counting them would bury the signal.
+- `ocr_complete` carries two image-key flags because the keys mean different things: `has_source_image_key` is the deterministic SHA-256 key, available before R2 confirms anything, while `has_confirmed_training_image_key` means R2 acknowledged the object. `r2_result: 'pending'` is a normal outcome, the write was still running when OCR returned.
+- `import_non_english` fires next to an `ocr_complete` that already carries `unsupported_language`, so the two double-count by design. Use whichever fits the query, not both.
+- `leaderboard_submit_result` has two emitters in the same import: the client-side echo preflight rejects illegal panels as `skipped` before any request, and the upload path reports the server outcome. One import can emit it twice, and the two carry different property sets.
+- `import_complete` fires when the completion dialog opens, before the user picks anything. The pick is `import_destination_click`.
+- `saves_import` only carries `skipped` on the legacy conversion path, because the v2 payload importer has nothing to skip.
 
 ## Anti-Noise Guardrails
 
-- `editor_start` emits once per editor session (first dirty transition only).
-- `discovery_filter_apply` emits after settled query state and dedupes by filter signature.
-- `discovery_result_expand` emits only when row goes closed -> open.
-- `leaderboard_tab_change` emits only on actual tab change.
-- Query-string changes on `/builds` and `/leaderboards/[characterId]` are allowed to happen often; use custom events for analysis instead of expecting pageview counts to reflect filter churn.
-- Do not add events on slider drag ticks, every keystroke, or every minor state mutation.
+- `discovery_filter_apply` waits for the settled query key and dedupes on a signature of the whole filter set, so it counts applied views rather than intermediate states
+- `discovery_result_expand` fires from `useExpandedRows`, which runs its callback on closed -> open only
+- `leaderboard_tab_change` guards the weapon and track tabs against re-selecting the active one, but the scoring segment does not, so a no-op scoring click still emits
+- Query-string churn on `/builds` and `/leaderboards/[characterId]` is expected and untracked, see Pageview Behavior
+- Never add an event on a slider drag tick, a keystroke or a minor state mutation
 
 ## Dashboard Blueprint
 
-### 1) Activation
-- `home_cta_click` -> (`import_start` or `editor_start`)
-- Secondary conversion: `build_save` or `leaderboard_submit_result` success
+1. Activation: `home_cta_click` -> `import_start` or `editor_start`, with `build_save` or a successful `leaderboard_submit_result` as the secondary conversion.
+2. Import and OCR health: `import_start` -> `ocr_complete` -> `leaderboard_submit_result` -> `import_complete`, watching the top `import_validation_fail.reason` and `ocr_complete.failed_regions_count`.
+3. Discovery depth: `discovery_filter_apply`, `discovery_result_expand`, `discovery_open_in_editor_click`, `leaderboard_tab_change`.
+4. Contribution and retention: `build_save`, `build_card_download` and created/updated `leaderboard_submit_result` as contribution actions, then 7d/30d return for the cohort that performed one.
 
-### 2) Import and OCR Health
-- `import_start` -> `ocr_complete` -> `leaderboard_submit_result` -> `import_complete`
-- Monitor top `import_validation_fail.reason`
-- Monitor `ocr_complete.failed_regions_count`
+## Audit
 
-### 3) Discovery Depth
-- `discovery_filter_apply`
-- `discovery_result_expand`
-- `discovery_open_in_editor_click`
-- `leaderboard_tab_change`
-
-### 4) Contribution and Retention
-- Contribution actions:
-  - `build_save`
-  - `build_card_download`
-  - `leaderboard_submit_result` (`created`/`updated`)
-- Retention cohorts:
-  - users with contribution actions, measured 7d/30d return
-
-## Fast Audit Commands
-
-Run from `wuwabuilds/`:
+Every capture in the app is one grep, from `wuwabuilds/`:
 
 ```bash
-rg "posthog\\.capture\\('" components
-rg "posthog\\.captureException\\(" components hooks
+rg -n "posthog\.capture" app components hooks lib
 ```
 
-Use this doc as the single source for PostHog changes.
+That is also how to get an event's current property list. This doc is the single source for PostHog conventions, never for property names.

@@ -9,7 +9,7 @@ const WEBP_QUALITY = 0.98;
 type BuildCardExportFormat = 'webp' | 'png';
 
 interface BuildCardExportOptions {
-  /** Fixed design-space height. Omit when the capture includes variable-height content. */
+  /** Height in design space, omitted when the capture has variable-height content */
   height?: number;
 }
 
@@ -37,40 +37,28 @@ const captureBuildCard = async (
 ): Promise<{ blob: Blob; format: BuildCardExportFormat }> => {
   const { preCache, snapdom } = await import('@zumer/snapdom');
 
-  // Card controls update immediately before export. Give React and the browser
-  // two frames to commit the non-editing state before cloning the DOM.
+  // Card controls update right before export, so two frames let React and the browser commit the non-editing state
   await waitForAnimationFrame();
   await waitForAnimationFrame();
 
-  // snapdom copies each element's on-screen used width onto the clone and then
-  // rasterizes through an SVG <img>, which cannot see document fonts. A face
-  // that is missing from the embed renders in a wider system fallback inside
-  // boxes pinned to the narrower measurement, so text wraps or ellipsizes even
-  // though the geometry is correct. next/font loads every family with
-  // display:swap and snapdom awaits document.fonts.ready only inside preCache,
-  // never on the toCanvas path — so warm fonts and images here. Regression
-  // 2026-08-02: an Android profile download shipped with the stat labels, the
-  // flat-stat sub-line and the CV badge each split across two lines.
+  // snapdom pins every clone to its on-screen width, then rasterizes through an SVG <img> blind to document fonts
+  // A face missing from the embed falls back to a wider system font inside those pinned boxes, so text wraps or ellipsizes
+  // snapdom awaits document.fonts.ready only inside preCache, never on the toCanvas path, so fonts and images warm up here
   try {
     await document.fonts.ready;
     await preCache(node);
   } catch (error) {
-    // Best-effort: a cold capture still produces a file, just with more risk of
-    // fallback metrics. Never block the download on warmup.
+    // A cold capture still produces a file, just at more risk of fallback metrics, so warmup never blocks the download
     console.warn('Build card export warmup failed:', error);
   }
 
   const exportScale = BUILD_CARD_EXPORT_WIDTH / BUILD_CARD_DESIGN_WIDTH;
   const canvas = await snapdom.toCanvas(node, {
-    // INVARIANT: the captured node must already be laid out at BUILD_CARD_DESIGN_WIDTH.
-    // snapdom serializes computed styles off the live DOM, so unlike the html-to-image
-    // path it replaced there is no way to force a design-space re-layout at capture
-    // time — whatever width the node has on screen is what ships. Every host is
-    // therefore responsible for pinning 1440: CardScaler shrinks with a transform
-    // (never a re-layout), and the phone paths use a 1440 horizontal scroller.
-    // Stripping the outer transform captures the full design-space card on any screen width.
+    // The node must already be laid out at BUILD_CARD_DESIGN_WIDTH because snapdom serializes the live DOM with no re-layout
+    // Hosts pin that 1440 themselves: CardScaler shrinks with a transform, never a re-layout, phones use a 1440 scroller
+    // Dropping the outer transform is what captures the full design-space card at any screen width
     outerTransforms: false,
-    // SVG rasterized through an <img> can't see document fonts; embed them.
+    // SVG rasterized through an <img> cannot see document fonts, so the faces ship inline
     embedFonts: true,
     // Never downsample card art to on-screen resolution
     compress: false,
@@ -81,8 +69,7 @@ const captureBuildCard = async (
       : {}),
   });
 
-  // Canvas encoders fall back to PNG when a requested type is unsupported.
-  // Verify the returned MIME type before choosing the filename extension.
+  // Canvas encoders silently fall back to PNG on an unsupported type, so the returned MIME type picks the extension
   const webpBlob = await encodeCanvas(canvas, WEBP_MIME_TYPE, WEBP_QUALITY);
   if (webpBlob?.type === WEBP_MIME_TYPE) {
     return { blob: webpBlob, format: 'webp' };

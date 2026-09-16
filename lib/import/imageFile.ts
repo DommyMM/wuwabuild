@@ -1,4 +1,3 @@
-// Load a File into an HTMLImageElement.
 export function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);

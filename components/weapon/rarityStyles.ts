@@ -6,7 +6,7 @@ interface RarityAccentStyle {
   text: string;
 }
 
-// Shared rarity accents for weapon surfaces and values.
+/** Shared rarity accents for weapon surfaces and values */
 export const RARITY_ACCENTS: Record<WeaponRarity, RarityAccentStyle> = {
   '5-star': { border: 'border-rarity-5/38', bg: 'bg-rarity-5/8', text: 'text-rarity-5/90' },
   '4-star': { border: 'border-rarity-4/38', bg: 'bg-rarity-4/8', text: 'text-rarity-4/90' },

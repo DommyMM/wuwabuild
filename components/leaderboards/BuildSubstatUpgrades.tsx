@@ -56,9 +56,7 @@ function formatSignedUpgradeValue(value: number, isPercent: boolean): string {
   return value > 0 ? `+${formatted}` : formatted;
 }
 
-// Both columns rank the same way — bigger is better — so they share one ramp,
-// scaled against the strongest value in their own row. A rank that got worse is
-// the one signed case and takes the shared negative tone.
+/** Both columns read bigger-is-better, so one ramp scaled to their own row's strongest value, and only a worsened rank is signed */
 function getRankDeltaColor(rankDelta: number, maxDelta: number): string {
   if (!Number.isFinite(rankDelta) || rankDelta === 0) return STATUS_NEUTRAL_COLOR;
   if (rankDelta < 0) return STATUS_NEGATIVE_COLOR;
@@ -70,8 +68,7 @@ function getGainColor(percentGain: number, maxPercentGain: number): string {
   return statusRampColor(maxPercentGain > 0 ? percentGain / maxPercentGain : 0);
 }
 
-// Frozen "rail" of the first two columns (row labels + Original baseline).
-// Opaque so the scrolling upgrade columns tuck cleanly underneath.
+/** Frozen rail of the label and Original columns, opaque so the scrolling upgrade columns tuck underneath */
 const PINNED = `sticky z-20 ${LB_EXPANDED_OPAQUE_SURFACE}`;
 const ROW_DIVIDER = 'border-t border-border/45';
 
@@ -98,8 +95,7 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
     0,
   );
 
-  // Measure the label column's rendered width so the second pinned column
-  // (Original) sticks flush against it regardless of label length / i18n.
+  // Measured so the Original column sticks flush against the label column whatever the label's length or language
   const labelColRef = useRef<HTMLTableCellElement | null>(null);
   const [labelColWidth, setLabelColWidth] = useState(120);
 
@@ -115,10 +111,8 @@ export const BuildSubstatUpgrades: React.FC<BuildSubstatUpgradesProps> = ({
 
   const originalStyle: React.CSSProperties = { left: labelColWidth };
 
-  // The table is wider than the row on any build with a full spread of upgrade
-  // columns, so it cuts a value mid-glyph at the right edge with only a hairline
-  // scrollbar to explain it. Fade that edge while there is more to reach. The
-  // left edge needs no equivalent: the pinned rail is already opaque.
+  // A full spread of upgrade columns runs wider than the row and cuts a value mid-glyph, with only a hairline
+  // scrollbar to explain it, so fade the right edge while there is more to reach. The pinned rail covers the left.
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [canScrollRight, setCanScrollRight] = useState(false);
 

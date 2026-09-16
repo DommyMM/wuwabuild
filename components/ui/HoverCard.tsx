@@ -14,7 +14,7 @@ export interface HoverCardChipModel {
   icon?: string | null;
   iconAlt?: string;
   tone?: ChipTone;
-  // Arbitrary accent color (e.g. an element color). Overrides `tone` when set.
+  /** Arbitrary accent color (an element color, say), overriding `tone` when set */
   color?: string;
 }
 
@@ -34,12 +34,11 @@ interface HoverCardProps {
   width?: 'sm' | 'md' | 'lg';
   maxRisePx?: number;
   openDelayMs?: number;
-  // Subject colour for the panel's corner fade; see HoverTooltip.
+  /** Corner-fade colour for the panel, passed straight to HoverTooltip */
   tint?: string;
 }
 
-// Each size steps down below md: the desktop widths clamp to ~full-bleed on a
-// 390px phone, where the tap-opened card should read as a compact popover.
+/** Each size steps down below md, since the desktop widths run near full-bleed on a 390px phone */
 const WIDTH_CLASS: Record<NonNullable<HoverCardProps['width']>, string> = {
   sm: 'w-60 md:w-64 max-w-[calc(100vw-1rem)]',
   md: 'w-72 md:w-[340px] max-w-[calc(100vw-1rem)]',
@@ -53,11 +52,11 @@ const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
   muted: 'text-white/65',
 };
 
-// Icon hangs outside the panel top-left (Akasha style).
+/** Icon hangs outside the panel top-left (Akasha style) */
 const ICON_HANG_TOP = -18;
 const ICON_HANG_LEFT = -18;
 const DEFAULT_ICON_SIZE = 96;
-// Padding-left applied to the header so it clears the icon footprint inside the panel.
+/** Header padding that clears the hanging icon's footprint inside the panel */
 const HEADER_INDENT_CLASS = 'pl-[5.5rem]';
 
 const getAccessibleText = (node: ReactNode): string => {
@@ -234,8 +233,7 @@ interface HoverCardTableRow {
   value: ReactNode;
 }
 
-// A value like "79.31%×2+158.61%" has no spaces, so it gets a break
-// opportunity after each operator instead of breaking inside a number.
+/** A value like "79.31%×2+158.61%" has no spaces, so breaks are offered after each operator, never inside a number */
 const breakAtOperators = (value: ReactNode): ReactNode => {
   if (typeof value !== 'string') return value;
   const parts = value.split(/(?<=[+×*])/u);
@@ -248,11 +246,12 @@ const breakAtOperators = (value: ReactNode): ReactNode => {
   ));
 };
 
-// Two-column value rows (a move's scaling at its level, a weapon's stats).
-// The label owns the row and wraps first; the value is capped so a long
-// expression wraps at its operators, right-aligned, instead of crushing the
-// label into a column of single words. Gowun at its one real weight: the
-// face and the alpha lift are the emphasis, not a synthesised bold.
+/**
+ * Two-column value rows (a move's scaling at its level, a weapon's stats)
+ *
+ * - The label owns the row and wraps first, the value capped so a long expression wraps at its operators
+ * - Gowun stays at its one real weight, the face and the alpha lift carrying the emphasis
+ */
 export function HoverCardTable({ rows }: { rows: HoverCardTableRow[] }) {
   if (rows.length === 0) return null;
   return (

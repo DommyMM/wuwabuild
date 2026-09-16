@@ -16,7 +16,7 @@ interface HomeLinkProps {
     children: ReactNode;
 }
 
-/** Internal link with the `home_cta_click` capture attached, so server sections stay server-rendered. */
+/** Internal link with the `home_cta_click` capture attached, so server sections stay server-rendered */
 export function HomeLink({ href, cta, section, characterId, className, children }: HomeLinkProps) {
     const handleClick = () => {
         posthog.capture('home_cta_click', {

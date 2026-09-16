@@ -9,9 +9,7 @@ interface SplashUrlCandidateOptions {
 const SKIN_SPLASH_SUFFIX = '-skin';
 const SPLASH_EXTENSION = 'webp';
 
-// Bundled splash art is part of the deployed application, so its identity is
-// build-time data rather than something the browser needs to discover by
-// loading candidate URLs. Keep this list in sync with public/images/splash.
+/** Stems shipped in public/images/splash, kept in sync by hand so the browser never probes candidate URLs */
 const BUNDLED_SPLASH_STEMS = new Set([
   '1102-skin', '1105', '1107', '1107-skin', '1108', '1109', '1110',
   '1203', '1205', '1205-skin', '1206', '1207', '1208', '1209',
@@ -117,11 +115,7 @@ export interface BundledSplashCardArt {
   transform: CardArtTransform;
 }
 
-/**
- * Synchronous descriptor for splash art shipped in public/images/splash.
- * Profile cards use this during their first render, avoiding the banner-first
- * paint and the duplicate Image probe performed by the legacy async resolver.
- */
+/** Resolves synchronously so a profile card's first render already has the art, with no banner-first paint */
 export const getBundledSplashCardArt = (
   characterId: string,
   legacyId: string | null,
@@ -147,10 +141,10 @@ export const getBundledSplashCardArt = (
 const warmedSplashUrls = new Set<string>();
 
 /**
- * Starts fetching and decoding a bundled splash the moment intent is known
- * (profile row click), in parallel with the build-detail request, so the
- * card's first paint doesn't wait on the art download. Errors are ignored;
- * the card's own art pipeline stays the authoritative loader.
+ * Fetches and decodes a bundled splash on intent (a profile row click), alongside the build-detail request
+ *
+ * - The card's first paint then never waits on the art download
+ * - Errors are ignored since the card's own art pipeline stays the real loader
  */
 export const warmBundledSplashArt = (
   characterId: string,
@@ -178,7 +172,7 @@ const formatSplashArtTransformEntry = (
   return `  '${key}': { x: ${transform.x}, y: ${transform.y}, scale: ${transform.scale} },`;
 };
 
-/** Dev helper: log the current splash transform for pasting into SPLASH_ART_TRANSFORMS. */
+/** Dev-only, logs the current transform in the form you paste into SPLASH_ART_TRANSFORMS */
 export const logSplashArtTransform = (
   characterId: string,
   variant: SplashArtVariant,
@@ -194,9 +188,9 @@ const SPLASH_REF_HEIGHT = 600;
 const SPLASH_REF_WIDTH = SPLASH_REF_HEIGHT * (16 / 9);
 
 /**
- * Per-character centering for other full-height, center-anchored splash
- * renders (home hero on mobile). Converts the card-tuned pixel offset into a
- * percentage of the image's own width so it holds at any render height.
+ * Centering for full-height, center-anchored splash renders such as the mobile home hero
+ *
+ * - Turns the card-tuned pixel offset into a percent of the image's own width so it holds at any render height
  */
 export const getHeroSplashOffset = (
   characterId: string,
@@ -209,10 +203,7 @@ export const getHeroSplashOffset = (
   };
 };
 
-/**
- * Compatibility wrapper for editor call sites that already await resolution.
- * Bundled asset identity is synchronous; no browser Image probe is needed.
- */
+/** Async wrapper for editor call sites that already await, the lookup itself is synchronous */
 export const resolveSplashCardArt = async (
   characterId: string,
   legacyId: string | null,

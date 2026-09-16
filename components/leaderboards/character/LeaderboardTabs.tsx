@@ -17,8 +17,7 @@ const ACTIVE_GOLD_CARD =
 const CARD_SHEEN =
   'pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_46%)] opacity-55 transition-opacity duration-200 group-hover:opacity-75';
 
-// Compact bracket-row buttons (the old ER-bracket treatment): lighter than the
-// board selector cards, so Scoring reads as a metric lens instead of a board.
+/** Lighter than the board selector cards, so Scoring reads as a metric lens instead of a board */
 const SCORING_SEGMENT =
   'relative inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-semibold leading-none tracking-wide transition-[border-color,background-color,box-shadow,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60';
 const SCORING_SEGMENT_ACTIVE =
@@ -40,10 +39,12 @@ const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </div>
 );
 
-// The board's metric lens, as its own labeled row (like Playstyle / Weapon,
-// mirroring the old ER-bracket row). Score is the canonical ER-adjusted ranking;
-// Damage is the raw tracked-damage lens over the same board. The ER detail lives
-// in the native title tooltip so the buttons stay clean.
+/**
+ * The board's metric lens as its own labeled row, beside Playstyle and Weapon
+ *
+ * - Score is the ER-adjusted ranking, Damage the raw tracked damage over the same board
+ * - The ER detail lives in the native title tooltip, so the buttons stay clean
+ */
 const ScoringRow: React.FC<{
   erTarget: number;
   scoring: ScoringMode;
@@ -91,7 +92,7 @@ interface TrackTabsProps {
 }
 
 const TrackTabs: React.FC<TrackTabsProps> = ({ tracks, activeTrack, onSelect }) => {
-  // Playstyle (sequence track) selector. A single track is no choice to make.
+  // A single track is no choice to make
   if (tracks.length <= 1) return null;
 
   return (
@@ -138,7 +139,7 @@ const TrackTabs: React.FC<TrackTabsProps> = ({ tracks, activeTrack, onSelect }) 
 
 interface WeaponTabsProps {
   weaponIds: string[];
-  /** Server-resolved weapon names/icons; SSR fallback until the catalog loads. */
+  /** Server-resolved weapon names/icons, the SSR fallback until the catalog loads */
   weaponDisplay?: LBBoardDisplay['weapons'];
   weaponIndex: number;
   onSelect: (index: number) => void;
@@ -219,8 +220,7 @@ export const LeaderboardTabs: React.FC<LeaderboardTabsProps> = ({
   scoring,
   onSelectScoring,
 }) => {
-  // Active board's ER target drives whether the Scoring row is offered (0 = no ER
-  // requirement, so Raw ≡ Score and there is nothing to toggle).
+  // 0 means the board has no ER requirement, so Raw and Score agree and the Scoring row has nothing to toggle
   const activeErTarget = useMemo(() => {
     const target = tracks.find((track) => track.key === activeTrack)?.erTarget;
     return typeof target === 'number' && target > 0 ? target : 0;

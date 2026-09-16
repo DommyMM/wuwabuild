@@ -9,15 +9,15 @@ export interface FullOcrResponse {
   analysis?: AnalysisData;
   progress?: Partial<Record<RegionKey, RegionStatus>>;
   timings?: Record<string, unknown>;
-  /** Deterministic SHA-256 object key; storage may still be pending. */
+  /** Deterministic SHA-256 object key, set before storage confirms */
   sourceImageKey?: string | null;
-  /** R2-confirmed object key, reserved for operations that require existence. */
+  /** R2-confirmed object key, reserved for operations that need the object to exist */
   trainingImageKey?: string | null;
   storage?: {
     result?: 'stored' | 'already_present' | 'pending' | 'failed' | 'timed_out' | 'disabled';
     elapsedMs?: number;
   };
-  /** Backend flag: the card looks like a real build card but its substat names are not English. */
+  /** Backend flag: a real build card whose substat names are not English */
   unsupportedLanguage?: boolean;
 }
 

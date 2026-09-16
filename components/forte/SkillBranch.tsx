@@ -36,7 +36,6 @@ export const SkillBranch: React.FC<SkillBranchProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
-  // Skill icon directly from CDN data
   const skillIcon = character.skillIcons?.[skillKey] ?? '';
 
   const handleSliderChange = useCallback(

@@ -77,7 +77,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
           );
         }
 
-        // Trust the stored backend element.
+        // Panel's stored set wins, with the echo's own first element only as a fallback
         const elementType = activeElementForPanel(panel, echo);
         const fetter = elementType ? fettersByElement[elementType] : null;
         const echoName = echo.nameI18n ? t(echo.nameI18n) : echo.name;
@@ -96,7 +96,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
         const mainStatRange: [number, number] | null = mainStatType
           ? (getMainStatsByCost(echo.cost ?? null)[mainStatType] ?? null)
           : null;
-        // The main stat is not part of the substat selection, so it only ever reacts to hover.
+        // The main stat is not part of the substat selection, so it only ever reacts to hover
         const mainHoverKey = normalizeStatHoverKey(mainStatType);
         const mainState = (
           !hasActiveHover ? 'plain' : (mainHoverKey && activeHoverStat === mainHoverKey) ? 'hovered' : 'shaded'
@@ -127,9 +127,8 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
 
         return (
           <div key={i} className={PANEL_CLASS} style={showCV ? { borderColor: `${frameBorderColor}b3` } : undefined}>
-            {/* Artwork sizes itself off the panel height and fades out under the substat column.
-                The stat-source glow animates `filter` on this unmasked wrapper: putting it on the
-                masked img itself hits a Chromium filter+mask compositing bug that blanks the art. */}
+            {/* Artwork sizes itself off the panel height and fades out under the substat column
+                Stat-source glow animates `filter` on this unmasked wrapper, since a Chromium filter+mask bug blanks the art */}
             <div
               className={`absolute inset-y-0 left-0 z-0 origin-left transition-transform duration-200 ${
                 firstEchoBonusHoverMatch ? 'card-stat-source-art scale-[1.04]' : ''
@@ -143,7 +142,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
               />
             </div>
 
-            {/* Echo identity hover sits beneath the content layer, over the artwork half. */}
+            {/* Echo identity hover sits beneath the content layer, over the artwork half */}
             <EchoHoverCard
               echo={echo}
               resolvedFetter={fetter}
@@ -153,8 +152,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
               <span aria-hidden className="block h-full w-full" />
             </EchoHoverCard>
 
-            {/* Content layer is click-through so the echo hover behind it stays reachable;
-                individual chips re-enable pointer events. */}
+            {/* Click-through so the echo hover behind it stays reachable, with chips re-enabling pointer events */}
             <div className="pointer-events-none relative z-2 flex h-full justify-between">
               <div className="flex min-w-0 flex-col items-start justify-between p-2">
                 {showCV && cvTier ? (
@@ -174,9 +172,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
                         backgroundColor: cvTier.bgColor ?? 'rgba(0,0,0,0.80)',
                       }}
                     >
-                      {/* nowrap + shrink-0 above: this is the only wrappable text
-                          in the panel, so without them it is the first thing to
-                          deform under any width pressure. */}
+                      {/* Only wrappable text in the panel, so nowrap and shrink-0 keep it from deforming first */}
                       <span className="whitespace-nowrap text-xs font-bold leading-tight">{echoCV.toFixed(1)} CV</span>
                     </div>
                   </HoverCard>
@@ -203,7 +199,7 @@ export const EchoSection: React.FC<EchoSectionProps> = ({
                 ))}
               </div>
 
-              {/* Main stat heads the roll column; the five substats stay bottom-aligned. */}
+              {/* Main stat heads the roll column, with the five substats bottom-aligned below it */}
               <div className="flex min-w-0 flex-col justify-between p-2">
                 {mainStatType && mainStatValue != null && (
                   <HoverCard

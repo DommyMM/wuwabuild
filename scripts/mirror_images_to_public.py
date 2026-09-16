@@ -1,27 +1,18 @@
-"""
-Mirror game-data images (Characters/Weapons/Echoes/Fetters/Stats icon URLs,
-plus the UI-chrome assets hardcoded in components/CSS) from Wuthery/Encore
-into public/assets/ as WebP, then rewrite public/Data/*.json to point at the
-local, site-relative path instead. Removes the runtime dependency on either
-upstream CDN being reachable — see docs/data-pipeline.md.
+"""Mirror game-data images from Wuthery/Encore into public/assets/ as WebP, then repoint public/Data/*.json at them.
 
-Local paths are host-agnostic: both upstreams mirror the game's own resource
-tree, so /assets/UIResources/... is the game path, and the same asset
-referenced from both hosts dedupes to one file on disk.
+Covers the icon URLs in Characters/Weapons/Echoes/Fetters/Stats plus the UI chrome hardcoded in components and CSS.
+Removes the runtime dependency on either upstream CDN staying reachable, see docs/data-pipeline.md.
+Both upstreams mirror the game's resource tree, so local paths are host-agnostic and one asset is one file on disk.
 
 Everything lands as .webp:
-  - Encore sources are already WebP and pass through byte-for-byte.
-  - Wuthery PNGs are converted locally at quality 90. Measured against the
-    same files: equal-or-better visible quality than Encore's own WebP
-    (their encoder is rough on UI atlas art) at similar-or-smaller sizes.
-  - A Wuthery URL that keeps failing after retries falls back to Encore's
-    mirror of the same path (GameData/UIResources <-> Game/Aki/UI/UIResources).
 
-No manifest needed: a file already present under public/assets/ *is*
-"already mirrored," so re-runs (including after a fresh sync pass
-reintroduces upstream URLs) only download what's missing. The JSON rewrite
-only happens once EVERY reference resolves to a file on disk — a partial
-mirror (failed downloads, --limit) never rewrites.
+Encore sources are already WebP and pass through byte-for-byte.
+Wuthery PNGs are converted locally at quality 90, which measured equal or better at similar or smaller sizes.
+Encore's own encoder is rough on UI atlas art, which is why its WebP is not preferred outright.
+A Wuthery URL that keeps failing falls back to Encore (GameData/UIResources <-> Game/Aki/UI/UIResources).
+
+No manifest: presence under public/assets/ is what "already mirrored" means, so a re-run fetches only what is missing.
+A partial mirror from failures or --limit never rewrites, the JSON waits until every reference is a file on disk.
 
 Usage:
   py mirror_images_to_public.py             # Preview: counts + pending list, no network
@@ -62,9 +53,8 @@ WEBP_QUALITY = 90
 
 TARGET_FILES = ["Characters.json", "Weapons.json", "Echoes.json", "Fetters.json", "Stats.json"]
 
-# UI-chrome images referenced directly from code rather than the data JSONs.
-# The code references (globals.css, components/forte/*, lib/paths.ts) point at
-# the /assets/... path these produce; keep both sides in sync when adding one.
+# UI-chrome images referenced straight from code (globals.css, components/forte/*, lib/paths.ts), not from the JSONs
+# Those references point at the /assets/... path these produce, so keep both sides in sync when adding one
 EXTRA_ASSETS = [
     f"{CDN_BASE}/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillAHold.png",
     f"{CDN_BASE}/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillALockHold.png",
@@ -72,8 +62,7 @@ EXTRA_ASSETS = [
     f"{CDN_BASE}/d/GameData/UIResources/UiRole/Atlas/SP_RoleSkillBNor.png",
     f"{CDN_BASE}/p/GameData/UIResources/Common/Image/BgCg/T_Bg1_UI.png",
     f"{CDN_BASE}/p/GameData/UIResources/UiRole/Atlas/SP_RoleTabiconyiyin.png",
-    # Endstate Matrix score tiers (build rating icons): Empty, B, A, S, SS, SSS,
-    # KingGold (gold crown), KingColor (platinum crown), large and small.
+    # Endstate Matrix score tiers in both sizes, where KingGold is the gold crown and KingColor the platinum one
     *[
         f"https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/UiActivity/Image/Activity32/MowingTower/ScoreLevel/ScoreLevel{size}/T_MowingTowerScore{size}{tier}.webp"
         for size in ("Larger", "Small")
@@ -81,8 +70,7 @@ EXTRA_ASSETS = [
     ],
 ]
 
-# Only strings shaped like an image reference on a known host are ever
-# touched — text fields (descriptions, names) never match these.
+# Only strings shaped like an image reference on a known host match, so descriptions and names are never touched
 _ABSOLUTE_HOST_RE = re.compile(
     r"^https?://(?:files\.wuthery\.com|api\.encore\.moe)/.+\.(?:png|webp|jpe?g)$",
     re.IGNORECASE,
@@ -91,12 +79,9 @@ _RELATIVE_WUTHERY_RE = re.compile(r"^/d/.+\.(?:png|webp|jpe?g)$", re.IGNORECASE)
 _LOCAL_ASSET_RE = re.compile(r"^/assets/.+\.webp$", re.IGNORECASE)
 _IMAGE_SUFFIX_RE = re.compile(r"\.(?:png|webp|jpe?g)$", re.IGNORECASE)
 
-# Frontend adapters derive some image paths at runtime by string replace
-# instead of carrying a second URL field — those derived files are referenced
-# by the site without ever appearing in the JSONs, so the mirror must derive
-# and fetch them the same way. Currently the only case is the square head
-# portrait (lib/character.ts adaptCDNCharacter): iconRound
-# .../IconRoleHeadCircle256/T_IconRoleHeadCircle256_N_UI -> Head256 variant.
+# Frontend adapters derive some image paths at runtime by string replace instead of carrying a second URL field
+# Those files never appear in the JSONs, so the mirror derives and fetches them the same way
+# Only case so far is lib/character.ts adaptCDNCharacter turning iconRound's HeadCircle256 into the square Head256
 DERIVED_VARIANTS = [(re.compile(r"HeadCircle256"), "Head256")]
 
 
@@ -135,16 +120,14 @@ def resolve_absolute(url: str) -> str:
 
 
 def compute_key(absolute_url: str) -> str:
-    """Normalize both hosts onto the game's own resource tree (UIResources/...),
-    so /assets paths are host-agnostic and the same asset referenced from both
-    hosts dedupes to a single file. Always .webp — every mirrored file is WebP.
+    """Normalize either host onto the game's own resource tree, so one asset is one file under /assets.
 
-    Raises on a path shape it doesn't recognize rather than guessing — a new
-    upstream tree should be added here deliberately, not silently mirrored
-    into a surprise directory."""
+    Suffix is always .webp because every mirrored file is WebP
+    Raises on an unrecognized path shape, so a new upstream tree gets added here deliberately
+    """
     if absolute_url.startswith(CDN_BASE):
         path = absolute_url[len(CDN_BASE):].lstrip("/")
-        # /d/ is Wuthery's raw tree, /p/ a processed variant of the same files.
+        # /d/ is Wuthery's raw tree, /p/ a processed variant of the same files
         for prefix in ("d/", "p/"):
             if path.startswith(prefix):
                 path = path[len(prefix):]
@@ -170,8 +153,7 @@ def local_path_for_key(key: str) -> Path:
 
 
 def encore_fallback_url(absolute_url: str) -> str | None:
-    """Encore mirrors the game's UIResources tree, already as WebP — usable as
-    a fallback source when Wuthery won't serve a file (verified mapping)."""
+    """Encore's WebP mirror of the same UIResources path, the fallback when Wuthery will not serve a file."""
     marker = "GameData/UIResources/"
     if absolute_url.startswith(CDN_BASE) and marker in absolute_url:
         rest = absolute_url.split(marker, 1)[1]
@@ -184,9 +166,11 @@ RETRY_BACKOFF_SECONDS = 1.5
 
 
 def _with_retry(fn):
-    """Wuthery throttles under concurrent load (docs/sync-sources.md) rather
-    than failing cleanly, so transient failures here are expected and worth
-    retrying — unlike a real 404, which fails every attempt identically."""
+    """Retry a fetch, because Wuthery throttles under concurrent load rather than failing cleanly.
+
+    Evidence for the throttling is in docs/sync-sources.md
+    A real 404 fails every attempt identically, so retrying only costs the backoff
+    """
     last_error: Exception | None = None
     for attempt in range(FETCH_ATTEMPTS):
         try:
@@ -203,9 +187,11 @@ def _is_webp(data: bytes) -> bool:
 
 
 def to_webp(data: bytes) -> bytes:
-    """Pass WebP through untouched (no generational loss on Encore files);
-    decode-and-encode anything else at quality 90. Doubles as integrity
-    validation — a truncated download or an HTML error body never decodes."""
+    """Pass WebP through untouched, re-encode anything else at quality 90.
+
+    Passing through avoids generational loss on Encore's already-WebP files
+    Decoding doubles as an integrity check, since a truncated download or an HTML error body never decodes
+    """
     if _is_webp(data):
         return data
     img = Image.open(io.BytesIO(data))
@@ -253,11 +239,9 @@ def main() -> int:
         loaded[name] = data
         collect_image_refs(data, all_refs, local_refs)
 
-    # Derived variants ride along with their source ref, whichever form the
-    # JSON currently holds: an upstream URL derives an upstream URL, while an
-    # already-rewritten /assets/ ref derives a local key plus a reconstructed
-    # Wuthery source URL (fetch_webp's Encore fallback covers the rest) — so
-    # a re-run heals a missing derived file in any state.
+    # Derived variants ride along with their source ref in whichever form the JSON currently holds
+    # Upstream URL derives an upstream URL, a rewritten /assets/ ref derives a local key plus a Wuthery source URL
+    # So a re-run heals a missing derived file in either state
     for ref in sorted(all_refs):
         for pattern, replacement in DERIVED_VARIANTS:
             if pattern.search(ref):
@@ -269,8 +253,7 @@ def main() -> int:
                 key = pattern.sub(replacement, ref)[len(PUBLIC_PATH_PREFIX) + 1:]
                 derived_local[key] = f"{CDN_BASE}/d/GameData/{_IMAGE_SUFFIX_RE.sub('.png', key)}"
 
-    # Resolving key + local path up front doubles as both the rewrite mapping
-    # and the on-disk resumability check — no separate manifest to keep in sync.
+    # Resolving key and local path up front serves as both the rewrite mapping and the on-disk resumability check
     ref_info = {}
     for url in all_refs:
         absolute = resolve_absolute(url)
@@ -318,9 +301,7 @@ def main() -> int:
 
     print(f"\n{len(pending) - len(failed)} downloaded ({total_bytes / 1e6:.1f} MB), {len(failed)} failed")
 
-    # The rewrite is gated on the WHOLE mirror being present — not just this
-    # run's batch — so --limit runs and partial failures never leave the JSONs
-    # pointing at files that don't exist. Re-run until complete.
+    # Rewrite is gated on the whole mirror, not this run's batch, so --limit and failures never leave dead refs
     missing = sorted(url for url, info in ref_info.items() if not info["local_path"].exists())
     if missing:
         print(f"{len(missing)} references still unmirrored; JSON rewrite deferred until all are on disk.")

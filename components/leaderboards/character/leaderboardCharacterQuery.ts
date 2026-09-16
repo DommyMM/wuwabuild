@@ -18,7 +18,7 @@ interface LeaderboardQuerySnapshot {
   sequences: number[];
   statFilters: LBStatThreshold[];
   scoring: ScoringMode;
-  /** Deep-link: auto-expand this build. Sent to API for ghost build resolution. */
+  /** Deep-link target to auto-expand, sent to the API so it can resolve the ghost build */
   buildId: string;
 }
 

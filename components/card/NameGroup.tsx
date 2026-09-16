@@ -21,7 +21,7 @@ export const NameGroup: React.FC<NameGroupProps> = ({
   return (
     <div className="flex flex-col">
       <div className="flex items-center gap-2">
-        {/* Rover reads "Rover · Glacio" and CJK names break between any two glyphs, so this must not wrap inside the width snapdom bakes in. */}
+        {/* Rover reads "Rover · Glacio" and CJK breaks between any two glyphs, so this must not wrap inside the baked export width */}
         <span className="whitespace-nowrap text-4xl text-white">{translatedName}</span>
       </div>
       <div className="flex items-center gap-2">

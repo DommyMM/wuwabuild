@@ -32,12 +32,10 @@ from game_text import (
     sanitize_i18n_value as _sanitize_i18n_value,
 )
 
-# Regex to extract legacy ID from iconRound URL
 # e.g. "T_IconRoleHeadCircle256_26_UI.png" -> 26
 LEGACY_ID_PATTERN = re.compile(r"T_IconRoleHeadCircle256_(\d+)_UI\.png")
-# Sequence bonus parsing, embedded into each chain entry at sync time.
-# Maps game description text patterns to our StatName values.
-# More-specific patterns must appear before shorter overlapping ones.
+# Sequence bonus text → our StatName, embedded into each chain entry at sync time
+# More-specific patterns must come before shorter overlapping ones
 _CHAIN_STAT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"Resonance\s+Skill\s+DMG\s+Bonus\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I),   'Resonance Skill DMG Bonus'),
     (re.compile(r"Resonance\s+Liberation\s+DMG\s+Bonus\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I), 'Resonance Liberation DMG Bonus'),
@@ -58,13 +56,9 @@ _CHAIN_STAT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\bDEF\s+is\s+increased\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I), 'DEF%'),
 ]
 
-# Reverse-phrasing patterns ("Increase[s] <stat> by <val>") used ONLY for
-# inherent skills — e.g. Cantarella's "Cure" ("Increase Healing Bonus by 20%.").
-# Chains deliberately stay forward-only so party-scoped clauses like "increases
-# all allies' ATK by ..." are never mistaken for the wielder's panel stat;
-# inherents guard against that via the shared conditional filter (team/nearby/
-# allies keywords are all in _CHAIN_CONDITIONAL_RE) and are limited to the
-# self-buff stats inherents actually grant unconditionally.
+# Reverse phrasing ("Increase[s] <stat> by <val>"), for inherent skills only, e.g. Cantarella's "Cure"
+# Chains stay forward-only so party-scoped clauses like "increases all allies' ATK" never become a panel stat
+# Inherents are safe since _CHAIN_CONDITIONAL_RE holds the team/nearby/allies keywords and this list is self-buffs
 _INHERENT_REVERSE_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"Increases?\s+Healing\s+Bonus\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)", re.I), 'Healing Bonus'),
     (re.compile(r"Increases?\s+Energy\s+Regen\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)",   re.I), 'Energy Regen'),
@@ -72,7 +66,6 @@ _INHERENT_REVERSE_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"Increases?\s+Crit[.]\s+DMG\s+by\s+(\{\d+\}|\d+(?:\.\d+)?)",    re.I), 'Crit DMG'),
 ]
 
-# Inherent skills accept both the forward chain patterns and the reverse forms.
 _INHERENT_BONUS_PATTERNS = _CHAIN_STAT_PATTERNS + _INHERENT_REVERSE_PATTERNS
 
 _CHAIN_CONDITIONAL_RE = re.compile(
@@ -83,19 +76,16 @@ _CHAIN_CONDITIONAL_RE = re.compile(
     re.IGNORECASE,
 )
 
-# A stat increase scoped to a specific move's "DMG Multiplier" buffs only that
-# move, not the character's panel stat (e.g. Lucy S3: "The DMG Multiplier of
-# Override ... is increased by 50%, and its Crit. DMG is increased by 100%." —
-# the +100% applies to Override's crit, not Lucy's Crit. DMG stat). The "DMG
-# Multiplier" antecedent and the possessive "its"/"their" anaphora that refers
-# back to it are the tells; reject so it is never recorded as a flat bonus.
+# A stat increase scoped to a move's "DMG Multiplier" buffs that move, not the character's panel stat
+# Lucy S3 "The DMG Multiplier of Override ... is increased by 50%, and its Crit. DMG ..." buffs Override's crit
+# The tells are the "DMG Multiplier" antecedent and the "its"/"their" anaphora pointing back at it
 _CHAIN_MOVE_SCOPED_RE = re.compile(
     r'\bDMG\s+Multiplier\b|\b(?:its|their)\s*$',
     re.IGNORECASE,
 )
 
 _MARKUP_RE = re.compile(r'<[^>]+>')
-# Stat names with internal periods that would be split by a naive sentence splitter.
+# Stat names with internal periods that a naive sentence splitter would break
 _PROTECT_PAIRS = [('Crit. Rate', 'CRIT_RATE_PH'), ('Crit. DMG', 'CRIT_DMG_PH')]
 
 DAMAGE_TYPE_TAG_MAP = {
@@ -118,26 +108,21 @@ def _chain_strip_markup(text: str) -> str:
 def _chain_split_sentences(text: str) -> list[tuple[str, str]]:
     """Split chain description into (sentence, original_line) tuples.
 
-    Splitting on '.' can separate a conditional clause from the stat boost
-    that follows on the same line (e.g. "At 2 stacks of Snow Rust, ... {1}.
-    Hiyuki's Crit. DMG is increased by {2}.").  By returning the original
-    line alongside each sentence, callers can check the full line context
-    for conditional keywords.
+    Splitting on '.' can separate a conditional clause from the stat boost that follows on the same line
+    Returning the line alongside each sentence lets callers check the wider context for conditional keywords
     """
     protected = text
     for original, ph in _PROTECT_PAIRS:
         protected = protected.replace(original, ph)
     sentences: list[tuple[str, str]] = []
     for line in protected.split('\n'):
-        # Restore protection in the full line for context checks.
+        # Restore protection in the full line for context checks
         restored_line = line
         for original, ph in _PROTECT_PAIRS:
             restored_line = restored_line.replace(ph, original)
-        # Split on a sentence-ending period: one followed by whitespace, end of
-        # line, or directly by an uppercase letter. The trailing-uppercase case
-        # handles Encore descriptions, which strip the spacing/newlines Wuthery
-        # keeps (e.g. "...by 30%.When performing..."). The "Crit. Rate"/"Crit. DMG"
-        # stat names are protected above, so they are never split here.
+        # A sentence-ending period is one followed by whitespace, end of line, or an uppercase letter
+        # The uppercase case handles Encore, which strips the spacing Wuthery keeps ("...by 30%.When performing")
+        # "Crit. Rate" and "Crit. DMG" are protected above, so they never split here
         for part in re.split(r'\.(?=\s|$|[A-Z])', line):
             s = part.strip()
             if s:
@@ -155,9 +140,8 @@ def _parse_param_value(param_str: str) -> float | None:
 def _match_stat_bonus(desc_en: str, params: list[str], patterns) -> dict | None:
     """Return {stat, value} for the first unconditional stat clause, or None.
 
-    Shared core for chain (forward-only) and inherent (forward + reverse)
-    parsing: splits into sentences, matches the given patterns, and rejects any
-    clause carrying a conditional/temporal/move-scoped qualifier.
+    Shared by chain (forward-only) and inherent (forward plus reverse) parsing
+    Any clause carrying a conditional, temporal or move-scoped qualifier is rejected
     """
     clean = _chain_strip_markup(desc_en)
     for sentence, original_line in _chain_split_sentences(clean):
@@ -167,26 +151,20 @@ def _match_stat_bonus(desc_en: str, params: list[str], patterns) -> dict | None:
                 continue
             before = sentence[:m.start()]
             after  = sentence[m.end():]
-            # Check the isolated sentence for conditional keywords.
+            # Check the isolated sentence for conditional keywords
             if _CHAIN_CONDITIONAL_RE.search(before) or _CHAIN_CONDITIONAL_RE.search(after):
-                break  # sentence is conditional and we skip it
-            # Reject increases scoped to a move's DMG Multiplier (anaphoric
-            # "its Crit. DMG" etc.) rather than the character's panel stat.
+                break  # sentence is conditional
+            # Reject an increase scoped to a move's DMG Multiplier rather than the panel stat
             if _CHAIN_MOVE_SCOPED_RE.search(before):
                 break
-            # A preceding sentence on the same line may carry a conditional that
-            # scopes the stat boost (e.g. "At 2 stacks of X, ... {1}. Crit. DMG is
-            # increased by {2}."). Only the text *before* this sentence matters —
-            # checking the whole line would wrongly reject bonuses followed by
-            # unrelated conditional clauses, which is how Encore (single-line,
-            # newline-stripped descriptions) lays out every chain.
+            # A preceding sentence on the same line can carry a conditional that scopes this stat boost
+            # Only the text before this sentence counts, since Encore lays out every chain on one line
+            # Checking the whole line would reject a bonus followed by an unrelated conditional clause
             if original_line != sentence:
                 line_prefix = original_line[:original_line.find(sentence)]
                 if line_prefix and _CHAIN_CONDITIONAL_RE.search(line_prefix):
                     break
-            # The captured token is either a Wuthery-style param placeholder ("{0}")
-            # or an inline literal value ("40", "12.5") as emitted by Encore, which
-            # pre-substitutes its descriptions. Resolve both to a numeric value.
+            # Token is a Wuthery placeholder ("{0}") or an Encore inline literal ("40"), and both resolve
             value = _resolve_chain_bonus_token(m.group(1), params)
             if value is None:
                 break
@@ -202,12 +180,8 @@ def parse_chain_bonus(desc_en: str, params: list[str]) -> dict | None:
 def parse_inherent_bonuses(moves: list[dict] | None) -> list[dict]:
     """Parse always-on stat bonuses from a character's inherent skills (type=4).
 
-    Inherent passives such as Mornye's "Blueprint" ("Mornye's Energy Regen is
-    increased by 10%.") and Cantarella's "Cure" ("Increase Healing Bonus by
-    20%.") grant a flat, unconditional panel stat that behaves like a base-stat
-    change — the frontend/lb otherwise never read these. Reuses the chain
-    conditional guards so triggered/timed/stacked inherents (Jiyan, Yinlin,
-    Zhezhi, …) are correctly excluded.
+    Passives like Mornye's "Blueprint" and Cantarella's "Cure" grant a flat panel stat nothing else reads
+    Reuses the chain conditional guards, so triggered, timed or stacked inherents stay out
     """
     out: list[dict] = []
     for move in moves or []:
@@ -225,8 +199,7 @@ def parse_inherent_bonuses(moves: list[dict] | None) -> list[dict]:
 def _resolve_chain_bonus_token(token: str, params: list[str]) -> float | None:
     """Resolve a captured bonus token to a number.
 
-    "{0}" → params[0] (Wuthery placeholder form); a bare number → itself
-    (Encore inline-substituted form). Returns None when unresolvable.
+    "{0}" resolves to params[0], a bare Encore literal to itself, and anything unresolvable to None
     """
     token = token.strip()
     placeholder = re.fullmatch(r'\{(\d+)\}', token)
@@ -243,7 +216,7 @@ CDN_ITEM_DOWNLOAD_BASE = f"{CDN_BASE}/d/GameData/Grouped/Item"
 CDN_SKILL_CONFIG_URL = f"{CDN_BASE}/d/GameData/ConfigDBParsed/Skill.json"
 CDN_ROLE_INFO_URL = f"{CDN_BASE}/d/GameData/ConfigDBParsed/RoleInfo.json"
 
-# Known CDN path typos that need deterministic normalization.
+# Miscased upstream icon paths, mapped to the spelling the CDN actually serves
 CDN_PATH_FIXUPS = {
     "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_zanni1_UI.png":
         "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_zanNi1_UI.png",
@@ -262,24 +235,20 @@ CDN_PATH_FIXUPS = {
     
 }
 
-# Output directory relative to this script
 OUTPUT_DIR = Path(__file__).parent.parent / "public/Data/Characters"
 
-# Skip test/placeholder characters
+# Test and placeholder characters
 SKIP_IDS = {9990, 9991}
 
-# Characters that do not use resonance energy. Keep them off ER-focused UI
-# defaults until the game has more cases that justify a data-driven source.
+# Characters that do not use resonance energy, kept off ER-focused UI defaults
+# Hardcoded until the game has enough cases to justify a data-driven source
 ENERGYLESS_CHARACTER_IDS = {1608, 1109}  # Phrolova, Lucilla
 
-# Default schema for character files.
-#   True           = keep entire field as-is
-#   ["k1", "k2"]   = keep only these keys (auto-recurses into dicts-of-dicts and lists-of-dicts)
-#   "value"        = extract just the 'value' from each stat entry
-#
-# skillTrees and chains are included by default but post-processed.
-# skillTrees are trimmed to a compact English-facing format for forte nodes.
-# chains keep localized name/description objects for frontend tooltips.
+# Per-field extraction rule for character files
+#   True           keep the field as-is
+#   ["k1", "k2"]   keep only these keys, recursing into dicts-of-dicts and lists-of-dicts
+#   "value"        extract just the 'value' from each stat entry
+# skillTrees and chains pass through here, then get post-processed: forte nodes flattened, chains kept localized
 SCHEMA = {
     "id": True,
     "name": True,
@@ -294,13 +263,12 @@ SCHEMA = {
     "chains": True,
 }
 
-# Optional fields for --include-skills flag (full skill multiplier data)
+# Added by --include-skills, the full skill multiplier data
 SKILLS_SCHEMA = {
     "skill": ["id", "params"],
 }
 
-# Sub-filters applied after main schema extraction to trim nested icon dicts.
-# field -> sub_field -> [keys to keep]
+# field → sub_field → keys to keep, applied after schema extraction to trim nested icon dicts
 SUB_FILTERS = {
     "element": {"icon": ["1", "7"]},
     "skins": {"icon": ["iconRound", "banner"]},
@@ -308,7 +276,7 @@ SUB_FILTERS = {
 
 
 def prepend_cdn(obj: Any) -> Any:
-    """Prepend CDN base URL to paths starting with /d/"""
+    """Prepend the CDN base to /d/ paths, after applying the known path fixups."""
     if isinstance(obj, str):
         fixed = CDN_PATH_FIXUPS.get(obj, obj)
         if fixed.startswith("/d/"):
@@ -324,19 +292,18 @@ def prepend_cdn(obj: Any) -> Any:
 def filter_keys(obj: Any, keys: list[str]) -> Any:
     """Filter object to only specified keys.
 
-    Handles three shapes automatically:
-    - Direct dict (keys match): filter keys directly
-    - Dict of dicts (keys don't match outer): recurse into each value
-    - List of dicts: recurse into each item
+    A dict whose own keys match is filtered directly
+    A dict of dicts (chains, skills keyed by id) is recursed into per value
+    A list of dicts is recursed into per item
     """
     keys_set = set(keys)
 
     if isinstance(obj, dict):
         if keys_set & set(obj.keys()):
-            # Target keys found at this level - filter directly
+            # Target keys found at this level, so filter directly
             return {k: v for k, v in obj.items() if k in keys_set}
         else:
-            # Dict of dicts (e.g. chains, skill keyed by ID) - recurse
+            # Dict of dicts (chains, skill keyed by id), so recurse
             return {k: filter_keys(v, keys) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [filter_keys(item, keys) for item in obj]
@@ -399,8 +366,7 @@ def prune_default_skins(skins: Any, base_icon: Any) -> list[dict]:
     ]
 
 
-# The source has renamed these keys between dumps ("Life" -> "life"), so the
-# output spelling is pinned here rather than inherited from whatever arrives.
+# Source renames these keys between dumps ("Life" -> "life"), so the output spelling is pinned here
 _STAT_KEYS = ("life", "atk", "def", "crit", "critDamage", "damageChangeNormalSkill")
 _STAT_KEY_BY_LOWER = {key.lower(): key for key in _STAT_KEYS}
 
@@ -420,7 +386,7 @@ def extract_stats(value: Any) -> Any:
 
 
 def _normalize_node_values(values: Any) -> Any:
-    """Forte-node stat entries, pinned to camelCase for the same reason."""
+    """Forte-node stat entries, pinned to camelCase against the same casing drift."""
     if not isinstance(values, list):
         return values
     return [
@@ -437,9 +403,7 @@ def _normalize_node_values(values: Any) -> Any:
 def extract_legacy_id(data: dict) -> str | None:
     """Extract legacy ID from iconRound URL.
 
-    The iconRound URL contains the old sequential ID used in frontend/backends:
-    e.g. ".../T_IconRoleHeadCircle256_26_UI.png" -> "26" (Changli)
-         ".../T_IconRoleHeadCircle256_7_UI.png"  -> "7"  (Sanhua)
+    iconRound carries the old sequential id, e.g. ".../T_IconRoleHeadCircle256_26_UI.png" is "26" (Changli)
     """
     icon_data = data.get("icon", {})
     icon_round = icon_data.get("iconRound", "") if isinstance(icon_data, dict) else ""
@@ -472,11 +436,9 @@ def simplify_skill_trees(trees: Any) -> list[dict] | None:
         if not isinstance(params, dict):
             continue
 
-        # Extract English name from i18n dict
         name_field = params.get("name", {})
         name = name_field.get("en", "") if isinstance(name_field, dict) else str(name_field)
 
-        # Get icon and prepend CDN base
         icon = params.get("icon", "")
         if isinstance(icon, str) and icon.startswith("/d/"):
             icon = f"{CDN_BASE}{icon}"
@@ -516,11 +478,10 @@ def extract_skill_icons(data: dict) -> dict[str, str] | None:
     if not isinstance(skill_data, dict):
         return None
 
-    # CDN type number → our key name
     TYPE_MAP = {1: "normal-attack", 2: "skill", 3: "liberation", 5: "intro", 6: "circuit", 11: "outro", 12: "tune-break"}
 
     icons: dict[str, str] = {}
-    # Collect type-4 entries separately to sort them
+    # type 4 holds two passives, collected apart so sort order can name them
     type4_entries: list[tuple[int, str]] = []
 
     for entry in skill_data.values():
@@ -541,7 +502,7 @@ def extract_skill_icons(data: dict) -> dict[str, str] | None:
         elif skill_type == 4:
             type4_entries.append((entry.get("sort", 0), icon))
 
-    # Sort type-4 by sort order → first is inherent-1, second is inherent-2
+    # Sort order names them: first is inherent-1, second inherent-2
     type4_entries.sort(key=lambda x: x[0])
     for i, (_, icon) in enumerate(type4_entries):
         icons[f"inherent-{i + 1}"] = icon
@@ -617,9 +578,8 @@ def extract_sequence_item_ids(role_info: Any) -> dict[int, int]:
             if item_id > 0:
                 item_ids.append(item_id)
 
-        # A character has exactly one canonical waveband item. Leave missing or
-        # ambiguous rows unresolved so the active-character validation below
-        # fails closed instead of silently choosing the wrong icon.
+        # A character has exactly one canonical waveband item, so an ambiguous row is left unresolved
+        # The active-character validation below then fails closed instead of picking the wrong icon
         if len(item_ids) == 1:
             result[char_id] = item_ids[0]
 
@@ -757,7 +717,6 @@ def transform_character(
     if "skins" in result:
         result["skins"] = prune_default_skins(result["skins"], result.get("icon"))
 
-    # Post-process skillTrees → flat English-only list
     if "skillTrees" in result:
         simplified = simplify_skill_trees(result["skillTrees"])
         if simplified:
@@ -765,7 +724,6 @@ def transform_character(
         else:
             del result["skillTrees"]
 
-    # Post-process chains → flat localized list
     if "chains" in result:
         simplified = simplify_chains(result["chains"])
         if simplified:
@@ -773,29 +731,27 @@ def transform_character(
         else:
             del result["chains"]
 
-    # Extract skill icons from raw data (before schema filtering strips it)
+    # Read from raw data, because schema filtering strips the skill field
     skill_icons = extract_skill_icons(data)
     if skill_icons:
         result["skillIcons"] = skill_icons
 
-    # Extract compact move payload for frontend (localized text + level 1-10 params)
     moves = _extract_moves_frontend(data, description_param_map or {})
     if moves:
         result["moves"] = moves
 
-    # Always-on inherent-skill (type=4) stat bonuses, e.g. Mornye Energy Regen +10%.
+    # Always-on type-4 inherent bonuses, e.g. Mornye Energy Regen +10%
     inherent_bonuses = parse_inherent_bonuses(moves)
     if inherent_bonuses:
         result["inherentBonuses"] = inherent_bonuses
 
-    # Add legacyId extracted from iconRound URL for backwards compatibility
+    # legacyId is what lib/legacyMigration.ts maps old saved builds onto current ids with
     legacy_id = extract_legacy_id(data)
     result["legacyId"] = legacy_id or str(char_id or "")
 
-    # Derive preferred substats from character tags and skillTrees
-    # Only includes substat-eligible stats (no Elemental DMG or Healing Bonus)
+    # Preferred substats cover only substat-eligible stats, so no Elemental DMG or Healing Bonus
     if "tags" in result:
-        # Pass raw skillTrees data before it gets simplified
+        # Raw trees, because get_preferred_substats reads the node shape simplify_skill_trees flattens
         raw_skill_trees = data.get("skillTrees")
         preferred = get_preferred_substats(result["tags"], raw_skill_trees, result.get("moves"), char_id, result.get("chains"))
         if preferred:
@@ -1004,22 +960,13 @@ def get_preferred_substats(
     character_id: int | str | None = None,
     chains: list[dict] | None = None,
 ) -> list[str]:
-    """
-    Derive preferred substats from character tags and skillTree nodes.
-    
-    Logic:
-    1. By default, assign Crit Rate + Crit DMG to all characters
-    2. Keep Crit Rate + Crit DMG for every character, including healers/supports
-    3. Extract scaling stats from skill tree (HP/ATK/DEF from "HP+", "ATK+", "DEF+" nodes)
-    4. Add damage type bonus from priority 2 tags when present
-    5. Include Energy Regen unless the character has no energy system
-    
-    Args:
-        tags: List of tag dicts with id, priority, name fields
-        skill_trees: Raw skillTrees dict from CDN (before simplification)
-        
-    Returns:
-        List of preferred substat names (only stats that can appear as substats)
+    """Derive preferred substats from character tags and skillTree nodes.
+
+    Every character gets Crit Rate and Crit DMG, healers and supports included
+    Scaling stats come from the forte nodes ("HP+", "ATK+", "DEF+")
+    A priority-2 tag adds its damage-type bonus, and Energy Regen follows unless the character has no energy
+    Only substat-eligible stats come back, so no Elemental DMG or Healing Bonus
+    skill_trees is the raw CDN dict, before simplify_skill_trees flattens it
     """
     if not tags:
         return []
@@ -1032,16 +979,13 @@ def get_preferred_substats(
         or _infer_damage_type_from_moves(moves, chains, use_chain_evidence=_has_support_healer_tag(tags))
     )
     
-    # Step 1: Add crits by default
     stats.extend(["Crit Rate", "Crit DMG"])
-    
-    # Step 3: Extract scaling stats from skill tree (HP/ATK/DEF)
+
     skill_tree_stats = _extract_skill_tree_substats(skill_trees)
     for stat in skill_tree_stats:
         if stat not in stats:
             stats.append(stat)
     
-    # Step 4: Add damage type bonus from tags if present
     damage_type_stat = DAMAGE_TYPE_TEXT_TO_SUBSTAT.get(damage_type or "")
     if damage_type_stat and damage_type_stat not in stats:
         stats.append(damage_type_stat)
@@ -1051,13 +995,11 @@ def get_preferred_substats(
     except (TypeError, ValueError):
         normalized_character_id = None
 
-    # Step 5: Include Energy Regen for characters that can use it
     if normalized_character_id not in ENERGYLESS_CHARACTER_IDS and "Energy Regen" not in stats:
         stats.append("Energy Regen")
     
     return stats
 
-# Does what its name says it does
 def _has_healing_bonus_in_skill_tree(skill_trees: dict | list[dict] | None) -> bool:
     if not skill_trees or not isinstance(skill_trees, (dict, list)):
         return False
@@ -1076,7 +1018,6 @@ def _has_healing_bonus_in_skill_tree(skill_trees: dict | list[dict] | None) -> b
         else:
             en_name = str(node.get("name", ""))
 
-        # Check for "Healing Bonus"
         if "Healing Bonus" in en_name:
             return True
     
@@ -1084,11 +1025,10 @@ def _has_healing_bonus_in_skill_tree(skill_trees: dict | list[dict] | None) -> b
 
 
 def _extract_skill_tree_substats(skill_trees: dict | list[dict] | None) -> list[str]:
-    # Extract scaling stats from skill tree nodes by parsing English names.
+    """Scaling stats a character's forte nodes grant, read off the English node names."""
     if not skill_trees or not isinstance(skill_trees, (dict, list)):
         return []
-    
-    # Map English name prefixes to substat names
+
     NAME_TO_STAT = {
         "HP+": "HP",
         "HP Up": "HP",
@@ -1098,7 +1038,6 @@ def _extract_skill_tree_substats(skill_trees: dict | list[dict] | None) -> list[
     
     found_stats = set()
     
-    # Scan all skill tree nodes
     nodes = skill_trees.values() if isinstance(skill_trees, dict) else skill_trees
     for node in nodes:
         if not isinstance(node, dict):
@@ -1115,7 +1054,6 @@ def _extract_skill_tree_substats(skill_trees: dict | list[dict] | None) -> list[
         else:
             en_name = str(node.get("name", ""))
 
-        # Check if this is a scaling stat we care about
         for prefix, stat_name in NAME_TO_STAT.items():
             if en_name.startswith(prefix):
                 found_stats.add(stat_name)
@@ -1255,10 +1193,8 @@ def fetch_skill_description_params() -> dict[int, list[str]]:
     return result
 
 
-# --- CDN fetch ---
-
 def _fetch_one(session, filename: str) -> tuple[str, dict | None]:
-    """Fetch a single character JSON from CDN. Returns (filename, data_or_None)."""
+    """Fetch one character JSON, returning a None payload when every retry fails."""
     url = f"{CDN_DOWNLOAD_BASE}/{filename}"
     try:
         data = request_json_with_retry(session, "get", url)
@@ -1273,9 +1209,7 @@ def _fetch_one(session, filename: str) -> tuple[str, dict | None]:
 def fetch_cdn_characters(single_id: str | None = None, workers: int | None = None) -> list[dict]:
     """Fetch character data from CDN, parallelized with threads.
 
-    Args:
-        single_id: Optional single character ID to fetch
-        workers: Number of parallel threads. None = all files in parallel
+    workers None means every file in parallel
     """
     try:
         import requests
@@ -1344,8 +1278,6 @@ def fetch_cdn_characters(single_id: str | None = None, workers: int | None = Non
     return []
 
 
-# --- Main ---
-
 def main():
     parser = argparse.ArgumentParser(description="Sync character data from Wuthery CDN")
     parser.add_argument("--id", type=str, default=None,
@@ -1367,13 +1299,12 @@ def main():
 
     args = parser.parse_args()
 
-    # Build schema based on flags
     schema = {**SCHEMA}
     if args.include_skills:
         schema.update(SKILLS_SCHEMA)
 
     if not args.fetch:
-        # No CDN fetch, re-parse bonus fields on existing Characters.json and exit.
+        # No CDN fetch, so re-parse bonus fields on the existing Characters.json and exit
         combined_path = args.output.parent / "Characters.json"
         if not combined_path.exists():
             parser.error(f"No Characters.json found at {combined_path}. Use --fetch to sync from CDN.")
@@ -1439,7 +1370,6 @@ def main():
     print(f"\nLoaded {len(raw_characters)} raw character files")
     print(f"Resolved {len(sequence_icon_map)} canonical sequence icons")
 
-    # Transform characters using schema.
     characters = []
     for data in raw_characters:
         char = transform_character(data, schema, description_param_map, sequence_icon_map)
@@ -1491,7 +1421,6 @@ def main():
                 print(f"\n... [{size_kb:.1f}KB total, truncated]")
     else:
         if args.individual:
-            # Write per-character files
             args.output.mkdir(parents=True, exist_ok=True)
 
             for char in characters:
@@ -1504,7 +1433,6 @@ def main():
 
             print(f"\nDone: {len(characters)} characters → {args.output}")
         else:
-            # Default: combined Characters.json
             write_records_atomic(combined_path, combined_characters, **json_kwargs)
             size_kb = combined_path.stat().st_size / 1024
             print(f"  Saved Characters.json [{size_kb:.1f}KB] ({len(combined_characters)} characters)")

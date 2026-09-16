@@ -23,7 +23,7 @@ export type StatName =
   | ElementalDmgStatName
   | 'Healing Bonus';
 
-// All stats the calculation engine computes display values for.
+/** Stats the calculation engine computes display values for */
 export const CALCULABLE_STATS = [
   'HP', 'ATK', 'DEF',
   'Crit Rate', 'Crit DMG', 'Energy Regen',
@@ -33,11 +33,9 @@ export const CALCULABLE_STATS = [
   'Healing Bonus',
 ] as const satisfies readonly StatName[];
 
-// Get percent variant of a base stat
 export const getPercentVariant = (stat: BaseStatName): StatName =>
   `${stat}%` as StatName;
 
-// Check if a stat is a percent stat
 export const isPercentStat = (stat: string): boolean => {
   return !BASE_STATS.includes(stat as BaseStatName);
 };

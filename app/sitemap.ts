@@ -80,7 +80,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     );
 
     try {
-        // Characters
         if (fs.existsSync(CHARACTERS_PATH)) {
             const charsData = JSON.parse(fs.readFileSync(CHARACTERS_PATH, 'utf8')) as unknown;
             const chars = (Array.isArray(charsData) ? charsData : Object.values(charsData as Record<string, unknown>))
@@ -101,7 +100,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             dynamicRoutes = [...dynamicRoutes, ...charRoutes, ...lbRoutes];
         }
 
-        // Weapons
         if (fs.existsSync(WEAPONS_PATH)) {
             const wepRoutes = loadWeaponsForSitemap()
                 .filter((weapon): weapon is WeaponSitemapEntry & { id: string | number } => weapon.id != null)

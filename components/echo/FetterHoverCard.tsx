@@ -27,8 +27,7 @@ export const formatFetterBonusValue = (value: number): string => (
     : value.toFixed(1).replace(/(\.\d*?[1-9])0+$/u, '$1').replace(/\.0+$/u, '')
 );
 
-// Piece-effect entries for a set (2pc/5pc, or the single 3pc tier), sorted by
-// piece count. Shared with surfaces that inline the set text (echo inventory).
+/** Piece-effect entries for a set (2pc/5pc, or the lone 3pc tier), sorted by count and shared with the echo inventory */
 export const getFetterPieceModels = (fetter: CDNFetter): PieceTooltipModel[] => {
   const entries: PieceTooltipModel[] = [];
   const pieceEffects = fetter.pieceEffects ?? {};

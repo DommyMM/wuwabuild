@@ -52,8 +52,7 @@ export interface LBStatEntry {
   echoSubstat?: boolean;
 }
 
-// Percent is not stored here: it derives from the single base-stat rule (only
-// the flat ATK/HP/DEF are non-percent). See isLBPercentStatSortKey.
+/** No percent flag here because isLBPercentStatSortKey derives it, only flat ATK, HP and DEF being non-percent */
 export const LB_STAT_ENTRIES: readonly LBStatEntry[] = [
   { code: 'A', sortKey: 'atk', label: 'ATK', echoSubstat: true },
   { code: 'H', sortKey: 'hp', label: 'HP', echoSubstat: true },
@@ -121,8 +120,7 @@ export function getLBStatSortKeyForLabel(label: string | null | undefined): LBSt
   return LB_STAT_ENTRIES.find((entry) => entry.label === label)?.sortKey ?? null;
 }
 
-// Single source for sort-key display labels: stat keys resolve through the
-// registry, the non-stat keys (CV/date/sequence/character) are named here.
+/** Stat keys resolve through LB_STAT_ENTRIES, the non-stat keys are named here */
 export function getLBSortLabel(sortKey: LBSortKey): string {
   if (isLBStatSortKey(sortKey)) return getLBStatLabel(sortKey);
   switch (sortKey) {
@@ -133,8 +131,7 @@ export function getLBSortLabel(sortKey: LBSortKey): string {
   }
 }
 
-// Percent derives from the single base-stat rule (isPercentStat): only the flat
-// base stats (ATK/HP/DEF) are non-percent; every other stat is a percent.
+/** Only flat ATK, HP and DEF are non-percent, so isPercentStat decides off the label alone */
 export function isLBPercentStatSortKey(sortKey: LBSortKey | LBLeaderboardSortKey | LBStatSortKey): boolean {
   if (!isLBStatSortKey(sortKey)) return false;
   return isPercentStat(getLBStatLabel(sortKey));
@@ -201,9 +198,12 @@ function serializeEchoMainFilters(filters: LBEchoMainFilter[] | undefined): stri
   return filters.map((entry) => `${entry.cost}-${toMainStatApiValue(entry.statType)}`).join('.');
 }
 
-// Appends structured build filters shared by /build and /leaderboard: a card-sequence
-// level set (`seq=0,4,6`, matches builds whose sequence ∈ set) and compact stat
-// thresholds (`stats=<sortKey>:<op>:<value>.<sortKey>:<op>:<value>`).
+/**
+ * Build filters shared by /build and /leaderboard
+ *
+ * - `seq=0,4,6` matches any build whose sequence is in the set
+ * - `stats=<sortKey>:<op>:<value>.<sortKey>:<op>:<value>` carries the thresholds
+ */
 function appendBuildFilterParams(
   params: URLSearchParams,
   query: { sequences?: number[]; statFilters?: LBStatThreshold[] },
@@ -228,7 +228,7 @@ export interface LBEchoMainFilter {
 
 export type LBStatFilterOp = 'gte' | 'lte';
 
-/** A single "stat ≥/≤ value" threshold. Serialized inside compact `stats=` CSV-ish query data. */
+/** One "stat at or above/below value" threshold, serialized into the compact `stats=` parameter */
 export interface LBStatThreshold {
   stat: LBStatSortKey;
   op: LBStatFilterOp;
@@ -287,26 +287,23 @@ export interface LBBuildDetailEntry extends LBBuildRowEntry {
   buildState: SavedState;
 }
 
-// No damage share on the wire: processMoves computes every percentage it renders
-// against the rotation total, so a stored per-row share was both unread and a
-// different number than anything the UI draws. lb/docs/move-breakdown-ui.md is
-// the canonical contract for every field below.
+/** No damage share on the wire because processMoves recomputes every percentage against the rotation total */
 interface LBMoveHitEntry {
   key: string;
   name: string;
   damage: number;
   moveTypes: string[];
-  /** Per-event base MV before sequence/forte multipliers; 0 when merged events differ. */
+  /** Per-event base MV before sequence and forte multipliers, 0 when merged events differ */
   baseMV: number;
-  /** Flat healing per represented event; zero for damage hits. */
+  /** Flat healing per represented event, zero on damage hits */
   flatHeal: number;
-  /** Number of identical events folded into this source row. */
+  /** Number of identical events folded into this row */
   count: number;
-  /** Kit tab the hit comes from; carries the real tab under a `mixed` row. */
+  /** Kit tab the hit comes from, carrying the real tab under a `mixed` row */
   skillTab: string;
 }
 
-/** One rotation entry folded into a row, in scored-rotation order by `index`. */
+/** One rotation entry folded into a row, in scored-rotation order by `index` */
 export interface LBMoveCastEntry {
   index: number;
   key: string;
@@ -315,11 +312,11 @@ export interface LBMoveCastEntry {
   damage: number;
 }
 
-/** Structured terms of a score modifier row, so the name is never parsed. */
+/** Structured terms of a score modifier row, so the name is never parsed */
 export interface LBMoveModifierInfo {
-  /** `energy-regen`, `set`, `echo` or `bonus`. */
+  /** `energy-regen`, `set`, `echo` or `bonus` */
   kind: string;
-  /** ER / target on an energy-regen modifier; 0 otherwise. */
+  /** ER over target on an energy-regen modifier, 0 otherwise */
   factor: number;
   er: number;
   erTarget: number;
@@ -328,23 +325,25 @@ export interface LBMoveModifierInfo {
 export interface LBMoveEntry {
   key: string;
   name: string;
-  /** Rotation strip caption ("Iai", "Basic 1-3"); empty on modifiers. */
+  /** Rotation strip caption ("Iai", "Basic 1-3"), empty on modifiers */
   shortName: string;
   /**
-   * Where the ability lives in the kit: `normal-attack`, `skill`, `liberation`,
-   * `circuit`, `intro`, `outro`, `inherent`, or a buttonless source (`tune-break`,
-   * `echo`, `status`, `set`, `weapon`), or `mixed` for a composite heal window.
+   * Where the ability lives in the kit
+   *
+   * - A button: `normal-attack`, `skill`, `liberation`, `circuit`, `intro`, `outro`, `inherent`
+   * - Buttonless: `tune-break`, `echo`, `status`, `set`, `weapon`
+   * - `mixed` for a composite heal window
    */
   skillTab: string;
   damage: number;
   elemType: string;
   moveTypes: string[];
   modifier: boolean;
-  /** Per-cast base MV before sequence/forte multipliers. */
+  /** Per-cast base MV before sequence and forte multipliers */
   baseMV: number;
-  /** Total flat healing represented by the row; zero for damage moves. */
+  /** Total flat healing on the row, zero for damage moves */
   flatHeal: number;
-  /** Scaling stat for attacks ("ATK", "HP", or "DEF"); empty for modifiers. */
+  /** "ATK", "HP" or "DEF" for attacks, empty on modifiers */
   scaleStat: string;
   noCrit: boolean;
   bypassDmgBonus: boolean;
@@ -361,9 +360,7 @@ function parseStringList(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
 }
 
-// The contract makes every field required, but a row from an older calculation
-// or a partial payload must render as "nothing for that field", never throw.
-// Shared by the client fetch and the home page's server prefetch.
+/** Every field is required by contract, so an older or partial row renders empty rather than throwing */
 export function parseMovesPayload(payload: unknown): LBMoveEntry[] {
   const rawMoves = isRecord(payload) && Array.isArray(payload.moves) ? payload.moves : [];
   const moves: LBMoveEntry[] = [];
@@ -566,9 +563,7 @@ function parseBuildDetailEntry(raw: unknown): LBBuildDetailEntry {
   };
 }
 
-// parseUpgradeTierSet transposes the API's per-stat format
-// { crit_rate: { min, median, max, minRank, medianRank, maxRank }, ... }
-// into the per-tier format the component expects.
+/** Transposes the API's per-stat { crit_rate: { min, median, max, ... } } into the per-tier shape the component wants */
 function parseUpgradeTierSet(raw: unknown): LBSubstatUpgradeTierSet | null {
   if (!isRecord(raw)) return null;
   const min: Record<string, number> = {};
@@ -590,11 +585,12 @@ function parseUpgradeTierSet(raw: unknown): LBSubstatUpgradeTierSet | null {
   return { min, median, max, minRank, medianRank, maxRank };
 }
 
-// Shared LB API request core. Prefixes the gateway base URL and throws a
-// labeled `${label} (${status})` error on a non-OK response, except for
-// statuses listed in `allow` (returned to the caller to handle, e.g. 404 →
-// empty result). All LB fetches in this module go through here so error
-// messages and base-URL handling stay uniform.
+/**
+ * Every LB fetch in this module goes through here, so the base URL and error messages stay uniform
+ *
+ * - A non-OK response throws `${label} (${status})`
+ * - A status in `allow` is returned instead, for a caller that treats 404 as an empty result
+ */
 async function lbFetch(
   path: string,
   { label, allow, ...init }: RequestInit & { label: string; allow?: readonly number[] },
@@ -606,8 +602,7 @@ async function lbFetch(
   return response;
 }
 
-// Convenience wrapper for the common GET → JSON case. Callers narrow the
-// payload (default `unknown`) with the parse helpers below.
+/** The common GET to JSON case, with callers narrowing the `unknown` payload through the parse helpers below */
 async function lbGetJSON<T = unknown>(
   path: string,
   label: string,
@@ -711,11 +706,11 @@ export async function listProfileBuilds(
   return parseBuildListResponsePayload(payload, query.page ?? 1, pageSize);
 }
 
-// Profile echo inventory -----------------------------------------------------
-// Backed by GET /profile/{uid}/echoes. Sort keys map 1:1 to the backend
-// echoSortClause whitelist: cv/rv/cost/mainStatValue/timestamp plus any substat
-// stat key (snake_case, e.g. crit_dmg) which sorts by that sub_* column.
-
+/**
+ * Sort keys for GET /profile/{uid}/echoes, matching the backend echoSortClause whitelist one for one
+ *
+ * - A substat key in snake_case, crit_dmg say, sorts by that sub_* column
+ */
 export type LBEchoSortKey = LBStatSortKey
   | 'cv'
   | 'rv'
@@ -856,7 +851,7 @@ export async function listProfileEchoes(
   };
 }
 
-// One build that equips a given echo, for the profile echo "used by" strip.
+/** One build that equips a given echo, for the profile echo "used by" strip */
 export interface LBEchoUsage {
   buildId: string;
   slotIndex: number;
@@ -865,7 +860,7 @@ export interface LBEchoUsage {
   cv: number;
   sequence: number;
   saved: boolean;
-  /** Echo main-stat summary of the whole build, so CV grades on the right scale. */
+  /** Echo main stats across the whole build, so CV grades on the right scale */
   mainStats: Array<{ cost: number; statType: string }>;
 }
 
@@ -892,8 +887,7 @@ function parseEchoUsage(raw: unknown): LBEchoUsage | null {
   };
 }
 
-// Lazily fetch which builds use one echo (by echo_key), for the inventory
-// expansion "used by" strip. Ordered most-impressive CV first by the API.
+/** Which builds use one echo, by echo_key, ordered highest CV first by the API */
 export async function getEchoUsages(
   uid: string,
   echoKey: string,
@@ -916,15 +910,13 @@ export async function getEchoUsages(
   return usages;
 }
 
-// Leaderboard types
-
 interface LBWeaponTop {
   weaponId: string;
-  /** Rank-1 build on this board; deep-links the record and keys its move breakdown. */
+  /** Rank-1 build on this board, which deep-links the record and keys its move breakdown */
   buildId: string;
   damage: number;
   owner: { username: string; uid: string };
-  /** RFC3339 start of the current rank-1 hold for this weapon/track board. */
+  /** RFC3339 start of the current rank-1 hold on this weapon and track board */
   reignSince: string;
 }
 
@@ -941,20 +933,19 @@ export interface LBTrack {
   key: string;
   label: string;
   note?: string;
-  /** Board ER target: Score = tracked value × min(1, ER/target). Absent = no ER requirement. */
+  /** Score is the tracked value × min(1, ER/target), and absent means the board has no ER requirement */
   erTarget?: number;
 }
 
-/** One support's full resolved buff contribution on a board (kit + weapon + sonata
- * set + echo + sequence tiers), as label → value (percent unless flat ATK/HP/DEF). */
+/** One support's resolved buffs on a board, kit through sequence tiers, as label to value */
 interface LBTeamSupportBuff {
   charId: string;
   seq: number;
+  /** Percent unless the label is flat ATK, HP or DEF */
   buffs: Record<string, number>;
 }
 
-/** Team buff contribution to the on-field carry on a board: per-support breakdown
- * plus the merged total. Empty (`{}` / `[]`) on solo boards. */
+/** What the team contributes to the on-field carry, per support and merged, both empty on a solo board */
 export interface LBTeamBuffs {
   total: Record<string, number>;
   bySupport: LBTeamSupportBuff[];
@@ -964,13 +955,9 @@ export function isHealTrackKey(trackKey: string | null | undefined): boolean {
   return typeof trackKey === 'string' && trackKey.startsWith('heal_');
 }
 
-/**
- * Server-resolved English display fields for a character id. Rendered during SSR
- * so leaderboard HTML ships real names instead of `Character {id}` while the
- * client `GameDataContext` fetch is still in flight.
- */
+/** Server-resolved English fields so SSR ships real names instead of `Character {id}` while GameDataContext loads */
 export interface LBCharacterDisplay {
-  /** Character id these fields describe, so consumers can verify before applying them. */
+  /** Character these fields describe, so a consumer can check before applying them */
   id: string;
   name: string;
   element: string;
@@ -978,18 +965,12 @@ export interface LBCharacterDisplay {
 }
 
 /**
- * Compact server-resolved name/icon maps for every id a leaderboard board can
- * reference. Serialized into the page so the first paint renders real names,
- * portraits, and set thresholds instead of raw ids and blank boxes while the
- * ~12 MB client `GameDataContext` catalog is still downloading.
+ * Name and icon maps for every id a board can reference, serialized into the page for the first paint
  *
- * Complete rather than scoped to the current response on purpose: switching
- * track swaps in team members, and paging or filtering swaps in echo sets, that
- * the initial payload never mentioned. ~5 KB brotli, so completeness is cheaper
- * than tracking which ids a given view happens to need.
- *
- * English only, and strictly a fallback — every consumer prefers the localized
- * `GameDataContext` object once it exists.
+ * - Without it the first paint shows raw ids and blank boxes until the ~12 MB GameDataContext catalog lands
+ * - Complete rather than scoped to the response, since switching track or paging swaps in ids it never mentioned
+ * - ~5 KB brotli, so completeness costs less than tracking which ids a view happens to need
+ * - English only and strictly a fallback, every consumer prefers the localized GameDataContext object
  */
 export interface LBBoardDisplay {
   characters: Record<string, LBCharacterDisplay>;
@@ -1003,11 +984,12 @@ export interface LBCharacterOverview {
   trackKey: string;
   trackLabel: string;
   totalEntries: number;
-  weapons: LBWeaponTop[]; // Configured board weapons; can include a weapon that has no rank-1 row yet
+  /** Every configured board weapon, including one that has no rank-1 row yet */
+  weapons: LBWeaponTop[];
   weaponIds: string[];
   teamCharacterIds: string[];
   teamMembers: LBTeamMemberConfig[];
-  display?: LBCharacterDisplay; // Server-resolved English display fields (SSR/SEO)
+  display?: LBCharacterDisplay;
 }
 
 export interface LBLeaderboardEntry {
@@ -1018,7 +1000,8 @@ export interface LBLeaderboardEntry {
   timestamp: string;
   damage: number;
   globalRank: number;
-  reignSince?: string;    // RFC3339 start of the current rank-1 hold; only set on the #1 row of the board
+  /** RFC3339 start of the current rank-1 hold, set only on the board's #1 row */
+  reignSince?: string;
   stats: Record<LBStatCode, number>;
   owner: { username: string; uid: string };
   character: { id: string; level: number; roverElement?: string };
@@ -1058,8 +1041,10 @@ export interface LBLeaderboardResponse {
   teamBuffs: LBTeamBuffs;
   activeWeaponId: string;
   activeTrack: string;
-  erTarget: number;   // Score = tracked value × min(1, ER/target)
-  displayStats: LBStatSortKey[];  // Canonical stat-sort keys, e.g. ['hp','aero_dmg','basic_attack_dmg','resonance_liberation_dmg']. Empty when no board reference is available
+  /** Score is the tracked value × min(1, ER/target) */
+  erTarget: number;
+  /** Stat sort keys such as ['hp','aero_dmg','basic_attack_dmg'], empty when the board has no reference */
+  displayStats: LBStatSortKey[];
 }
 
 interface LBSubmitBuildResult {
@@ -1257,10 +1242,7 @@ export interface LBLeaderboardResponseRaw {
   displayStats?: unknown;
 }
 
-// Shared leaderboard payload → typed response mapping. Used by both the client
-// fetch (`listLeaderboard`, signal + throw) and the SSR prefetch
-// (`prefetchLeaderboard`, revalidate + return null), so only the transport
-// wrapper differs between the two.
+/** Shared by `listLeaderboard` and the SSR `prefetchLeaderboard`, so only the transport wrapper differs */
 export function parseLeaderboardResponsePayload(
   payload: LBLeaderboardResponseRaw,
   fallbackPage: number,
@@ -1285,7 +1267,7 @@ export function parseLeaderboardResponsePayload(
     try {
       ghostBuild = parseLeaderboardEntry(payload.ghostBuild);
     } catch {
-      // Ghost build was malformed, ignore silently.
+      // A malformed ghost build is dropped without a warning because it is optional decoration
     }
   }
 
@@ -1345,8 +1327,6 @@ export function buildLeaderboardSearchParams(query: LBLeaderboardQuery): URLSear
   appendBuildFilterParams(params, query);
   return params;
 }
-
-// Build by ID
 
 export async function getBuildById(buildId: string, signal?: AbortSignal): Promise<LBBuildDetailEntry> {
   const trimmedBuildId = buildId.trim();
@@ -1423,8 +1403,7 @@ export interface LBStandingEntry {
   damage: number;
 }
 
-// Parses the common standings fields for the per-build standings endpoint.
-// (Profile standings have their own lean shape — see LBProfileStandingEntry.)
+/** Common standings fields for the per-build endpoint, while profile standings have their own lean shape */
 function parseStandingBase(raw: Record<string, unknown>): LBStandingEntry {
   const team = resolveTeamConfiguration(raw.teamMembers, raw.teamCharacterIds);
   return {
@@ -1464,9 +1443,7 @@ export async function getBuildStandings(
   return result;
 }
 
-// One board in a simulate response: where a transient (never-submitted) build
-// would rank on that weapon × track. Carries the sequence breakpoint + precomputed
-// topPercent so the editor's RankModule can render it directly.
+/** Where a never-submitted build would rank on one weapon and track, with the breakpoint and topPercent ready to render */
 export interface LBSimulateBoard {
   key: string;
   weaponId: string;
@@ -1481,11 +1458,12 @@ export interface LBSimulateBoard {
   teamMembers: LBTeamMemberConfig[];
 }
 
-// fetchSimulateRanks posts an editor build to POST /leaderboard/{characterId}/simulate
-// and returns where it would rank across every board of that character. Read-only:
-// the build is never submitted. Server normalizes to a fair ceiling (max level +
-// forte), so weapon/level/forte/sequence in buildState do not affect the result —
-// only characterId, roverElement, and echoPanels do.
+/**
+ * Where an editor build would rank across every board of its character, read-only so nothing is ever submitted
+ *
+ * - The server normalizes to a fair ceiling of max level and forte
+ * - Only characterId, roverElement and echoPanels move the result, weapon and level in buildState do not
+ */
 export async function fetchSimulateRanks(
   characterId: string,
   buildState: SavedState,
@@ -1525,7 +1503,7 @@ export async function fetchSimulateRanks(
   return result;
 }
 
-// Profile showcase: a UID's best competitive placement per character. Deliberately NOT LBStandingEntry 
+/** A uid's best placement per character for the profile showcase, leaner than LBStandingEntry on purpose */
 export interface LBProfileStandingEntry {
   characterId: string;
   weaponId: string;
@@ -1540,11 +1518,12 @@ export interface LBProfileStandingEntry {
 
 const profileStandingsCache = new Map<string, Promise<LBProfileStandingEntry[]>>();
 
-// The in-flight promise is shared by every caller for that uid, so the fetch
-// deliberately takes no AbortSignal: binding one caller's signal would let its
-// unmount reject the promise for everyone else (the profiles -> profile nav
-// mounts the showcase effect twice, and the second run was inheriting the
-// first run's aborted fetch). Callers gate their own setState on unmount.
+/**
+ * Every caller for a uid shares the one in-flight promise, which is why there is no AbortSignal
+ *
+ * - One caller's signal would let its unmount reject the promise for everyone else on that uid
+ * - Callers gate their own setState on unmount instead
+ */
 export async function getProfileStandings(uid: string): Promise<LBProfileStandingEntry[]> {
   const cacheKey = uid.trim();
   if (!cacheKey) return [];
@@ -1587,8 +1566,6 @@ export async function getProfileStandings(uid: string): Promise<LBProfileStandin
   return promise;
 }
 
-// Board optimality types
-
 export interface LBOptimalityReference {
   tier: string;
   damage: number;
@@ -1600,7 +1577,7 @@ export interface LBOptimalityReference {
   topLevelStats: Record<string, number>;
   echoPanels: EchoPanelState[];
   scoreModifiers: Array<{ key: string; name: string; delta: number }>;
-  /** Substat lines whose stat can raise the board's score; 0 on references built before it existed. */
+  /** Substat lines whose stat can raise the board's score, 0 on a reference generated before the field existed */
   usefulLines: number;
 }
 
@@ -1608,7 +1585,7 @@ export interface LBBoardOptimality {
   characterId: string;
   weaponId: string;
   sequence: string;
-  /** Track ER target the reference is generated at (0 = no requirement). */
+  /** Track ER target the reference was generated at, 0 meaning no requirement */
   erTarget: number;
   configVersion: string;
   characterLevel: number;
@@ -1789,8 +1766,7 @@ export async function submitBuild(
   if (rawScanId && !scanId) {
     throw new Error('OCR scan ID is malformed.');
   }
-  // Deliberately not routed through lbFetch: submit surfaces the API's own
-  // error/message from the response body, which a labeled throw would discard.
+  // Not routed through lbFetch because submit surfaces the API's own message, which a labeled throw would discard
   const response = await fetch(`${LB_API_BASE}/build`, {
     method: 'POST',
     headers: {
@@ -1812,7 +1788,7 @@ export async function submitBuild(
       const payload = await response.json() as { error?: string; message?: string };
       message = payload.error || payload.message || message;
     } catch {
-      // Keep the generic message if the error response is not JSON.
+      // The generic message stands when the error response is not JSON
     }
 
     throw new Error(message);
@@ -1829,9 +1805,11 @@ export interface LBLinkBuildImageResult {
   reason?: string;
 }
 
-// Fire-and-forget after a scan: asks the LB service to attach the screenshot's
-// R2 key to the existing build row with that exact echo content. Fill-only and
-// idempotent server-side; no build is ever created.
+/**
+ * Fire-and-forget after a scan, attaching the screenshot's R2 key to the build row with that exact echo content
+ *
+ * - Fill-only and idempotent server-side, so no build is ever created
+ */
 export async function linkBuildImage(
   buildState: SavedState,
   sourceImageKey: string,
@@ -1871,22 +1849,13 @@ export async function linkBuildImage(
   };
 }
 
-// ---------------------------------------------------------------------------
-// Board stat distribution
-// ---------------------------------------------------------------------------
-
-/**
- * One stat's shape across a cohort.
- *
- * `quantiles` is positional against `LBBoardDistribution.quantileLadder`, not a
- * keyed object: the backend picks the ladder and can lengthen it without a
- * client change.
- */
+/** One stat's shape across a cohort */
 export interface LBDistributionAxis {
   key: LBStatSortKey;
   mean: number;
   min: number;
   max: number;
+  /** Positional against `LBBoardDistribution.quantileLadder`, so the backend can lengthen the ladder on its own */
   quantiles: number[];
 }
 
@@ -1920,14 +1889,10 @@ function parseDistributionAxis(raw: unknown): LBDistributionAxis | null {
 }
 
 /**
- * How the board's stats are spread, for reading a build against the field.
+ * How the board's stats are spread, for reading one build against the field
  *
- * Takes no build id on purpose: the response is one cacheable object per board
- * and the caller interpolates its own percentile from the ladder, so a shared
- * edge cache entry serves every row of the board.
- *
- * Returns null on 404, which is a board with no optimality reference — the axes
- * are derived from it, so there is nothing to plot.
+ * - No build id, so one cacheable object per board serves every row and the caller interpolates its own percentile
+ * - Null on 404, a board with no optimality reference, and the axes derive from it so there is nothing to plot
  */
 export async function getBoardDistribution(
   characterId: string,
@@ -1958,8 +1923,7 @@ export async function getBoardDistribution(
       const axes = Array.isArray(entry.axes)
         ? entry.axes.map(parseDistributionAxis).filter((axis): axis is LBDistributionAxis => axis !== null)
         : [];
-      // An axis whose ladder does not line up with the published one cannot be
-      // read positionally, so the cohort is dropped rather than plotted wrong.
+      // An axis out of step with the published ladder cannot be read positionally, so the cohort drops
       if (axes.length === 0 || axes.some((axis) => axis.quantiles.length !== quantileLadder.length)) return [];
       return [{
         key: typeof entry.key === 'string' ? entry.key : '',
@@ -1980,15 +1944,10 @@ export async function getBoardDistribution(
 }
 
 /**
- * Where `value` falls on a quantile ladder, as a 0-1 fraction.
+ * Where `value` falls on a quantile ladder, as a 0-1 fraction
  *
- * Linear interpolation between the two bracketing ladder points, clamped at the
- * ends. This is why the endpoint does not need a build id: the ladder is enough
- * to place any value on it client-side.
- *
- * Returns null when the ladder has no spread (every published quantile equal),
- * which is a real case — Healing Bonus is 0 for every build on a DPS board, and
- * a percentile there would be fiction.
+ * - Linear between the two bracketing ladder points and clamped at the ends, so no build id is needed
+ * - Null when the ladder has no spread, a real case since Healing Bonus is 0 for every build on a DPS board
  */
 export function interpolatePercentile(value: number, ladder: number[], quantiles: number[]): number | null {
   if (ladder.length === 0 || ladder.length !== quantiles.length) return null;

@@ -13,11 +13,10 @@ export interface WatermarkState {
 }
 
 
- // Per-column forte data: [level, topNode, middleNode]
- // Column order: normal-attack, skill, circuit, liberation, intro (tree1–5)
+/** One forte column: [level, top node unlocked, middle node unlocked] */
 export type ForteEntry = [number, boolean, boolean];
 
-// 5-column forte state matching tree1–5
+/** Columns tree1 to tree5 in order: normal attack, skill, circuit, liberation, intro */
 export type ForteState = [ForteEntry, ForteEntry, ForteEntry, ForteEntry, ForteEntry];
 
 export interface SavedState {
@@ -48,7 +47,6 @@ export interface SavedBuilds {
   version: string;
 }
 
-// Default states for initialization
 export const DEFAULT_WATERMARK: WatermarkState = {
   username: '',
   uid: '',

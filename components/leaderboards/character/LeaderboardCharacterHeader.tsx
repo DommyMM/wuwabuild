@@ -18,12 +18,12 @@ interface LeaderboardCharacterHeaderProps {
   characterName: string;
   characterHead?: string;
   characterElement?: string;
-  /** Server-resolved name/icon maps; SSR fallback for the team row. */
+  /** Server-resolved name/icon maps, the SSR fallback for the team row */
   boardDisplay?: LBBoardDisplay | null;
   teamCharacterIds?: string[];
   teamMembers?: LBTeamMemberConfig[];
   teamBuffs?: LBTeamBuffs;
-  /** Board config still refetching: the team belongs to the previous track, so hold the slots as placeholders. */
+  /** Board config still refetching: the team belongs to the previous track, so hold the slots as placeholders */
   teamPending?: boolean;
   activeWeaponId?: string;
   activeTrackKey?: string;
@@ -31,17 +31,18 @@ interface LeaderboardCharacterHeaderProps {
   activeTrackNote?: string;
 }
 
-// Priority order for the buff tooltip; unlisted labels (DMG%, Amplify%, RES PEN%,
-// element-scoped, etc.) sort after these, then alphabetically.
+/** Priority order for the buff tooltip, every other label sorts after these, then alphabetically */
 const BUFF_LABEL_ORDER = [
   'Crit DMG', 'Crit Rate', 'ATK%', 'ATK', 'HP%', 'HP', 'DEF%', 'DEF',
   'DMG Multiplier', 'DEF Ignore', 'DEF Reduction',
 ];
 const FLAT_BUFF_LABELS = new Set(['ATK', 'HP', 'DEF']);
 
-// formatBuffEntries renders a backend buff map (label → value) as ordered
-// { name, value } rows. Labels already carry a "%" where the value is a percent
-// of a stat; everything except flat ATK/HP/DEF is a percent, so append "%".
+/**
+ * Renders a backend buff map (label → value) as ordered { name, value } rows
+ *
+ * - The label's own trailing "%" is stripped, then re-added as the unit for everything but flat ATK/HP/DEF
+ */
 function formatBuffEntries(buffs: Record<string, number>): { name: string; value: string }[] {
   return Object.entries(buffs)
     .sort(([a], [b]) => {
@@ -96,7 +97,7 @@ function LoadoutIconRow({
   );
 }
 
-// Terms that appear in track notes and get an inline tooltip when hovered.
+/** Terms in track notes that get an inline tooltip on hover */
 const NOTE_GLOSSARY: Record<string, React.ReactNode> = {
   'crit fished': (
     <span>
@@ -157,7 +158,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
   } = useGameData();
   const { t } = useLanguage();
 
-  // charId → that support's resolved buff contribution on this board.
+  // charId → that support's resolved buff contribution on this board
   const buffsByCharId = React.useMemo(() => {
     const map = new Map<string, { name: string; value: string }[]>();
     for (const s of teamBuffs?.bySupport ?? []) {
@@ -170,8 +171,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
     [teamBuffs],
   );
 
-  // Wrap a portrait in a buff tooltip; returns the node unchanged when there are
-  // no buffs to show (e.g. solo boards, or a support with no resolved buffs).
+  // Wraps a portrait in a buff tooltip, unchanged when there is nothing to show (solo boards, a support with no buffs)
   const wrapBuffHover = (
     node: React.ReactNode,
     title: string,
@@ -242,10 +242,8 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
     ? teamMembers
     : teamCharacterIds.map((charId) => ({ charId }));
 
-  // Slot geometry for the pending state, read straight off the stale config so it
-  // needs no catalog lookup. Dropping the supports outright made the lead avatar
-  // slide to centre and back on every track switch; holding the slots keeps the
-  // row still while the new board's portraits resolve.
+  // Slot geometry for the pending state, read off the stale config so it needs no catalog lookup
+  // Holding the slots keeps the row still, since dropping the supports slides the lead avatar to centre and back
   const pendingSlots = teamPending
     ? supportConfigs.map((member) => [member.weaponId, member.echoId, member.setId].filter(Boolean).length)
     : [];
@@ -256,9 +254,8 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
     const echo = getEcho(member.echoId ?? null);
     const set = fetters.find((entry) => String(entry.id) === member.setId);
 
-    // Server-resolved fallbacks, so the team row shows real portraits, icons, and
-    // accessible labels on first paint instead of blank boxes and raw ids. The
-    // hover cards still wait for the catalog, since those need rich objects.
+    // Server-resolved fallbacks, so the team row shows real portraits, icons and labels on first paint, not raw ids
+    // Hover cards still wait for the catalog since they need the rich objects
     const charFallback = boardDisplay?.characters[member.charId];
     const weaponFallback = member.weaponId ? boardDisplay?.weapons[member.weaponId] : undefined;
     const echoFallback = member.echoId ? boardDisplay?.echoes[member.echoId] : undefined;
@@ -300,8 +297,7 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
     };
   });
 
-  // Gated on the icon rather than the catalog object, so the server fallback can
-  // render the lead weapon before the client catalog resolves it.
+  // Gated on the icon, not the catalog object, so the server fallback renders the lead weapon before the catalog lands
   const leadLoadoutIcons: LoadoutIcon[] = activeWeaponIcon
     ? [{
       key: 'weapon',

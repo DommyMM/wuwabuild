@@ -5,9 +5,12 @@ import { fetchSimulateRanks, LBSimulateBoard } from '@/lib/lb';
 import type { SavedState } from '@/lib/build';
 import type { EchoPanelState } from '@/lib/echo';
 
-// The slice of editor state the simulate result actually depends on. Level, forte,
-// weapon, and sequence are deliberately excluded: the server normalizes to a fair
-// ceiling and computes every weapon × track, so those never change the ranking.
+/**
+ * Slice of editor state the simulate result depends on
+ *
+ * - Level, forte, weapon and sequence are excluded because the server normalizes to a fair ceiling
+ * - It computes every weapon and track, so none of those move the ranking
+ */
 interface BuildLike {
   characterId: string | null;
   roverElement?: string;
@@ -16,15 +19,15 @@ interface BuildLike {
 }
 
 export interface SimulateRanksState {
-  /** Boards from the most recent successful run (empty until the first run). */
+  /** Boards from the most recent successful run, empty until the first run */
   boards: LBSimulateBoard[];
-  /** A run completed (the response may legitimately be an empty board set). */
+  /** A run completed, though the response may legitimately be an empty board set */
   hasResult: boolean;
   loading: boolean;
   error: boolean;
-  /** The build changed since the last run, so the shown result is out of date. */
+  /** The build changed since the last run, so the shown result is out of date */
   stale: boolean;
-  /** Trigger a simulate for the current build. No-op without a character + echoes. */
+  /** Trigger a simulate for the current build. No-op without a character and echoes. */
   run: () => void;
 }
 
@@ -32,10 +35,10 @@ const signatureOf = (state: BuildLike): string =>
   JSON.stringify({ c: state.characterId ?? '', r: state.roverElement ?? '', e: state.echoPanels });
 
 /**
- * On-demand "where would this build rank" fetch. The caller triggers `run()` (a
- * button), so we never poll the leaderboard on every keystroke. Tracks staleness
- * by comparing the current build signature against the one that produced the last
- * result. Nothing is ever submitted.
+ * On-demand "where would this build rank" fetch, which never submits anything
+ *
+ * - The caller triggers run() from a button, so the leaderboard is not polled on every keystroke
+ * - Staleness compares the current build signature against the one that produced the last result
  */
 export function useSimulateRanks(state: BuildLike, enabled: boolean): SimulateRanksState {
   const [result, setResult] = useState<{ sig: string; boards: LBSimulateBoard[] } | null>(null);
@@ -96,7 +99,7 @@ export function useSimulateRanks(state: BuildLike, enabled: boolean): SimulateRa
     abortRef.current?.abort();
   }, [enabled]);
 
-  // Abort any in-flight request on unmount.
+  // Abort any in-flight request on unmount
   useEffect(() => () => {
     const controller = abortRef.current;
     abortRef.current = null;

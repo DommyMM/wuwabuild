@@ -35,56 +35,50 @@ export interface CDNWeapon {
   icon: { icon: string; iconMiddle: string; iconSmall: string };
   effect: I18nString;
   effectName: I18nString;
-  // Refinement params keyed by placeholder index ("0","1",...).
-  //  Each value is an array of 5 strings (R1–R5), e.g. ["12%","15%","18%","21%","24%"].
-  //  Scaling is NOT uniform, ratios vary per weapon, so all 5 ranks are stored.
+  /**
+   * Refinement values keyed by placeholder index ("0","1",...), e.g. ["12%","15%","18%","21%","24%"]
+   *
+   * - Each array holds R1 to R5 in full since ratios vary per weapon, there is no scaling formula
+   */
   params: Record<string, string[]>;
-  // Precomputed static passive bonuses from the first unconditional sentence of effect.en.
-  // Keyed by stat name, each value is [R1,R2,R3,R4,R5].
+  /** Parsed from the first unconditional sentence of effect.en, each value R1 to R5 */
   unconditionalPassiveBonuses?: WeaponPassiveBonusesByRank;
   stats: {
     first: { attribute: string; value: number };
-    // Substat value format (CDN quirk):
-    //  - isRatio=true:  decimal ratio → multiply by 100 for display  (0.081 → 8.1%)
-    //  - isRatio=false: integer →       divide by 100 for display    (1080  → 10.8%)
+    /** isRatio true means a decimal ratio (0.081 displays as 8.1%), false an integer (1080 displays as 10.8%) */
     second: { attribute: string; name: I18nString; value: number; isRatio: boolean };
   };
 }
 
+/** Weapon as the UI reads it: flat legacy fields plus the CDN-native i18n, icon and passive fields */
 export interface Weapon {
-  // Legacy fields (used by StatsContext, WeaponInfo, WeaponSelector, paths.ts)
   name: string;
   id: string;
   legacyId?: string;
   type: WeaponType;
   rarity: WeaponRarity;
   ATK: number;
-  // Display-ready substat name matching StatsContext expectations:
-  //  "Crit Rate", "Crit DMG", "ATK", "HP", "DEF", "ER"
+  /** One of STAT_NAME_MAP's display names ("Crit Rate", "ATK", "ER", ...), or the raw CDN attribute when unmapped */
   main_stat: string;
-  // Base substat value at lv1 in display-percentage units (e.g. 10.8 for 10.8%).
-  //  Scale with STAT_CURVE for level progression.
+  /** Substat at level 1 in display units, 10.8 meaning 10.8%, scaled by STAT_CURVE for higher levels */
   base_main: number;
 
-  // CDN-native fields (for i18n display, icons, passive details)
   nameI18n?: I18nString;
   cdnId?: number;
   iconUrl?: string;
   rarityColor?: string;
-  // Passive effect template with {0},{1},... placeholders (multilingual)
+  /** Passive text with {0},{1},... placeholders filled from params */
   effect?: I18nString;
-  // Passive ability name (multilingual)
   effectName?: I18nString;
-  // Refinement values per placeholder: params["0"][rank-1] gives the R{rank} value.
-  //  Use directly, no scaling formula needed.
+  /** params["0"][rank - 1] is the R{rank} value, used as-is with no scaling */
   params?: Record<string, string[]>;
-  // Precomputed static passive bonuses (stat -> [R1..R5]) from sync script.
+  /** Stat name to [R1..R5], precomputed by the sync script */
   unconditionalPassiveBonuses?: WeaponPassiveBonusesByRank;
-  // Substat display name (multilingual), e.g. { en: "Crit. DMG", ja: "クリティカルダメージ" }
+  /** CDN's own substat label, which can differ from the normalized main_stat */
   mainStatI18n?: I18nString;
 }
 
-// CDN weapon type.id → WeaponType enum
+/** CDN type.id to WeaponType */
 const WEAPON_TYPE_MAP: Record<number, WeaponType> = {
   1: WeaponType.Broadblade,
   2: WeaponType.Sword,
@@ -93,7 +87,7 @@ const WEAPON_TYPE_MAP: Record<number, WeaponType> = {
   5: WeaponType.Rectifier,
 };
 
-// CDN rarity.id → WeaponRarity display string
+/** CDN rarity.id to the display string */
 const RARITY_MAP: Record<number, WeaponRarity> = {
   1: "1-star",
   2: "2-star",
@@ -102,7 +96,7 @@ const RARITY_MAP: Record<number, WeaponRarity> = {
   5: "5-star",
 };
 
-// CDN stats.second.attribute → display stat name used by StatsContext
+/** CDN stats.second.attribute to the display stat name */
 const STAT_NAME_MAP: Record<string, string> = {
   Atk: "ATK",
   Crit: "Crit Rate",
@@ -115,15 +109,12 @@ const STAT_NAME_MAP: Record<string, string> = {
   EnergyRecover: "ER",
 };
 
-// Convert CDN substat value to display-percentage (e.g. 8.1 for "8.1%").
-//  isRatio=true:  0.081 → 8.1   (multiply by 100)
-//  isRatio=false: 1080  → 10.8  (divide by 100)
+/** Ratios scale up by 100 (0.081 to 8.1), integers down by 100 (1080 to 10.8) */
 function convertStatValue(value: number, isRatio: boolean): number {
   return isRatio ? value * 100 : value / 100;
 }
 
 export const adaptCDNWeapon = (cdn: CDNWeapon): Weapon => ({
-  // Legacy fields
   name: cdn.name.en,
   id: String(cdn.id),
   legacyId: cdn.legacyId,
@@ -132,7 +123,6 @@ export const adaptCDNWeapon = (cdn: CDNWeapon): Weapon => ({
   ATK: cdn.stats.first.value,
   main_stat: STAT_NAME_MAP[cdn.stats.second.attribute] ?? cdn.stats.second.attribute,
   base_main: convertStatValue(cdn.stats.second.value, cdn.stats.second.isRatio),
-  // CDN-native fields
   nameI18n: cdn.name,
   cdnId: cdn.id,
   iconUrl: cdn.icon.icon,

@@ -23,7 +23,6 @@ export const ForteNode: React.FC<ForteNodeProps> = ({
   compact = false,
   className = '',
 }) => {
-  // Look up icon directly from preprocessed CDN forteNodes
   const nodeData = character.forteNodes?.[`${treeKey}.${nodePosition}`];
   const nodeIcon = nodeData?.icon ?? '';
 

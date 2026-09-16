@@ -6,7 +6,7 @@ import { Check, ChevronDown } from 'lucide-react';
 import { RankBoard } from '@/components/card/RankModule';
 import { getRankTier } from '@/lib/calculations/rankTier';
 
-/** Sentinel key meaning "don't show any ranking; use the default forte section instead." */
+/** Sentinel key standing for no ranking at all, which falls back to the default forte section */
 export const NO_RANKING_KEY = '__no_ranking__';
 
 interface AdjustRankingButtonProps {
@@ -54,10 +54,8 @@ const Popover: React.FC<PopoverProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      // Click inside the popover → keep it open.
       if (popoverRef.current?.contains(target)) return;
-      // Click on the trigger button itself → let the button's onClick toggle.
-      // (React synthetic stopPropagation can't stop native bubbling to document.)
+      // Trigger clicks fall to the button's own toggle, since synthetic stopPropagation cannot stop native bubbling
       if (buttonRef.current?.contains(target)) return;
       onClose();
     };
@@ -137,9 +135,7 @@ const Popover: React.FC<PopoverProps> = ({
     );
   };
 
-  // Native-select-style positioning: prefer below the button, but flip above
-  // when there's clearly more room up there. Also clamp horizontally so we
-  // never spill off the right edge of the viewport.
+  // Native-select positioning: below the button, flipping above only when there is clearly more room up there
   const viewportHeight = typeof window === 'undefined' ? 800 : window.innerHeight;
   const viewportWidth = typeof window === 'undefined' ? 1280 : window.innerWidth;
   const spaceBelow = viewportHeight - anchorRect.bottom - VIEWPORT_MARGIN - ANCHOR_GAP;
@@ -149,7 +145,7 @@ const Popover: React.FC<PopoverProps> = ({
 
   const minWidth = Math.max(300, anchorRect.width);
   const maxWidth = Math.min(420, viewportWidth - VIEWPORT_MARGIN * 2);
-  // Clamp left so the popover stays inside the viewport.
+  // Clamped so the popover never spills off either edge of the viewport
   const left = Math.min(
     Math.max(VIEWPORT_MARGIN, anchorRect.left),
     Math.max(VIEWPORT_MARGIN, viewportWidth - minWidth - VIEWPORT_MARGIN),
@@ -176,7 +172,7 @@ const Popover: React.FC<PopoverProps> = ({
       className="font-plus-jakarta flex flex-col overflow-hidden rounded-lg border border-border bg-background-secondary/97 shadow-[0_24px_48px_rgba(0,0,0,0.6)] backdrop-blur-md"
     >
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {/* OG forte, opt out of the rank display reverts*/}
+        {/* Opting out of the rank display reverts the card to its forte section */}
         <button
           role="option"
           aria-selected={isOriginalActive}
@@ -242,12 +238,11 @@ export const AdjustRankingButton: React.FC<AdjustRankingButtonProps> = ({
     setAnchorRect(buttonRef.current.getBoundingClientRect());
   }, [isOpen]);
 
-  // Reposition (not close) as the page scrolls or resizes. Ignore scrolls that
-  // originate inside the popover so the user can scroll the option list.
+  // Scroll and resize reposition rather than close, ignoring scrolls inside the popover so the list stays scrollable
   useEffect(() => {
     if (!isOpen) return;
     const reposition = (event?: Event) => {
-      // `resize` fires with target === window, which isn't a Node, guard before calling contains.
+      // `resize` fires with window as target, which is not a Node, so guard before calling contains
       const target = event?.target;
       if (target instanceof Node && popoverRef.current?.contains(target)) return;
       if (buttonRef.current) {

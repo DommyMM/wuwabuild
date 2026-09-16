@@ -1,7 +1,7 @@
 import { LBEchoMainFilter, LBEchoSetFilter, LBSortDirection, LBSortKey, LBStatThreshold } from '@/lib/lb';
 import { STAT_OPTION_KEYS } from './constants';
 
-// All sort keys that are sortable stats (excludes finalCV, timestamp, characterId, CR, CD)
+/** The sort keys that are stats, so not finalCV, timestamp, characterId, CR or CD */
 export type StatSortKey = (typeof STAT_OPTION_KEYS)[number];
 
 export type QuerySnapshot = {

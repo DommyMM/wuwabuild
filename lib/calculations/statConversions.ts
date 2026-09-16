@@ -1,15 +1,11 @@
 import { StatName } from '@/lib/constants/statMappings';
 
 /**
- * Always-on stat conversions.
+ * An always-on kit clause deriving one panel stat from another, with no trigger, stack or sequence gate
  *
- * A conversion is a kit clause that derives one panel stat from another with no
- * trigger, no stack and no sequence gate: "For every 1000 points of Max HP,
- * Jingran gains 36 additional ATK, up to 1800". The game shows these on the
- * character panel, because a panel is read out of combat and a conversion is
- * already true there. Only conversions whose target is a panel stat belong here. Sigrika's Energy
- * Regen to Echo Skill DMG clause is declared on the lb side alone, because Echo
- * Skill DMG Bonus is not a stat the editor panel displays
+ * - Example: "For every 1000 points of Max HP, Jingran gains 36 additional ATK, up to 1800"
+ * - The game panel carries these because a panel is read out of combat, where a conversion is already true
+ * - Only panel-stat targets belong here, so Sigrika's Energy Regen to Echo Skill DMG lives on the lb side alone
  */
 export interface StatConversion {
   name: string;
@@ -28,7 +24,7 @@ export const CHARACTER_STAT_CONVERSIONS: Record<string, StatConversion[]> = {
   ],
 };
 
-/** The amount one conversion awards for a source value. */
+/** The amount one conversion awards for a source value */
 export const statConversionGrant = (conversion: StatConversion, from: number): number => {
   if (conversion.per <= 0) return 0;
   const excess = from - (conversion.floor ?? 0);
@@ -40,14 +36,11 @@ export const statConversionGrant = (conversion: StatConversion, from: number): n
 const BASE_STAT_TARGETS = new Set<StatName>(['HP', 'ATK', 'DEF']);
 
 /**
- * Adds every conversion a character declares on top of a finished panel.
+ * Adds every conversion a character declares on top of a finished panel
  *
- * Runs as one pass after all stats are resolved, reading sources from `values`
- * as they stood before any conversion applied, so two clauses off the same
- * source (Jingran's are both off Max HP) do not depend on declaration order.
- * `values` and `updates` are mutated in place; `updates` is the "from gear"
- * delta the editor shows next to each stat, and a conversion belongs in it for
- * the same reason it belongs on the panel.
+ * - One pass after all stats resolve, reading sources from `values` as they stood before any conversion applied
+ * - Jingran's two clauses both read Max HP, so declaration order must not change the result
+ * - Mutates `values` and `updates` in place, `updates` being the from-gear delta the editor shows next to each stat
  */
 export const applyStatConversions = (
   characterId: string | undefined,

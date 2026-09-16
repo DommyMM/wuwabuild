@@ -30,14 +30,13 @@ function findByName<T extends { name: string }>(name: string, list: T[]): T | nu
 function shouldApplyWeaponFallback(data: AnalysisData, characterId: string): boolean {
   if (!IMPORT_WEAPON_FALLBACKS[characterId]) return false;
 
-  // The OCR backend reports an unreadable weapon as empty (blank name and id).
+  // The OCR backend reports an unreadable weapon as empty (blank name and id)
   const rawName = data.weapon?.name?.trim() ?? '';
   const rawId = data.weapon?.id?.trim() ?? '';
   return !rawName && !rawId;
 }
 
-// The weapon the import will actually submit for this character, when OCR
-// couldn't read it (empty name/id). Returns null when the OCR weapon should stand
+/** Weapon the import submits when OCR could not read one, null when the OCR weapon should stand */
 export function resolveImportWeaponFallback(
   data: AnalysisData,
   characterId: string | null,
@@ -69,7 +68,6 @@ export function convertAnalysisToSavedState(
 ): SavedState {
   const { characters, weapons } = args;
 
-  // Character
   const rawName = data.character?.name ?? '';
   const ocrCharacterId = data.character?.id ?? null;
   const { isRover, gender, roverElement, baseName } = parseRoverInfo(rawName, data.character?.element);
@@ -80,8 +78,7 @@ export function convertAnalysisToSavedState(
   if (ocrCharacterId && characters.some(c => c.id === ocrCharacterId)) {
     const character = characters.find(c => c.id === ocrCharacterId);
     if (character?.name.startsWith('Rover')) {
-      // Re-pair the OCR id with the reported element within the same gender, so
-      // a mismatched id + element never reaches the saved state.
+      // Re-pair the id with the reported element inside the same gender, so a mismatched pair never reaches saved state
       roverElementState = roverElement ?? character.roverElementName;
       characterId = findRoverVariant(characters, {
         element: roverElementState,
@@ -100,7 +97,6 @@ export function convertAnalysisToSavedState(
 
   const characterLevel = data.character?.level ?? 90;
 
-  // Weapon
   let weaponId: string | null = null;
   const weaponLevel = data.weapon?.level ?? 90;
   const ocrWeaponId = data.weapon?.id ?? null;
@@ -120,22 +116,19 @@ export function convertAnalysisToSavedState(
     weaponId = IMPORT_WEAPON_FALLBACKS[characterId].id;
   }
 
-  // Forte
-  // card.py order: levels[0]=normal, levels[1]=skill, levels[2]=circuit, levels[3]=intro, levels[4]=lib
-  // Rewrite column order: col0=normal, col1=skill, col2=circuit, col3=liberation, col4=intro
+  // OCR levels run normal, skill, circuit, intro, liberation
+  // Forte columns run normal, skill, circuit, liberation, intro, so the last two swap
   const levels = data.forte?.levels ?? [];
   const forte: ForteState = [
-    [levels[0] || 10, true, true],  // col0 normal-attack = levels[0]
-    [levels[1] || 10, true, true],  // col1 skill         = levels[1]
-    [levels[2] || 10, true, true],  // col2 circuit       = levels[2]
-    [levels[4] || 10, true, true],  // col3 liberation    = levels[4] ← swap
-    [levels[3] || 10, true, true],  // col4 intro         = levels[3] ← swap
+    [levels[0] || 10, true, true],
+    [levels[1] || 10, true, true],
+    [levels[2] || 10, true, true],
+    [levels[4] || 10, true, true],
+    [levels[3] || 10, true, true],
   ];
 
-  // Sequence
   const sequence = data.sequences?.sequence ?? 0;
 
-  // Echoes
   const echoKeys = ['echo1', 'echo2', 'echo3', 'echo4', 'echo5'] as const;
   const echoPanels: EchoPanelState[] = echoKeys.map(k => {
     const echoData = data[k];
@@ -143,7 +136,6 @@ export function convertAnalysisToSavedState(
     return matchEchoData(echoData, args) ?? createDefaultEchoPanelState();
   });
 
-  // Watermark
   const watermark = {
     username: data.watermark?.username ?? '',
     uid: String(data.watermark?.uid ?? ''),

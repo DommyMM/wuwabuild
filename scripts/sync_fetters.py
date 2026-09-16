@@ -1,12 +1,10 @@
-"""
-Sync fetter data to public/Data/Fetters.json.
+"""Sync fetter data to public/Data/Fetters.json.
 
-Fetches PhantomFetters.json, PhantomFetterGroups.json, and ConfigDBParsed/PhantomFetter.json,
-then merges them into one file keyed by FetterGroup ID (the same IDs used in Echo.fetter arrays).
+Merges PhantomFetters.json, PhantomFetterGroups.json and ConfigDBParsed/PhantomFetter.json into one file,
+keyed by FetterGroup ID (the same IDs used in Echo.fetter arrays).
 
-The smallest piece-count tier is still exposed in top-level fields for backward
-compatibility (2-piece for most sets, 3-piece for 3-piece-only sets), and all
-    available tiers are also exposed under `pieceEffects` (for example 1, 2, 3, or 5).
+Top-level fields still carry the smallest piece-count tier, 2 for most sets and 3 for 3-piece-only ones.
+Every available tier also appears under `pieceEffects` (1, 2, 3 or 5).
 
 Output shape per entry:
   {
@@ -25,7 +23,7 @@ Output shape per entry:
       "5": { "pieceCount": 5, "fetterId": ..., "addProp": [...], "buffIds": [...], "effectDescription": {...}, "effectDescriptionParam": [...] }
     },
     "pieceEffects[tier].displayBonuses": [{ "stat": "Crit Rate", "value": 20, "requires": ["1109"] }],
-                                     -- optional; panel-visible clauses from DISPLAY_BONUSES below
+                                     -- optional, panel-visible clauses from DISPLAY_BONUSES below
     "fetterIcon": "https://...",
     "effectDefineDescription": { "en": ..., ... }  -- lore text
   }
@@ -55,44 +53,16 @@ FETTERS_CONFIG_URL = f"{CDN_BASE}/d/GameData/ConfigDBParsed/PhantomFetter.json"
 OUTPUT = Path(__file__).parent.parent / "public/Data/Fetters.json"
 
 
-# --- Panel-visible set clauses -------------------------------------------------
-#
-# A sonata set's 2-piece tier is a bare stat line, so it lands in `addProp` and
-# both the leaderboard columns and the build editor already show it. Every 3- and
-# 5-piece clause instead lives in free text, and the overwhelming majority of them
-# require an in-combat action (casting, dealing, inflicting, gaining a shield,
-# healing). Those correctly stay out of a static stat panel and are modelled only
-# by the damage engine.
-#
-# A handful do not require anything. Those are listed here so the panel shows the
-# number a player actually plays with. Two filters decide membership:
-#
-#   1. The clause's condition is not an action. Either it has no condition at all,
-#      or the condition is a permanent property of the wearer.
-#   2. The stat exists in the panel. HP/ATK/DEF(+%), Crit Rate, Crit DMG, Energy
-#      Regen, the six elemental DMG, Basic/Heavy/Resonance Skill/Resonance
-#      Liberation DMG Bonus, Healing Bonus. This is the same list the in-game
-#      character attribute screen shows, so Echo Skill / Outro Skill / Coordinated
-#      Attack DMG clauses are deliberately absent: they have nowhere to display.
-#
-# This table is hand-authored on purpose. Deriving it from the parsed trigger
-# field does not work: of the eight 3pc/5pc clauses that parse with an empty
-# trigger, five are triggers the parser dropped (Eternal Radiance "Attacking
-# enemies inflicted with 10 stacks...", Law of Harmony "Additionally...", Rite of
-# Gilded Revelation "With 3 stacks, casting Resonance Liberation...", Wishes of
-# Quiet Snowfall's Snowfall bullet, Lamp of Nether Road "At max stacks..."). An
-# automatic rule would surface four phantom bonuses. Anaphora, aggregation
-# conditions and bullet-list structure are not reliably parseable, the same reason
-# move typing stays hand-authored.
-#
-# `requires` is a list of character IDs when the clause is unconditional only for
-# specific characters, or None when it is unconditional for everyone. Keeping the
-# gate here rather than in each consumer means the frontend needs no concept of
-# max Resonance Energy; lb asserts this list against its own engine-side gate.
-#
-# Values are duplicated from the set text rather than derived, and lb's
-# TestEchoSetDisplayBonusesMatchEngine asserts each one still matches the parsed
-# effect it came from, so a CDN value change cannot silently desync the two.
+# Set clauses the character panel can show, hand-authored
+# A 2-piece tier is a bare stat line that lands in `addProp`, so the board columns and the editor already have it
+# Almost every 3pc and 5pc clause needs an in-combat action and belongs to the damage engine, not a static panel
+# Listed here are the few that need nothing: no condition or a permanent wearer property, and a stat the panel has
+# Echo Skill, Outro Skill and Coordinated Attack DMG clauses are absent because the panel has nowhere to show them
+# Deriving it from the parsed trigger surfaces four phantom bonuses, five of eight empty triggers being dropped ones
+# Anaphora, aggregation conditions and bullet lists do not parse, the same reason move typing stays hand-authored
+# `requires` lists the character IDs a clause is unconditional for, None when it holds for everyone
+# Gating here keeps max Resonance Energy out of the frontend, and lb asserts this list against its engine-side gate
+# lb's TestEchoSetDisplayBonusesMatchEngine rechecks each copied value against the parsed effect it came from
 DISPLAY_BONUSES: dict[int, list[dict]] = {
     14: [
         {
@@ -105,9 +75,7 @@ DISPLAY_BONUSES: dict[int, list[dict]] = {
     ],
     19: [
         {
-            # Lucilla (1109) "holds up to 0 Resonance Energy" and Phrolova (1608)
-            # has "max Resonance Energy is 0", so the condition is permanently
-            # true for them and never durably true for anyone else.
+            # Lucilla (1109) and Phrolova (1608) cap at 0 Resonance Energy, so only for them is it always true
             "tier": "3",
             "stat": "Crit Rate",
             "value": 20,
@@ -140,7 +108,7 @@ def normalise_prop(prop: dict) -> dict:
     """Normalise an addProp entry: camelCase keys, value as percentage if a ratio."""
     raw_value = pick(prop, "value", "Value")
     is_ratio = bool(pick(prop, "isRatio", "IsRatio", default=False))
-    # CDN stores ratios as e.g. 0.1 (= 10%), multiply to get human-readable %
+    # CDN stores a ratio as 0.1 for 10%, and a flat value at ten times its real size
     value = round(raw_value * 100, 4) if is_ratio else raw_value / 10
     return {
         "id":      pick(prop, "id", "Id"),
@@ -168,11 +136,8 @@ def build_piece_effect(piece_count: int, fetter: dict, config_fetter: dict | Non
 def fetch_and_build(session: "requests.Session | None" = None) -> list[dict]:
     """Fetch the three localization-index files and build the Fetters.json list.
 
-    Exposed so the Encore pipeline (`sync_encore.py`) can reuse Wuthery's
-    structured fetter data: Encore's echo FetterGroups carry the set bonus only
-    as free text, with no structured AddProp/pieceCount, so the 2pc/3pc damage
-    bonuses must come from this localization index. It is a small, reliable
-    3-file fetch (not the flaky large-parallel pattern Encore otherwise avoids).
+    Encore's echo FetterGroups carry the set bonus as free text with no AddProp or pieceCount
+    So `sync_encore.py` reuses this instead, a small 3-file fetch rather than the parallel pattern it avoids
     """
     session = session or requests.Session()
 
@@ -198,7 +163,6 @@ def fetch_and_build(session: "requests.Session | None" = None) -> list[dict]:
         raise ValueError("Unexpected PhantomFetter config payload; expected a list")
     print(f"  {len(fetters_config_raw)} config fetter entries")
 
-    # Index individual fetter entries by their Id
     fetters_by_id: dict[int, dict] = {pick(f, "id", "Id"): f for f in fetters_raw}
     config_fetters_by_id: dict[int, dict] = {
         int(pick(f, "id", "Id")): f for f in fetters_config_raw
@@ -214,7 +178,7 @@ def fetch_and_build(session: "requests.Session | None" = None) -> list[dict]:
         color      = pick(group, "fetterElementColor", "FetterElementColor", default="")
         name       = pick(group, "fetterGroupName", "FetterGroupName")
 
-        # Pick the smallest piece count (2 for standard sets, 3 for 3-piece-only)
+        # Smallest piece count is 2 for standard sets, 3 for 3-piece-only ones
         sorted_keys = sorted(fetter_map.keys(), key=int)
         piece_count_str = sorted_keys[0]
         fetter_id = fetter_map[piece_count_str]
@@ -224,7 +188,6 @@ def fetch_and_build(session: "requests.Session | None" = None) -> list[dict]:
             print(f"  WARNING: fetter id {fetter_id} not found for group {group_id}")
             continue
 
-        # Build all available piece tiers (e.g. 2+5, or 3-only).
         piece_effects: dict[str, dict] = {}
         for key in sorted_keys:
             fid = fetter_map[key]
@@ -238,7 +201,7 @@ def fetch_and_build(session: "requests.Session | None" = None) -> list[dict]:
             if declared:
                 piece_effects[key]["displayBonuses"] = declared
 
-        # Lore text is consistent across pieces, take from primary entry.
+        # Lore text is the same across tiers, so take the primary entry's
         lore = pick(fetter, "effectDefineDescription", "EffectDefineDescription", default={})
         primary_config_fetter = config_fetters_by_id.get(int(fetter_id))
         primary_effect = piece_effects.get(piece_count_str, build_piece_effect(int(piece_count_str), fetter, primary_config_fetter))
@@ -262,8 +225,7 @@ def fetch_and_build(session: "requests.Session | None" = None) -> list[dict]:
 
     output.sort(key=lambda e: e["id"])
 
-    # A typo in DISPLAY_BONUSES would otherwise drop a clause silently, and the
-    # panel would quietly go back to under-reporting the stat.
+    # A typo in DISPLAY_BONUSES would drop a clause silently and the panel would go back to under-reporting
     emitted = {
         (entry["id"], tier)
         for entry in output

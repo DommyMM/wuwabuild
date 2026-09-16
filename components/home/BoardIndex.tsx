@@ -6,13 +6,13 @@ interface BoardIndexProps {
     records: HomeBoardRecord[];
 }
 
-// 9 rows at 60px lines this column up with the NewsLog window (max-h-[544px]) next door.
+/** 9 rows at 60px line this column up with the 544px NewsLog window next door */
 const VISIBLE_BOARDS = 9;
 
 /**
- * The most contested boards at a glance, one per character so the list shows
- * breadth instead of sequence variants. Per character: most entries, then the
- * base sequence, then the bigger record.
+ * The most contested boards at a glance, one per character so the list shows breadth, not sequence variants
+ *
+ * - Within a character: most entries, then the base sequence, then the bigger record
  */
 export function BoardIndex({ records }: BoardIndexProps) {
     const sorted = [...records].sort((a, b) =>

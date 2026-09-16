@@ -1,28 +1,22 @@
-# Frontend Docs Hub
+# Frontend Docs
 
-This folder is the intermediate knowledge layer between `AGENTS.md` and code files for the frontend repo.
+The layer between `AGENTS.md` and the code. `AGENTS.md` says where a thing lives, these say how it behaves
+and why. Code stays the final source of truth.
 
-Use it when:
-- `AGENTS.md` tells you where to go, but you need behavior context first.
-- You want invariants, data flow, and ops notes before editing code.
+| Doc | Covers |
+| --- | --- |
+| `leaderboards.md` | Fetch, cache, query state, rank and dedup, the profile surface |
+| `build-expansion.md` | The panel under a build row: move breakdown, benchmark, stat comparison |
+| `build-card.md` | The build card and its rank module |
+| `editor-and-state.md` | Provider boundaries and editor state flow |
+| `data-pipeline.md` | OCR import flow, sync scripts, image mirror |
+| `sync-sources.md` | Why Wuthery is the default source and what Encore is for |
+| `domain-glossary.md` | Terms shared with the leaderboard service |
+| `design-brief.md` | Visual identity and the rules a change holds to |
+| `design-debt.md` | Defects still in the code |
+| `seo.md` | What the site optimizes for and what is open |
+| `posthog.md` | Analytics conventions and dashboard intent |
 
-## Read Order
+Per-script sync flags live in `../scripts/CDN_SYNC.md`.
 
-1. `../AGENTS.md`
-2. `leaderboards.md`
-3. `editor-and-state.md`
-4. `data-pipeline.md`
-5. `sync-sources.md`
-6. `posthog.md`
-7. `domain-glossary.md`
-
-Topical companions (read when working on the relevant surface):
-
-- `build-card.md` — profile card / rank module spec and shipped phase 1 wiring
-- `design-brief.md` — visual identity, palette, and home page redesign brief
-
-## Principle
-
-Keep `AGENTS.md` concise routing.
-Keep `docs/` explanatory and query-friendly.
-Keep code as final source of truth.
+Start with `leaderboards.md` and `editor-and-state.md`, which cover the two surfaces most work touches.

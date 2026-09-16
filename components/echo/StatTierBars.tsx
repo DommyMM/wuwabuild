@@ -8,7 +8,7 @@ export function formatStatRoll(value: number, isPercent: boolean): string {
   return isPercent ? `${Number(value).toFixed(1)}%` : String(Math.round(Number(value)));
 }
 
-// A label/value pair used inside hover tooltip bodies on the echo panels.
+/** A label and value pair for hover tooltip bodies on the echo panels */
 export const StatHoverRow: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className="flex items-baseline justify-between gap-4">
     <span className="text-2xs uppercase tracking-[0.1em] text-white/55">{label}</span>
@@ -16,7 +16,7 @@ export const StatHoverRow: React.FC<{ label: string; children: React.ReactNode }
   </div>
 );
 
-// Discrete bar of every possible roll for a substat, tinted by quality tier
+/** Discrete bar of every possible roll for a substat, tinted by quality tier */
 export const SubstatRollBar: React.FC<{
   rollValues: number[];
   currentValue: number;
@@ -77,7 +77,7 @@ export const SubstatRollBar: React.FC<{
   );
 };
 
-// Segment strip of the shared quality-tier ladder
+/** Segment strip of the shared quality-tier ladder */
 export const TierLadder: React.FC<{ currentLabel: string }> = ({ currentLabel }) => {
   const tiers = QUALITY_TIERS.slice().reverse(); // low -> high
   const currentIndex = tiers.findIndex((tier) => tier.label === currentLabel);
@@ -103,7 +103,7 @@ export const TierLadder: React.FC<{ currentLabel: string }> = ({ currentLabel })
   );
 };
 
-// A value plotted on the ladder with the value text floated over the landed tier
+/** A value plotted on the ladder, its text floated over the landed tier */
 export const QualityTierBar: React.FC<{ currentLabel: string; valueText: string }> = ({ currentLabel, valueText }) => {
   const tiers = QUALITY_TIERS.slice().reverse(); // low -> high
   const currentIndex = tiers.findIndex((tier) => tier.label === currentLabel);
@@ -133,7 +133,7 @@ export const QualityTierBar: React.FC<{ currentLabel: string; valueText: string 
   );
 };
 
-// Echo CV plotted on its quality-tier ladder; the build's tier is enlarged.
+/** Echo CV plotted on its quality-tier ladder, with the build's own tier enlarged */
 export const EchoCVBar: React.FC<{ cv: number }> = ({ cv }) => (
   <QualityTierBar currentLabel={getEchoCVTierStyle(cv).label} valueText={cv.toFixed(1)} />
 );
