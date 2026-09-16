@@ -151,7 +151,7 @@ export const ActiveSetsSection: React.FC<ActiveSetsSectionProps> = ({
           ? isOnePieceSet
             ? 'justify-center gap-1 rounded-lg px-1.5 py-1'
             : 'justify-center gap-1.5 rounded-lg px-2 py-1'
-          : 'gap-2 rounded-xl px-2 py-1';
+          : 'gap-1.5 rounded-xl px-2 py-1';
         const trigger = (
           <div
             className={`flex min-h-8 w-full min-w-0 items-center bg-black/35 transition-[background-color,box-shadow,filter,opacity,transform] duration-200 ${triggerLayoutClass} ${interactionClass}`}
