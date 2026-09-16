@@ -11,8 +11,12 @@ Three nested layers, each mounted by a different boundary:
   route including the static legal pages
 - `ToolProviders` (`app/(game)/layout.tsx`) holds `GameDataProvider`, `ToastProvider` and
   `GameDataLoadingGate`, so the game-data JSON loads once per session for tool routes only
-- `EditorProviders` holds `BuildProvider` and `StatsProvider`, mounted by `/edit`, `/characters/[id]`,
-  `/weapons/[id]` and profile expanded cards
+- `EditorProviders` holds `BuildProvider` and `StatsProvider`, and `/edit` is its only mount
+
+`/characters/[id]` and `/weapons/[id]` are server-rendered dossiers, so `ToolProviders` returns children
+untouched for them (`isServerRenderedDossierPath`) and they mount no game-data or build state at all. That
+check is a `usePathname()` branch, so it stops the providers mounting but cannot stop the provider graph
+shipping, since the imports are static.
 
 `GameDataLoadingGate` always renders children so server-rendered HTML reaches crawlers, and shows a
 non-blocking error banner on load failure rather than a loading state. Because of that, anything
@@ -41,9 +45,9 @@ offering leaderboard, profile and editor destinations instead of redirecting int
 
 ## Route shapes
 
-`/edit`, `/characters/[id]` and `/weapons/[id]` use `EditorProviders` and persist draft edits locally.
-Expanded cards on `/profile/[uid]` wrap leaderboard builds in `BuildProvider` and `StatsProvider` with
-draft persistence explicitly disabled.
+`/edit` uses `EditorProviders` and persists draft edits locally. Profile cards mount `BuildProvider` and
+`StatsProvider` directly rather than through `EditorProviders`, with `persistDraft={false}`, so a read-only
+render never touches the draft key.
 
 ## Constraints
 

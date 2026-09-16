@@ -16,7 +16,7 @@ direct or in-app, so they are not organic surfaces and should not be tuned as th
 ## Crawlability
 
 Server-rendered content has to reach crawlers. Every `(game)` route was once wrapped in a gate that rendered
-a loading placeholder until a client-side fetch of about 7.7 MB of JSON finished, so the initial HTML served
+a loading placeholder until a client-side fetch of the whole game-data payload finished, so the initial HTML served
 to crawlers was the placeholder rather than the page, silently undercutting every per-character and
 per-weapon page despite their server-rendered content, H1s, breadcrumbs and JSON-LD.
 
@@ -30,7 +30,7 @@ and `/changelog`. `app/robots.ts` sits beside it.
 
 ## Client data payload
 
-`Characters.json` is about 6.5 MB of the roughly 7.7 MB across the eight game-data JSON files, and the global
+`Characters.json` is 9.2 MB of the 12 MB across the game-data JSON files, and the global
 provider fetches and parses it client-side.
 
 `/edit` and `/leaderboards` genuinely need the full dataset for hover tooltips and live recalculation, so
