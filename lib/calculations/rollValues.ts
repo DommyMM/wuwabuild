@@ -87,7 +87,12 @@ export function calculateEchoRV(
   return (sum / 5) * 100;
 }
 
-/** Quality of the selected stat types that actually rolled, where full-sheet RV averages all five lines */
+/**
+ * Mean quality of the selected stat types that actually rolled, where full-sheet RV averages all five lines
+ *
+ * - Weighted by roll count, so callers printing `rolls × this` get the true sum of roll qualities
+ * - An unweighted mean gave two builds with the same rolls but opposite distributions the same figure
+ */
 export function calculateSelectedStatsRV(
   selectedSubstats: Map<string, { total: number; count: number }>,
   getSubstatValues: (stat: string) => number[] | null,
@@ -95,17 +100,17 @@ export function calculateSelectedStatsRV(
   if (selectedSubstats.size === 0) return 0;
 
   let sumStatQuality = 0;
-  let validStatCount = 0;
+  let validRollCount = 0;
 
   for (const [statType, { total, count }] of selectedSubstats.entries()) {
     if (count === 0) continue;
     const quality = calculateSubstatQuality(statType, total / count, getSubstatValues);
     if (quality === 0) continue;
-    sumStatQuality += quality;
-    validStatCount += 1;
+    sumStatQuality += quality * count;
+    validRollCount += count;
   }
 
-  return validStatCount === 0 ? 0 : (sumStatQuality / validStatCount) * 100;
+  return validRollCount === 0 ? 0 : (sumStatQuality / validRollCount) * 100;
 }
 
 export const DEFAULT_PREFERRED_STATS = ['Crit Rate', 'Crit DMG', 'Energy Regen'];
