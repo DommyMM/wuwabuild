@@ -367,6 +367,8 @@ export function ImportPageClient() {
         getEcho: gameData.getEcho,
         getMainStatsByCost: gameData.getMainStatsByCost,
         getSubstatValues: gameData.getSubstatValues,
+        ocrEchoPresent: [analysisData.echo1, analysisData.echo2, analysisData.echo3, analysisData.echo4, analysisData.echo5]
+          .map((echo) => Boolean(echo)),
       });
       if (violations.length > 0) {
         const detail = violations[0];

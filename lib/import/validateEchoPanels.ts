@@ -6,6 +6,7 @@ interface ValidateImportedEchoPanelsArgs {
   getEcho: (id: string | null) => Echo | null;
   getMainStatsByCost: (cost: number | null) => { [statName: string]: [number, number] };
   getSubstatValues: (stat: string) => number[] | null;
+  ocrEchoPresent?: readonly boolean[];
 }
 
 function isCloseToAllowedRoll(value: number, allowedValues: number[]): boolean {
@@ -17,11 +18,18 @@ export function validateImportedEchoPanels({
   getEcho,
   getMainStatsByCost,
   getSubstatValues,
+  ocrEchoPresent,
 }: ValidateImportedEchoPanelsArgs): string[] {
   const violations: string[] = [];
 
   echoPanels.forEach((panel, index) => {
-    if (!panel.id) return;
+    // A slot OCR read but matching could not resolve arrives as an empty panel, which would upload silently
+    if (!panel.id) {
+      if (ocrEchoPresent?.[index]) {
+        violations.push(`Echo ${index + 1}: could not be matched to a known echo, so it would upload empty.`);
+      }
+      return;
+    }
 
     const echo = getEcho(panel.id);
     if (!echo) {
