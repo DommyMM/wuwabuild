@@ -4,8 +4,9 @@ import { REGION_BADGES, RegionBadge } from './constants';
 // Re-exported under its old name for the leaderboard components that reach for it here
 export { getLBSortLabel as getSortLabel } from '@/lib/lb';
 
+/** Rounded, thousands-separated flat stat, the one home for HP, ATK and DEF figures on every surface */
 export function formatFlatStat(value: number): string {
-  return Number(value).toFixed(0);
+  return Math.round(Number(value)).toLocaleString();
 }
 
 /** Rounded, thousands-separated score or damage figure */

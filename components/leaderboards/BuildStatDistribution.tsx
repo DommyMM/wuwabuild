@@ -6,8 +6,9 @@ import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { HoverTooltip } from '@/components/ui/HoverTooltip';
 import { useGameData } from '@/contexts/GameDataContext';
 import { LanguageCode, useLanguage } from '@/contexts/LanguageContext';
-import { getLBStatCode, getLBStatLabel, interpolatePercentile, isLBPercentStatSortKey, LBBoardDistribution, LBBuildDetailEntry, LBDistributionAxis, LBDistributionCohort, LBStatSortKey } from '@/lib/lb';
+import { getLBStatCode, getLBStatLabel, interpolatePercentile, LBBoardDistribution, LBBuildDetailEntry, LBDistributionAxis, LBDistributionCohort, LBStatSortKey } from '@/lib/lb';
 import { LB_EXPANDED_OPAQUE_SURFACE, STATUS_NEUTRAL_COLOR } from './constants';
+import { formatStatByKey } from './formatters';
 
 const YOU_STROKE = 'var(--color-accent-hover)';
 const YOU_FILL = 'color-mix(in srgb, var(--color-accent) 24%, transparent)';
@@ -176,7 +177,7 @@ function medianLabel(cohortKey: string, cohortLabel: string): string {
 
 function formatStat(key: LBStatSortKey, value: number): string {
   if (!Number.isFinite(value)) return '—';
-  return isLBPercentStatSortKey(key) ? `${value.toFixed(1)}%` : Math.round(value).toLocaleString();
+  return formatStatByKey(key, value);
 }
 
 /**
