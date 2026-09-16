@@ -47,16 +47,32 @@ function findWeaponById(id: string): WeaponRecord | undefined {
     return loadWeapons().find((weapon) => weapon.id != null && weapon.id.toString() === id);
 }
 
-function loadCharactersForWeaponType(weaponType: string): CDNCharacter[] {
+/**
+ * The three fields the weapon page renders per matching resonator
+ *
+ * - Passing whole CDNCharacter records serialized moves and chains into the RSC payload, 3.7 MB a page
+ */
+interface MatchingCharacter {
+    id: CDNCharacter['id'];
+    name: CDNCharacter['name'];
+    icon?: { iconRound?: string };
+}
+
+function loadCharactersForWeaponType(weaponType: string): MatchingCharacter[] {
     const dataDir = path.join(process.cwd(), 'public', 'Data');
     const charPath = path.join(dataDir, 'Characters.json');
     if (!fs.existsSync(charPath)) return [];
 
     const charsData = JSON.parse(fs.readFileSync(charPath, 'utf8')) as Record<string, unknown>;
-    return Object.values(charsData).filter((c: unknown) => {
-        const char = c as { weapon?: { name?: { en?: string } }, weaponType?: string };
-        return char.weapon?.name?.en === weaponType || char.weaponType === weaponType;
-    }) as CDNCharacter[];
+    return Object.values(charsData)
+        .filter((c: unknown) => {
+            const char = c as { weapon?: { name?: { en?: string } }, weaponType?: string };
+            return char.weapon?.name?.en === weaponType || char.weaponType === weaponType;
+        })
+        .map((c) => {
+            const char = c as CDNCharacter & { icon?: { iconRound?: string } };
+            return { id: char.id, name: char.name, icon: { iconRound: char.icon?.iconRound } };
+        });
 }
 
 function getI18nText(val: unknown): string {
@@ -134,7 +150,7 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
     if (!weaponInfo) notFound();
     let wepName = '';
     let typeName = '';
-    let matchingCharacters: CDNCharacter[] = [];
+    let matchingCharacters: MatchingCharacter[] = [];
 
     if (weaponInfo) {
         wepName = weaponInfo.name?.en || '';
