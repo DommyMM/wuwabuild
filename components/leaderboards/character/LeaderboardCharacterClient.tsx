@@ -724,6 +724,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 }}
                 scoring={scoring}
                 onSelectScoring={(mode) => {
+                  if (mode === scoring) return;
                   posthog.capture('leaderboard_tab_change', {
                     character_id: characterId,
                     weapon_id: weaponId || null,

@@ -42,7 +42,7 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
   const bonus2Icon = character.forteNodes?.['tree2.top']?.icon ?? '';
 
   // Every forte bonus is a percentage, so the type is never consulted
-  const formatBonus = (type: string, value: number) => {
+  const formatBonus = (value: number) => {
     if (value === 0) return `+0%`;
     return `+${value.toFixed(1)}%`;
   };
@@ -73,12 +73,12 @@ export const ForteGroup: React.FC<ForteGroupProps> = ({
         <span className={`flex items-center gap-1.5 rounded-md border border-border bg-background ${compact ? 'px-1.5 py-0.5' : 'px-2 py-1'}`}>
           <img src={bonus1Icon} alt={bonus1Type} className="h-4 w-4 object-contain" />
           <span className="text-text-primary/60">{bonus1Type}</span>
-          <span className="font-semibold text-accent">{formatBonus(bonus1Type, bonus1Total)}</span>
+          <span className="font-semibold text-accent">{formatBonus(bonus1Total)}</span>
         </span>
         <span className={`flex items-center gap-1.5 rounded-md border border-border bg-background ${compact ? 'px-1.5 py-0.5' : 'px-2 py-1'}`}>
           <img src={bonus2Icon} alt={`${character.Bonus2}%`} className="h-4 w-4 object-contain" />
           <span className="text-text-primary/60">{character.Bonus2}%</span>
-          <span className="font-semibold text-accent">{formatBonus(character.Bonus2, bonus2Total)}</span>
+          <span className="font-semibold text-accent">{formatBonus(bonus2Total)}</span>
         </span>
       </div>
 
