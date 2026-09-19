@@ -7,6 +7,10 @@ import { notFound } from 'next/navigation';
 import { CDNCharacter } from '@/lib/character';
 import { WeaponReferenceSections } from './WeaponReferenceSections';
 
+// Rendered on demand and cached per id, not prerendered
+// 122 weapon pages drew 432 views last quarter, so seeding them all cost build time for traffic that never came
+export const revalidate = 86400;
+
 type WeaponRecord = {
     id?: string | number;
     name?: { en?: string };
@@ -112,10 +116,10 @@ function CompactStat({
     );
 }
 
-export async function generateStaticParams() {
-    return loadWeapons()
-        .filter((weapon): weapon is WeaponRecord & { id: string | number } => weapon.id != null)
-        .map((weapon) => ({ id: weapon.id.toString() }));
+// Registers the route as prerenderable without seeding any path, so a dossier renders once on first
+// request and is then ISR-cached. Dropping this entirely makes every hit an uncached function instead.
+export async function generateStaticParams(): Promise<{ id: string }[]> {
+    return [];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {

@@ -11,7 +11,7 @@ import { getLeaderboardInsight, formatInsightProse } from '@/lib/server/leaderbo
 import { CharacterReferenceSections } from './CharacterReferenceSections';
 
 // Leaderboard insight prose is data-driven and shifts as builds land, so it regenerates daily
-// The page itself is force-static by the (game) layout default
+// Rendered on demand and cached per id, not prerendered, since the dossiers draw under 0.5% of traffic
 export const revalidate = 86400;
 
 type GenericDict = Record<string, unknown>;
@@ -75,16 +75,9 @@ function CompactStat({
     );
 }
 
-export async function generateStaticParams() {
-    const dataDir = path.join(process.cwd(), 'public', 'Data');
-    const charPath = path.join(dataDir, 'Characters.json');
-
-    if (fs.existsSync(charPath)) {
-        const charsData = JSON.parse(fs.readFileSync(charPath, 'utf8')) as GenericDict;
-        return Object.values(charsData).map((char: unknown) => ({
-            id: (char as { id?: string | number }).id?.toString(),
-        })).filter(c => c.id);
-    }
+// Registers the route as prerenderable without seeding any path, so a dossier renders once on first
+// request and is then ISR-cached. Dropping this entirely makes every hit an uncached function instead.
+export async function generateStaticParams(): Promise<{ id: string }[]> {
     return [];
 }
 
