@@ -82,8 +82,8 @@ export function PrivacyPage() {
             <section>
                 <h2 className="text-text-primary font-semibold text-base mt-8 mb-2">Third-party services</h2>
                 <p className="text-text-primary/70 text-sm leading-relaxed">
-                    The Service uses Cloudflare (CDN and R2 storage) and Vercel (hosting). Analytics may be provided
-                    by Google Analytics or PostHog. These services operate under their own privacy policies. We do not
+                    The Service uses Cloudflare (CDN and R2 storage) and Vercel (hosting). Analytics are provided by
+                    Vercel, Cloudflare and PostHog. These services operate under their own privacy policies. We do not
                     control how they process data; review their policies for details.
                 </p>
             </section>
