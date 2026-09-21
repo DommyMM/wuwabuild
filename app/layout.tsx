@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Gowun_Dodum, Plus_Jakarta_Sans, Ropa_Sans, Spline_Sans_Mono } from "next/font/google";
-import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
@@ -33,7 +32,6 @@ const splineSansMono = Spline_Sans_Mono({
     variable: "--font-spline-mono-next",
 });
 
-const GA_ID = "G-SP375JKDPX";
 export const metadata: Metadata = {
     metadataBase: new URL('https://wuwa.build'),
     title: {
@@ -93,22 +91,6 @@ export default async function RootLayout({
                     <Footer />
                 </RootProviders>
                 <Analytics />
-                {process.env.NODE_ENV === "production" && (
-                    <>
-                        <Script
-                            src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-                            strategy="lazyOnload"
-                        />
-                        <Script id="google-analytics" strategy="lazyOnload">
-                            {`
-                                window.dataLayer = window.dataLayer || [];
-                                function gtag(){dataLayer.push(arguments);}
-                                gtag('js', new Date());
-                                gtag('config', '${GA_ID}');
-                            `}
-                        </Script>
-                    </>
-                )}
             </body>
         </html>
     );

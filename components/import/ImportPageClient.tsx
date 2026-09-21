@@ -10,7 +10,7 @@ import { convertAnalysisToSavedState } from '@/lib/import/convert';
 import { linkBuildImage, submitBuild } from '@/lib/lb';
 import { MAX_OCR_IMAGE_BYTES } from '@/lib/ingestIdentity';
 import { isDraftBuildEdited, loadDraftBuild, saveBuild, saveDraftBuild, snapshotBuildToSaves } from '@/lib/storage';
-import { OCR_HEALTH_URL, OCR_REPORT_URL } from '@/lib/apiEndpoints';
+import { OCR_REPORT_URL } from '@/lib/apiEndpoints';
 import { ImportUploader } from './ImportUploader';
 import { ImportResults, type ImportWatermark } from './ImportResults';
 import { ImportComplete, type ImportDestination } from './ImportComplete';
@@ -72,9 +72,6 @@ export function ImportPageClient() {
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportReason, setReportReason] = useState<OcrIssueReason>('manual_report');
   const preflightSignatureRef = useRef<string | null>(null);
-
-  // Silent wake-up ping so Railway auto-starts the server if sleeping
-  useEffect(() => { fetch(OCR_HEALTH_URL).catch(() => {}); }, []);
 
   /**
    * Hands the LB service the raw scan and the screenshot's R2 key so it can attach the image to a matching build row

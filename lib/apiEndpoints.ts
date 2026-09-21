@@ -19,6 +19,3 @@ export const OCR_POST_URL = `${OCR_BASE}/api/ocr`;
 
 /** POST metadata plus the optional original image as FormData */
 export const OCR_REPORT_URL = `${OCR_BASE}/api/report-ocr-issue`;
-
-/** GET, also used to wake a sleeping Railway service */
-export const OCR_HEALTH_URL = `${OCR_BASE}/health`;
