@@ -50,12 +50,7 @@ interface LeaderboardCharacterClientProps {
   boardDisplay?: LBBoardDisplay | null;
 }
 
-/**
- * A `?buildId=` deep link, a one-shot "reveal this build" command rather than persistent view state
- *
- * - Once resolved the build is kept for the session, so returning to its exact view re-pins it as a ghost row
- * - That re-pin is client-side, so buildId never goes back to the API
- */
+/** A `?buildId=` deep link, a one-shot "reveal this build" command rather than persistent view state */
 interface DeepLink {
   id: string;
   /** The build's data, kept so it can be re-pinned on return without re-querying */

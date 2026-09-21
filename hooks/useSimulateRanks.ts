@@ -8,8 +8,7 @@ import type { EchoPanelState } from '@/lib/echo';
 /**
  * Slice of editor state the simulate result depends on
  *
- * - Level, forte, weapon and sequence are excluded because the server normalizes to a fair ceiling
- * - It computes every weapon and track, so none of those move the ranking
+ * No level, forte, weapon or sequence since server normalizes them to a fair ceiling and ranks every weapon and track
  */
 interface BuildLike {
   characterId: string | null;
@@ -34,12 +33,7 @@ export interface SimulateRanksState {
 const signatureOf = (state: BuildLike): string =>
   JSON.stringify({ c: state.characterId ?? '', r: state.roverElement ?? '', e: state.echoPanels });
 
-/**
- * On-demand "where would this build rank" fetch, which never submits anything
- *
- * - The caller triggers run() from a button, so the leaderboard is not polled on every keystroke
- * - Staleness compares the current build signature against the one that produced the last result
- */
+/** On-demand "where would this build rank" fetch, which never submits anything */
 export function useSimulateRanks(state: BuildLike, enabled: boolean): SimulateRanksState {
   const [result, setResult] = useState<{ sig: string; boards: LBSimulateBoard[] } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,6 +45,7 @@ export function useSimulateRanks(state: BuildLike, enabled: boolean): SimulateRa
   const hasEchoes = state.echoPanels.some((panel) => Boolean(panel.id));
   const canRun = enabled && Boolean(characterId) && hasEchoes;
 
+  // Only run() fetches, and callers wire it to a button so the leaderboard isn't polled on every keystroke
   const run = useCallback(() => {
     if (!enabled) return;
     const snapshot = state;

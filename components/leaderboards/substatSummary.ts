@@ -13,10 +13,10 @@ export type SubstatSummaryEntry = {
 };
 
 /**
- * Tallies every substat across a build's five echoes into one entry per stat, crits first, then the rest, then flat base stats
+ * Tallies a build's five echoes into one entry per substat, crits first, then the rest, then flat base stats
  *
  * - One implementation because the expanded row, the profile card and the benchmark blueprint must agree pill for pill
- * - The blueprint sits directly under the player's own row, so a different tally or order there reads as a real difference
+ * - Blueprint sits directly under the player's own row, so a different tally or order there reads as a real difference
  */
 export function buildSubstatSummary(
   panels: EchoPanelState[],

@@ -29,8 +29,7 @@ export function transportError(fallback: string) {
  *
  * - A resolved null or undefined payload is a cache hit, so a board with no data never re-requests
  * - A failure latches until `retry()` clears it, so a broken board cannot spin a request loop
- * - Work is deferred by a microtask, so React's development double-invoke aborts the first attempt before the network
- * - Only the newest request per hook is live, and the loading flag is released even on abort
+ * - Only the newest request per hook is live
  */
 export function useKeyedResource<T>({
   key,
@@ -63,6 +62,7 @@ export function useKeyedResource<T>({
     const controller = new AbortController();
     controllerRef.current = controller;
 
+    // Deferred by a microtask, so React's development double-invoke aborts the first attempt before the network
     void Promise.resolve().then(() => {
       if (controller.signal.aborted) return;
       setLoadingByKey((prev) => ({ ...prev, [key]: true }));

@@ -37,7 +37,6 @@ interface ProfileFeaturedBuildProps {
  *
  * - Sits between the rankings shelf and the filters so a tile and its card stay adjacent
  * - Outside the build query, so filtering and paging the table below never disturb it
- * - Top edge repeats the tile's 2px tier color, so the open card reads as that tile's drawer
  */
 export const ProfileFeaturedBuild: React.FC<ProfileFeaturedBuildProps> = ({
   uid,
@@ -75,6 +74,7 @@ export const ProfileFeaturedBuild: React.FC<ProfileFeaturedBuildProps> = ({
       aria-label={characterName ? `${characterName} build` : 'Featured build'}
       className="relative border-b border-border/70 bg-black/15"
     >
+      {/* Top edge repeats the tile's 2px tier color, so the open card reads as that tile's drawer */}
       <span
         aria-hidden
         className="absolute inset-x-0 top-0 z-10 h-0.5"

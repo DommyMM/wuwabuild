@@ -141,10 +141,9 @@ export const getBundledSplashCardArt = (
 const warmedSplashUrls = new Set<string>();
 
 /**
- * Fetches and decodes a bundled splash on intent (a profile row click), alongside the build-detail request
+ * Fetches and decodes a bundled splash on intent (a profile row click) so the card's first paint never waits on it
  *
- * - The card's first paint then never waits on the art download
- * - Errors are ignored since the card's own art pipeline stays the real loader
+ * Errors are ignored since the card's own art pipeline stays the real loader
  */
 export const warmBundledSplashArt = (
   characterId: string,
@@ -190,7 +189,7 @@ const SPLASH_REF_WIDTH = SPLASH_REF_HEIGHT * (16 / 9);
 /**
  * Centering for full-height, center-anchored splash renders such as the mobile home hero
  *
- * - Turns the card-tuned pixel offset into a percent of the image's own width so it holds at any render height
+ * xPct is the card-tuned pixel offset as a percent of the image's own width, so it holds at any render height
  */
 export const getHeroSplashOffset = (
   characterId: string,

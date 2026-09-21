@@ -107,7 +107,7 @@ export function loadBuilds(): SavedBuilds {
 }
 
 /**
- * Writes plain JSON, while decompress keeps the legacy base64 shape readable
+ * Writes the saves as plain JSON
  *
  * - A quota failure throws because SaveBuildModal surfaces it, and a dropped save must never look like a success
  * - A server-side call no-ops rather than throwing
@@ -176,7 +176,7 @@ export function saveDraftBuild(state: SavedState): void {
 /**
  * True when the draft's content no longer matches the last programmatic load, so the user hand-edited it in /edit
  *
- * - A missing baseline counts as edited, so replacement flows err toward preserving the draft
+ * A missing baseline counts as edited, so replacement flows err toward preserving the draft
  */
 export function isDraftBuildEdited(draft: SavedState): boolean {
   // On the server this reports false, while in the browser a missing baseline means edited

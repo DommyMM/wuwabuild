@@ -44,16 +44,13 @@ function withSharedProperties(event: CaptureResult | null): CaptureResult | null
   return event;
 }
 
-/**
- * Loads posthog-js once the browser is idle, then replays queued calls
- *
- * - Dynamic import keeps the SDK out of every route's first-load bundle and off the hydration path
- */
+/** Loads posthog-js once the browser is idle, then replays queued calls */
 export function loadAnalytics() {
   if (!enabled || !posthogKey || loadStarted) return;
   loadStarted = true;
 
   const start = () => {
+    // Dynamic import keeps the SDK out of every route's first-load bundle and off the hydration path
     import('posthog-js')
       .then(({ default: posthog }) => {
         posthog.init(posthogKey, {

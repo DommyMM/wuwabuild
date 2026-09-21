@@ -389,14 +389,11 @@ function ScanMotif() {
   );
 }
 
-/**
- * Edit: a showcase-card fragment mid-tune, one stat row hot
- *
- * - Echo afterimage behind it keeps the same tilt, or it reads as a second panel
- */
+/** Edit: a showcase-card fragment mid-tune, one stat row hot */
 function CardMotif() {
   return (
     <div style={{ position: 'relative', display: 'flex', width: 330, height: 380 }}>
+      {/* echo afterimage keeps the card's tilt, or it reads as a second panel */}
       <div
         style={{
           position: 'absolute',

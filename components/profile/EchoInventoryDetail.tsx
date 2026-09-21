@@ -37,12 +37,7 @@ function formatStatValue(stat: string | null | undefined, value: number | null |
 
 const EYEBROW_CLASS = 'font-ropa text-2xs leading-none uppercase tracking-[0.14em] text-text-primary/60';
 
-/**
- * Which of this player's builds equip this echo, phrased like the in-game panel
- *
- * - Mounts only on an expanded row, so the fetch waits until one is opened
- * - Remounts fresh per echo, so there is no in-place reset to handle
- */
+/** Which of this player's builds equip this echo, phrased like the in-game panel */
 const EquippedByStrip: React.FC<{
   uid: string;
   echoKey: string;
@@ -54,6 +49,8 @@ const EquippedByStrip: React.FC<{
   const [usages, setUsages] = useState<LBEchoUsage[] | null>(null);
   const [error, setError] = useState(false);
 
+  // Mounts only on an expanded row, so the fetch waits until one is opened
+  // Remounts fresh per echo, so there is no in-place reset of usages or error
   useEffect(() => {
     const controller = new AbortController();
     let active = true;

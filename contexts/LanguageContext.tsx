@@ -8,7 +8,7 @@ import { setSharedProperties } from '@/lib/analytics';
 /**
  * Supported languages, matching I18nString in character.ts
  *
- * - countryCode is the lowercase ISO 3166-1 alpha-2 code the flag-icons library wants
+ * countryCode is the lowercase ISO 3166-1 alpha-2 code the flag-icons library wants
  */
 export const SUPPORTED_LANGUAGES = {
   en: { name: 'English', nativeName: 'English', countryCode: 'us' },

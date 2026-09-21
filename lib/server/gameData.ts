@@ -83,12 +83,7 @@ export function loadCharacterSummary(id: string) {
   };
 }
 
-/**
- * Character id → English display fields, so leaderboard SSR ships names, element and portrait complete
- *
- * - The client `GameDataContext` would flash `Character {id}` until the ~6 MB JSON fetch lands
- * - Built from the same adapters the client uses, so values match exactly
- */
+/** Character id → English display fields, so leaderboard SSR ships names, element and portrait complete */
 export function loadCharacterDisplayMap(): Record<string, LBCharacterDisplay> {
   const rawData = readJson('Characters.json');
   const entries: unknown[] = Array.isArray(rawData)
@@ -101,6 +96,7 @@ export function loadCharacterDisplayMap(): Record<string, LBCharacterDisplay> {
   for (const entry of entries) {
     if (!entry || typeof entry !== 'object' || !('id' in entry)) continue;
     try {
+      // Same adapters the client uses, so values match exactly
       const char = adaptCDNCharacter(entry as CDNCharacter);
       map[char.id] = {
         id: char.id,
@@ -188,13 +184,13 @@ function entriesOf(data: unknown): unknown[] {
 /**
  * Builds the compact id → name/icon maps of `LBBoardDisplay`
  *
- * - Weapons and echoes go through the same `adaptCDN*` functions the client uses, so icons survive hydration unchanged
- * - Reading `icon.iconMiddle` instead would swap the image, since `adaptCDNWeapon` picks `icon.icon`
- * - Memoized for the process, the maps derive from deploy-time JSON while this runs on every leaderboard request
+ * Memoized for the process, since the maps derive from deploy-time JSON while this runs on every leaderboard request
  */
 export function loadBoardDisplayCatalog(): LBBoardDisplay {
   if (boardDisplayCatalog) return boardDisplayCatalog;
 
+  // Weapons and echoes go through the client's `adaptCDN*` functions, so icons survive hydration unchanged
+  // Reading `icon.iconMiddle` instead would swap the image, since `adaptCDNWeapon` picks `icon.icon`
   const weapons: LBBoardDisplay['weapons'] = {};
   for (const raw of loadAllWeapons()) {
     if (!validateCDNWeapon(raw)) continue;

@@ -62,10 +62,7 @@ const getActivationTierProps = (
 /**
  * Panel bonuses from tier text that needs no in-combat action
  *
- * - A 2-piece tier is a bare stat line and reaches the panel through addProp instead
- * - 3- and 5-piece clauses live in free text and nearly all need an action, so they belong to the damage engine
- * - The few that need nothing are hand-declared in scripts/sync_fetters.py and arrive as `displayBonuses`
- * - `requires` carries the character gate as data, so this file needs no notion of Resonance Energy
+ * Leaves out the 2-piece bare stat line, which reaches the panel through addProp
  */
 const getDisplayBonuses = (
   fetter: CDNFetter,
@@ -81,6 +78,9 @@ const getDisplayBonuses = (
     const tierCount = Number(tier);
     if (!Number.isFinite(tierCount) || pieceCount < tierCount) return [];
 
+    // Free-text 3- and 5-piece clauses nearly all need an action, so they belong to the damage engine
+    // The few that need nothing are hand-declared in scripts/sync_fetters.py and arrive as displayBonuses
+    // `requires` carries the character gate as data, so this file needs no notion of Resonance Energy
     return (pieceEffect.displayBonuses ?? []).filter((bonus) => (
       !bonus.requires?.length || (characterId != null && bonus.requires.includes(characterId))
     ));

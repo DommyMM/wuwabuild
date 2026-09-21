@@ -18,7 +18,6 @@ interface OwnerProfileLinkProps {
  * Owner identity cell that doubles as the entry point to a player's profile
  *
  * - Stops click and keyboard propagation, since the surrounding row is itself a click-to-expand button
- * - The name layers its own accent and underline hover, so the two targets read as separate intents
  * - Falls back to plain text on a row with no uid to route to
  */
 export const OwnerProfileLink: React.FC<OwnerProfileLinkProps> = ({ uid, username, regionBadge, surface, characterId }) => {
@@ -51,6 +50,7 @@ export const OwnerProfileLink: React.FC<OwnerProfileLinkProps> = ({ uid, usernam
       className="group/owner flex w-fit min-w-0 max-w-full items-center gap-2 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75"
     >
       {badge}
+      {/* Own accent and underline hover, so name and row read as separate intents */}
       <span className="min-w-0 truncate text-lg text-text-primary underline-offset-4 transition-colors group-hover/owner:text-accent group-hover/owner:underline">
         {label}
       </span>

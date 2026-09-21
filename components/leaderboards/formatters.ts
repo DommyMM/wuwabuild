@@ -17,7 +17,7 @@ export function formatDamage(value: number): string {
 /**
  * Canonical substat key, null when the slot is unset
  *
- * - Every surface that buckets substats goes through here, since the types arrive from stored builds, OCR imports and references
+ * Every surface bucketing substats goes through here, since types arrive from stored builds, OCR imports and references
  */
 export function normalizeSubstatKey(type: string | null | undefined): string | null {
   const trimmed = type?.trim();

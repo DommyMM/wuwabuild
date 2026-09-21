@@ -48,12 +48,7 @@ export interface SequenceBonus {
   value: number;
 }
 
-/**
- * Whether a `chain.bonus` agrees with the chain's first param, mirroring `_skip_sequence_bonus` in scripts/sync_lb.py
- *
- * - A disagreeing value was authored against a conditional or move-scoped clause, so it is not a flat panel stat
- * - Lucy S3 parses "...its Crit. DMG is increased by 100%" with param[0]=50, the +100% scoping to the Override move
- */
+/** Whether a `chain.bonus` agrees with its chain's first param, mirroring `_skip_sequence_bonus` in scripts/sync_lb.py */
 const sequenceBonusMatchesHeadlineParam = (
   bonus: { value: number },
   params: string[] | undefined
@@ -61,6 +56,8 @@ const sequenceBonusMatchesHeadlineParam = (
   const raw = params?.[0];
   if (typeof raw !== 'string') return false;
   const paramValue = parseFloat(raw.replace('%', '').replace(',', '.').trim());
+  // Disagreeing value was authored against a conditional or move-scoped clause, so it is not a flat panel stat
+  // Lucy S3 text gives +100% Crit. DMG scoped to Override while param[0] is 50
   return Number.isFinite(paramValue) && paramValue === bonus.value;
 };
 

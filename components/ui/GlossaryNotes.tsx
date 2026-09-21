@@ -5,22 +5,20 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useTerms } from '@/lib/terms';
 import { collectTemplateTermIds, renderGameTemplateWithHighlights } from '@/lib/text/gameText';
 
-/**
- * Glossary entries for the keywords in a block of game text, printed under it as footnotes
- *
- * - Hover cards use this instead of per-keyword popups, which would overlap the triggers behind them
- * - On the sequence strip that meant reaching for a definition brushed the next node
- * - Printing definitions underneath leaves one surface to hover and scroll
- * - The headword repeats the keyword's gold, which pairs the two without numbering
- */
 interface GlossaryNotesProps {
   /** The same template string the text above was rendered from */
   template: string;
   className?: string;
 }
 
+// Keyword's gold, so headword and keyword pair up without numbering
 const HEADWORD_COLOR = '#f8e39a';
 
+/**
+ * Glossary entries for the keywords in a block of game text, printed under it as footnotes
+ *
+ * Hover cards use this in place of per-keyword popups, which would overlap the triggers behind them
+ */
 export function GlossaryNotes({ template, className = '' }: GlossaryNotesProps) {
   const { t } = useLanguage();
   const ids = useMemo(() => collectTemplateTermIds(template), [template]);

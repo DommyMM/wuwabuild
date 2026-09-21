@@ -163,14 +163,10 @@ function canonicalUpgradeSort(
   return [...ordered, ...leftovers];
 }
 
-/**
- * One equal-width control in the row under the card, the surface's action first and the bench sections after
- *
- * - Disclosures rather than tabs, so any number can be open and their panels stack below in button order
- * - An open button holds the accent border, so the row itself says what is open
- */
+/** One equal-width control in the row under the card, the surface's action first and the bench sections after */
 const CONTROL_CLASS = 'flex w-43 cursor-pointer items-center justify-center gap-2 rounded border bg-background-secondary px-4 py-2 text-xs font-semibold transition-[color,border-color,transform] duration-150 hover:border-accent/60 hover:text-text-primary active:scale-[0.98] motion-reduce:transition-none';
 const CONTROL_REST_CLASS = 'border-border text-text-primary/75';
+// Open button holds the accent border, so the row itself says what is open
 const CONTROL_OPEN_CLASS = 'border-accent/60 text-text-primary';
 const ACTION_BUTTON_CLASS = `${CONTROL_CLASS} ${CONTROL_REST_CLASS}`;
 /**
@@ -392,6 +388,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
     if (!isOpen) {
       capture('build_panel_open', { panel, surface, character_id: characterId || null, track_key: activeTrackKey || null });
     }
+    // Disclosures rather than tabs, so any number can be open and their panels stack below in button order
     setOpen(!isOpen);
   };
 

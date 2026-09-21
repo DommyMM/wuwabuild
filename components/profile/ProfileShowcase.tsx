@@ -25,7 +25,7 @@ const TILE_GAP = 8;
 /**
  * Site's sequence ramp at lower alpha, indexed by sequence
  *
- * - Same hues, so the chip names the board without outshouting the percentile or the tier edge
+ * Same hues so the chip names the board, lower alpha so it doesn't outshout the percentile or the tier edge
  */
 const PROFILE_SEQUENCE_BADGE_COLORS = [
   'border-slate-300/35 bg-slate-500/15 text-slate-200/85',

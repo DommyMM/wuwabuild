@@ -16,9 +16,8 @@ interface SubstatSummaryRowProps {
 /**
  * Per-stat substat tally pills and the total RV
  *
- * - Lives inside BuildProvider scope, so it reads `state.echoPanels` directly
- * - Sits inside the cardRef capture area, so the downloaded PNG includes it
- * - The owning card hands the same selection to this row and the echo panels, keeping the interaction on one surface
+ * - Must render inside BuildProvider since it reads `state.echoPanels` directly
+ * - Owning card passes the same selection it gives the echo panels, so the interaction stays on one surface
  */
 export const SubstatSummaryRow: React.FC<SubstatSummaryRowProps> = ({
   selectedSubstats,

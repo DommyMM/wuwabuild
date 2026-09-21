@@ -14,7 +14,7 @@ interface ProfileSwitcherProps {
 /**
  * Device-local tray for hopping between pinned and recently opened players
  *
- * - Pin keeps a player, x closes a recent, and nothing here is synced or public
+ * Pin keeps a player, x closes a recent, and nothing here is synced or public
  */
 export function ProfileSwitcher({ currentUid }: ProfileSwitcherProps) {
   const pinned = useSyncExternalStore(subscribeProfileHistory, getPinnedProfilesSnapshot, getProfilesServerSnapshot);

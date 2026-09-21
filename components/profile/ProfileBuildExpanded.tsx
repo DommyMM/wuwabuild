@@ -19,11 +19,7 @@ interface ProfileBuildExpandedProps {
   isLayoutSettled: boolean;
 }
 
-/**
- * Table-row placement of the profile card stage
- *
- * - Only the shell is row-specific, clipping the reveal to the row and leaving the card to the table's own scroll
- */
+/** Table-row placement of the profile card stage */
 export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
   entry,
   detail,
@@ -38,6 +34,7 @@ export const ProfileBuildExpanded: React.FC<ProfileBuildExpandedProps> = ({
 }) => {
   if (!isExpanded) return null;
 
+  // Only the shell is row-specific, clipping the reveal to the row and leaving the card to the table's own scroll
   return (
     <div className="profile-build-expanded-shell overflow-clip border-t border-border/50 bg-black/15 tracking-wide">
       {/* w-full like any row, since a definite width would re-add the shell's 2px borders to the w-max wrapper and force scroll

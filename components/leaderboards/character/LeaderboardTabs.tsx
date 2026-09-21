@@ -39,18 +39,14 @@ const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </div>
 );
 
-/**
- * The board's metric lens as its own labeled row, beside Playstyle and Weapon
- *
- * - Score is the ER-adjusted ranking, Damage the raw tracked damage over the same board
- * - The ER detail lives in the native title tooltip, so the buttons stay clean
- */
+/** The board's metric lens as its own labeled row, beside Playstyle and Weapon */
 const ScoringRow: React.FC<{
   erTarget: number;
   scoring: ScoringMode;
   onSelect: (mode: ScoringMode) => void;
 }> = ({ erTarget, scoring, onSelect }) => {
   const isRaw = scoring === 'raw';
+  // ER detail lives in the native title tooltip, so the buttons stay clean
   const scoreTitle = `Score: average damage, minus the % you are under the ${formatErTarget(erTarget)}% ER target`;
   const damageTitle = 'Damage: raw tracked damage before ER scaling. ER still shows, but does not lower this value.';
   return (

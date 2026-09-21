@@ -22,9 +22,9 @@ interface SequenceStripProps {
 }
 
 /**
- * Wait before a node opens its card, because nodes are stacked close enough that one card covers its neighbour
+ * Hover wait before a node opens its card
  *
- * - Reaching for the open card no longer opens the node the pointer crosses on the way
+ * Nodes sit so close that a pointer reaching for an open card crosses a neighbour, which would open without this wait
  */
 const NODE_OPEN_DELAY_MS = 120;
 

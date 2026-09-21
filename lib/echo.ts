@@ -124,8 +124,7 @@ export type ElementType = keyof typeof ELEMENT_SETS;
  * Activation threshold assumed for a set the catalog does not know
  *
  * - Happens when game data has not loaded, or when the backend knows a set id this build's Fetters.json predates
- * - The full echo slot count, so an unknown set is never reported active on a partial build
- * - Sets activate at 1, 2 or 3 pieces, so a default of 2 would invent bonuses and hide the 1-piece ones alike
+ * - Full echo slot count, so an unknown set is never reported active on a partial build
  * - Mirrors the server-side default in `lib/server/leaderboardInsight.ts`
  */
 export const UNKNOWN_SET_ACTIVATION_THRESHOLD = 5;

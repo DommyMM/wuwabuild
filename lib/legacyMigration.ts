@@ -82,18 +82,14 @@ const STAT_ALIAS_MAP: Record<string, string> = {
   Liberation: 'Resonance Liberation DMG Bonus',
 };
 
-/**
- * Every legacy echo id a CDN icon file name could stand for
- *
- * - T_IconMonsterHead_34010_1_UI.png gives "34010", the trailing 1 being too short to seed an id
- * - T_IconMonsterGoods_061_UI.png gives both "061" and the unpadded "61"
- */
+/** Every legacy echo id a CDN icon file name could stand for */
 function extractLegacyEchoIdsFromUrl(url: string | undefined): string[] {
   if (!url) return [];
   const filename = url.split('/').pop() ?? '';
   const numericParts = filename.match(/\d+/g) ?? [];
   if (numericParts.length === 0) return [];
 
+  // Parts under 3 digits are too short to seed an id, so T_IconMonsterHead_34010_1_UI.png gives only "34010"
   const primaryParts = numericParts.filter((part) => part.length >= 3);
   const firstNumeric = numericParts[0];
   if (!firstNumeric) return [];
@@ -102,6 +98,7 @@ function extractLegacyEchoIdsFromUrl(url: string | undefined): string[] {
 
   for (const seed of seeds) {
     ids.add(seed);
+    // Unpadded form too, so T_IconMonsterGoods_061_UI.png gives both "061" and "61"
     const normalized = String(Number.parseInt(seed, 10));
     if (normalized && normalized !== 'NaN') {
       ids.add(normalized);

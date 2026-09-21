@@ -7,11 +7,7 @@ import { RARITY_ACCENTS } from '@/components/weapon/rarityStyles';
 import { WeaponHoverCard } from '@/components/weapon/WeaponHoverCard';
 import { StatHoverKey } from '@/lib/constants/statHover';
 
-/**
- * Design-space font sizes for the weapon name, from the card's 2xl down to base
- *
- * - The slot beside the icon is ~250px, which the longest English and Latin-script names overflow at 24px
- */
+/** Design-space font sizes for the weapon name, from the card's 2xl down to base */
 const WEAPON_NAME_MAX_PX = 24;
 const WEAPON_NAME_MIN_PX = 16;
 
@@ -59,6 +55,7 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
       if (cancelled || !node) return;
       node.style.fontSize = `${WEAPON_NAME_MAX_PX}px`;
       const { scrollWidth, clientWidth } = node;
+      // The longest English and Latin-script names overflow the ~250px slot beside the icon at 24px
       if (scrollWidth > clientWidth && scrollWidth > 0) {
         node.style.fontSize = `${Math.max(WEAPON_NAME_MIN_PX, Math.floor((WEAPON_NAME_MAX_PX * clientWidth) / scrollWidth))}px`;
       }

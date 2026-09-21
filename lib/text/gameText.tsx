@@ -15,17 +15,17 @@ const TEXT_ENTRY_ID_SCAN = /<te\s+href=(\d+)/giu;
 export type TermMode = 'mark' | 'plain';
 
 /**
- * A resolved parameter is content, so it lifts to full white against the body's 82% and nothing else
+ * Class for a resolved parameter, full white against the body's 82% since it is content
  *
- * - Leaves the game's own element markup and the gold glossary terms as the only coloured text in a description
- * - Ropa loads at one weight, so a weight step here would be synthesised
+ * - No colour, so the game's element markup and gold glossary terms stay the only coloured text
+ * - No weight step, since Ropa loads at one weight and a bolder one would be synthesised
  */
 export const PARAM_HIGHLIGHT_CLASS = 'text-white';
 
 /**
  * Folds runs of identical move-scaling terms into the game's compact notation, multiplier shown as ×
  *
- * - Values arrive compact ("4.92%*5+98.37%") or spelled out hit by hit, so both read alike after folding
+ * Values arrive compact ("4.92%*5+98.37%") or spelled out hit by hit, so both read alike after folding
  */
 export const compactMoveValue = (value: string | null | undefined): string => {
   if (!value) return '';
@@ -139,16 +139,11 @@ export const stripGameMarkup = (input: string): string => {
 
 const cloneState = (state: MarkupState): MarkupState => ({ ...state });
 
-/**
- * Promotes a Title-coloured run that starts a line into a block heading, so a long description sections itself
- *
- * - WuWa skill text marks its sections ("Basic Attack - Present Self") with the Title colour and blank lines
- * - Newlines around a heading are dropped because the block carries its own margin
- * - A Title run inside a sentence stays inline
- */
+/** Promotes a Title-coloured run that starts a line into a block heading, so a long description sections itself */
 const sectionTitleRuns = (segments: TextSegment[]): TextSegment[] => {
   const flagged = segments.map((segment, index) => {
     const startsLine = index === 0 || segments[index - 1].text.endsWith('\n');
+    // WuWa skill text marks its sections ("Basic Attack - Present Self") with the Title colour and blank lines
     const isHeading = segment.state.colorName === 'Title'
       && segment.state.termId == null
       && !segment.text.includes('\n')
@@ -160,6 +155,7 @@ const sectionTitleRuns = (segments: TextSegment[]): TextSegment[] => {
     .map((segment, index) => {
       if (segment.state.heading) return segment;
       let text = segment.text;
+      // Newlines around a heading drop because the block carries its own margin
       if (flagged[index + 1]?.state.heading) text = text.replace(/\n+$/u, '');
       if (flagged[index - 1]?.state.heading) text = text.replace(/^\n/u, '');
       return text === segment.text ? segment : { ...segment, text };

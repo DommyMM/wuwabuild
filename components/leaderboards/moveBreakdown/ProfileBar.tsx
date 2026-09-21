@@ -16,11 +16,7 @@ interface ProfileBarProps {
   playing: boolean;
 }
 
-/**
- * One thin part-to-whole bar, the same shape the home hero draws from the same type totals
- *
- * - Carries what the rotation cannot: share by type, score bonuses and what Energy Regen takes away
- */
+/** One thin part-to-whole bar, the same shape the home hero draws from the same type totals */
 export const ProfileBar: React.FC<ProfileBarProps> = ({
   segments,
   bonuses,

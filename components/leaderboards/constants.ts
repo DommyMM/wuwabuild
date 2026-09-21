@@ -157,37 +157,35 @@ export const STATUS_NEUTRAL_COLOR = 'rgba(224,224,224,0.6)';
 /**
  * Magnitude ramp for unsigned "better is bigger" figures like upgrade gain and rank improvement
  *
- * - Saturation carries the signal while lightness stays near-flat, because a lightness-only ramp renders a 250x spread as one colour
- * - Low end is a near-neutral gray-green that reads as negligible beside plain white numbers
- * - Green rather than the teal of STATUS_POSITIVE_COLOR, which is reserved for signed pairs and would collide with the Glacio tint
- *
  * @param ratio value as a fraction of the strongest value in the same group
  */
 export function statusRampColor(ratio: number): string {
   const clamped = Math.min(1, Math.max(0, Number.isFinite(ratio) ? ratio : 0));
+  // Green, not STATUS_POSITIVE_COLOR teal, because teal is for signed pairs and would collide with the Glacio tint
+  // Saturation carries the signal since a lightness-only ramp renders a 250x spread as one colour
+  // Low end is a near-neutral gray-green that reads as negligible beside plain white numbers
   return `hsl(129 ${Math.round(10 + (clamped * 63))}% ${Math.round(64 - (clamped * 5))}%)`;
 }
 
 /**
  * One measure every section of an expanded build row carries, so they share a left edge down the column
  *
- * - Below md the 1320px cap comes off and the gutter drops to px-4, or the echo panels sit a quarter-screen in
+ * Below md the 1320px cap comes off and the gutter drops to px-4, or the echo panels sit a quarter-screen in
  */
 export const LB_EXPANDED_SHELL = 'mx-auto w-full px-4 md:max-w-330 md:px-12';
 
 /**
  * Opaque stand-in for the expanded-row surface, for the frozen rail the upgrade table's columns scroll under
  *
- * - Sits between --color-background and --color-background-secondary, which is what the row's translucent stack resolves to
+ * Matches what the row's translucent stack resolves to, between --color-background and --color-background-secondary
  */
 export const LB_EXPANDED_OPAQUE_SURFACE = 'bg-[#191919]';
 /** Same colour as a gradient origin for the scroll-edge fade, spelled out separately because Tailwind scans whole class names */
 export const LB_EXPANDED_OPAQUE_SURFACE_FROM = 'from-[#191919]';
 
 /**
- * Track widths for "# | Owner | Character | Sets | [CV+Stats+Damage]", all fixed, so the table has a hard 1352px footprint
+ * Track widths for "# | Owner | Character | Sets | [CV+Stats+Damage]", all fixed for a hard 1350px footprint
  *
- * - 48+178+154+112 tracks, 4x16 gap and 796 from LB_STAT_GROUP_MIN, inside a 1366px container: 14px of headroom
  * - Row padding, a wider track or an extra gap puts a horizontal scrollbar under the table at 1080p
  * - Header, skeleton and rows all carry this grid with no horizontal padding of their own
  */
@@ -199,15 +197,11 @@ export const DEFAULT_LB_TRACK = 's0';
 export type SummaryDensity = 'normal' | 'compact';
 export type SummaryHost = 'expansion' | 'card';
 
-/**
- * Pill count at which a host tightens, since the row is centred and nowrap so a little overspill is better than a wrap
- *
- * - Measured on the Ropa Sans metrics the row inherits: a stat pill is 75-95px and the RV pill about 120px
- * - The expansion holds 12 in its 1,224px content box and lets 13 spill into the 48px padding, so only 14 tightens
- * - The card never tightens because 14 pills, every substat type plus RV, is 1,411px at worst inside its 1,440px frame
- */
+/** Pill count at which a host's summary row goes compact */
 const SUMMARY_COMPACT_AT: Record<SummaryHost, number> = {
+  // Holds 12 in its 1,224px box and lets 13 spill into the 48px padding, since a little overspill beats a wrap
   expansion: 14,
+  // 14 pills, every substat type plus RV, are 1,411px at worst inside the 1,440px frame
   card: Number.POSITIVE_INFINITY,
 };
 
@@ -270,7 +264,7 @@ export const LB_SEQ_BADGE_COLORS = [
 /**
  * Table sequence pill: the same ramp, widened a step per level, with a neutral S0 because the table always shows a pill
  *
- * - The pr-* literals stay spelled out for the Tailwind scanner
+ * The pr-* literals stay spelled out for the Tailwind scanner
  */
 const SEQUENCE_BADGE_PR = ['pr-2', 'pr-3', 'pr-4', 'pr-5', 'pr-6', 'pr-7', 'pr-8'] as const;
 export const SEQUENCE_BADGE_STYLES = SEQUENCE_BADGE_PR.map((pr, level) =>

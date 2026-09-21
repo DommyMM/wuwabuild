@@ -107,7 +107,7 @@ export function ImportPageClient() {
   /**
    * Hands the LB service the raw scan and the screenshot's R2 key so it can attach the image to a matching build row
    *
-   * - Fill-only server-side, and runs whether or not the reader goes on to import or submit
+   * Fill-only server-side, and runs whether or not the reader goes on to import or submit
    */
   const linkScannedImage = async (
     scan: AnalysisData,
@@ -397,7 +397,7 @@ export function ImportPageClient() {
   /**
    * Uploads straight away when upload is enabled, then lands on the completion panel
    *
-   * - Claims the draft slot without prompting, snapshotting an edited draft into saves first so nothing is lost
+   * Claims the draft slot without prompting, snapshotting an edited draft into saves first so nothing is lost
    */
   const handleImport = async (wm: ImportWatermark) => {
     setLastImportWatermark(wm);

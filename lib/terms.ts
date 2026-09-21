@@ -6,9 +6,7 @@ import type { I18nString } from '@/lib/character';
 /**
  * One in-game glossary entry behind the `<te href=N>` links in skill, sequence, weapon and echo text
  *
- * - Synced by `scripts/sync_terms.py`, scoped to the terms our own text links
- * - Fetched on its own rather than through GameDataContext, which blocks the page on every file it loads
- * - The first keyword to render starts the fetch, so a page with no skill text never pays for it
+ * Synced by `scripts/sync_terms.py`, scoped to the terms our own text links
  */
 export interface GameTerm {
   id: number;
@@ -39,6 +37,7 @@ const subscribe = (listener: () => void): (() => void) => {
 /** Fetches once per page load, remembering a failure so a hover never retries */
 export function loadTerms(): void {
   if (index || pending || failed || typeof window === 'undefined') return;
+  // Own fetch rather than GameDataContext, which blocks the page on every file it loads
   pending = fetch('/Data/Terms.json')
     .then((res) => {
       if (!res.ok) throw new Error(`Terms.json: ${res.status}`);
@@ -68,10 +67,10 @@ const getServerSnapshot = (): TermIndex => EMPTY;
 /**
  * Every term in `ids` the glossary has, in the order given
  *
- * - One subscription for the whole list, since hooks cannot be called per id when the list length varies
- * - Reading terms is what starts the fetch, so nothing loads until text with keywords renders
+ * Reading terms is what starts the fetch, so nothing loads until text with keywords renders
  */
 export function useTerms(ids: readonly number[]): GameTerm[] {
+  // One subscription for the whole list, since hooks cannot be called per id when the list length varies
   const terms = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   if (typeof window !== 'undefined' && ids.length > 0) loadTerms();
   const found: GameTerm[] = [];

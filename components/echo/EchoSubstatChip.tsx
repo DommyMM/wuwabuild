@@ -9,10 +9,10 @@ import { HoverCard } from '@/components/ui/HoverCard';
 import { SubstatRollBar } from './StatTierBars';
 
 /**
- * Two emphasis systems land on the same chips, so they get two colors
+ * Substat chip emphasis: gold for the persistent selection, white for the transient hover cross-link
  *
- * - Gold is the persistent selection: the substats this build is judged on, seeded from the character's preferred stats
- * - White is the transient cross-link: the hovered row in the card's stat table lights every chip feeding it
+ * - Selection is the substats this build is judged on
+ * - Hovering a row in the card's stat table lights every chip feeding it
  * - Hover wins while it is active, then the selection state resumes
  */
 export type EchoChipState =
@@ -105,13 +105,7 @@ interface EchoSubstatChipProps {
   onHoverChange?: (isHovering: boolean) => void;
 }
 
-/**
- * One substat row on an echo panel
- *
- * - Tier quality rides the text color over a neutral plate, so five stacked read as a column of numbers
- * - Icon and value stay one unit since row positions vary between echoes, so right-alignment would compare nothing
- * - The hover card plots the roll against every value the substat could land on
- */
+/** One substat row on an echo panel, its hover card plotting the roll against every value it could land on */
 export const EchoSubstatChip: React.FC<EchoSubstatChipProps> = ({
   statType,
   value,
@@ -149,6 +143,8 @@ export const EchoSubstatChip: React.FC<EchoSubstatChipProps> = ({
         />
       )}
     >
+      {/* Tier quality rides the text color over a neutral plate, so five stacked read as a column of numbers */}
+      {/* Icon and value stay one unit since row positions vary per echo, so right-aligning compares nothing */}
       <div
         className={`flex w-full items-center rounded font-semibold leading-none transition-all duration-200 ${sizeClass.row} ${visuals.className}`}
         style={{ ...(tierInfo ? { color: tierInfo.color } : {}), ...visuals.style }}

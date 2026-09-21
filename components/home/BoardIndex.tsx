@@ -9,12 +9,9 @@ interface BoardIndexProps {
 /** 9 rows at 60px line this column up with the 544px NewsLog window next door */
 const VISIBLE_BOARDS = 9;
 
-/**
- * The most contested boards at a glance, one per character so the list shows breadth, not sequence variants
- *
- * - Within a character: most entries, then the base sequence, then the bigger record
- */
+/** The most contested boards at a glance, one per character so the list shows breadth, not sequence variants */
 export function BoardIndex({ records }: BoardIndexProps) {
+    // Within a character: most entries, then the base sequence, then the bigger record
     const sorted = [...records].sort((a, b) =>
         b.totalEntries - a.totalEntries || a.seqLevel - b.seqLevel || b.topDamage - a.topDamage,
     );

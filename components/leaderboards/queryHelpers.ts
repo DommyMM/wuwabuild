@@ -2,12 +2,9 @@ import { LBEchoMainFilter, LBEchoSetFilter, LBStatThreshold } from '@/lib/lb';
 import { toMainStatUrlKey } from '@/lib/mainStatFilters';
 import { normalizeSequences, STAT_OPTION_KEYS } from './constants';
 
-/**
- * Compares normalized API rows by their whole rendered payload
- *
- * - A partial signature misses owner, profile and stat changes, leaving a revalidated table showing stale data
- */
+/** Signature of normalized API rows over their whole rendered payload */
 export function createRowsSignature<T>(rows: readonly T[], total: number): string {
+  // Id-only signature misses owner, profile and stat changes, so a revalidated table keeps stale data
   return JSON.stringify({ total, rows });
 }
 

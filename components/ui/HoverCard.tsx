@@ -182,7 +182,7 @@ export function HoverCardSection({
   return (
     <div className={`${wrapperClass} ${className}`}>
       {eyebrow && (
-        <p className="text-2xs uppercase tracking-[0.1em] text-white/55">
+        <p className="text-2xs uppercase tracking-widest text-white/55">
           {eyebrow}
         </p>
       )}
@@ -246,12 +246,7 @@ const breakAtOperators = (value: ReactNode): ReactNode => {
   ));
 };
 
-/**
- * Two-column value rows (a move's scaling at its level, a weapon's stats)
- *
- * - The label owns the row and wraps first, the value capped so a long expression wraps at its operators
- * - Gowun stays at its one real weight, the face and the alpha lift carrying the emphasis
- */
+/** Two-column value rows (a move's scaling at its level, a weapon's stats) */
 export function HoverCardTable({ rows }: { rows: HoverCardTableRow[] }) {
   if (rows.length === 0) return null;
   return (
@@ -261,7 +256,9 @@ export function HoverCardTable({ rows }: { rows: HoverCardTableRow[] }) {
           key={row.key ?? i}
           className="flex items-baseline justify-between gap-3 rounded-md bg-white/6 px-2 py-1"
         >
+          {/* Label owns the row and wraps first, value capped so a long expression wraps at its operators */}
           <span className="min-w-0 flex-1 text-white/62">{row.label}</span>
+          {/* Gowun stays at its one real weight, so the face and alpha lift carry the emphasis */}
           <span className="max-w-[58%] text-right font-gowun tabular-nums text-white/95">
             {breakAtOperators(row.value)}
           </span>
@@ -306,7 +303,7 @@ function HoverCardPanel({ icon, eyebrow, title, subtitle, badge, chips, body, wi
     <div className={`font-ropa ${WIDTH_CLASS[width]} text-[13px] leading-normal text-white/90`}>
       <div className={headerIndentClass}>
         {eyebrow && (
-          <p className="text-2xs uppercase tracking-[0.1em] text-white/55">
+          <p className="text-2xs uppercase tracking-widest text-white/55">
             {eyebrow}
           </p>
         )}
@@ -315,7 +312,7 @@ function HoverCardPanel({ icon, eyebrow, title, subtitle, badge, chips, body, wi
           {badge && <span className={`ml-1.5 ${badgeToneClass}`}>{badge.text}</span>}
         </p>
         {subtitle && (
-          <p className="mt-0.5 text-2xs uppercase tracking-[0.1em] text-white/55">
+          <p className="mt-0.5 text-2xs uppercase tracking-widest text-white/55">
             {subtitle}
           </p>
         )}

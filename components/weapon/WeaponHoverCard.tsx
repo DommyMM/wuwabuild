@@ -21,12 +21,7 @@ interface WeaponHoverCardProps {
   triggerClassName?: string;
 }
 
-/**
- * ATK and main stat come from the shared level curves (`calculateWeaponStats`), the same call WeaponGroup makes
- *
- * - Every weapon scales on the one ATK_CURVE and STAT_CURVE in LevelCurve.json (x12.5 and x4.5 at 90/90)
- * - Callers therefore name only the level, never the multiplier
- */
+/** Weapon hover card: ATK and main stat at `weaponLevel`, passive values at `weaponRank` */
 export function WeaponHoverCard({
   children,
   weapon,
@@ -37,6 +32,7 @@ export function WeaponHoverCard({
 }: WeaponHoverCardProps) {
   const { t } = useLanguage();
   const { levelCurves, statIcons } = useGameData();
+  // Every weapon scales on the one ATK_CURVE and STAT_CURVE in LevelCurve.json, same call WeaponGroup makes
   const { scaledAtk, scaledMainStat } = calculateWeaponStats(weapon, weaponLevel, levelCurves);
   const atkIcon = statIcons?.ATK ?? null;
   const mainStatIcon = weapon.main_stat ? (statIcons?.[weapon.main_stat] ?? null) : null;

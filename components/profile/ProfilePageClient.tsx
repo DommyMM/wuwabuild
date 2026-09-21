@@ -45,14 +45,11 @@ interface ProfilePageClientProps {
   } | null;
 }
 
-/**
- * Clock behind "Updated 17 days ago", read once on the client per page load
- *
- * - Server snapshot is null, so the fact is absent from the HTML instead of crossing a day boundary before hydration
- */
+/** Clock behind "Updated 17 days ago", read once on the client per page load */
 let clientNow: number | null = null;
 const subscribeNever = () => () => {};
 const getClientNow = () => (clientNow ??= Date.now());
+// Null so the fact is absent from the HTML instead of crossing a day boundary before hydration
 const getServerNow = () => null;
 
 const DAY_MS = 86_400_000;
@@ -350,13 +347,10 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     retryBuildDetail(buildId);
   }, [retryBuildDetail]);
 
-  /**
-   * Opens a build in the featured region, with the detail fetch left to the effect below
-   *
-   * - Already-expanded rows stay open because every card closes only when the reader closes it
-   */
+  /** Opens a build in the featured region, with the detail fetch left to the effect below */
   const openFeatured = useCallback((selection: FeaturedBuildSelection) => {
     if (!hasOpenCard) setIsExpandedLayoutSettled(false);
+    // Already-expanded rows stay open because every card closes only when the reader closes it
     setFeatured(selection);
     const characterRef = getCharacter(selection.characterId);
     if (characterRef) {

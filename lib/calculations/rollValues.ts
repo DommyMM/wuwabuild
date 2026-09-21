@@ -90,8 +90,7 @@ export function calculateEchoRV(
 /**
  * Mean quality of the selected stat types that actually rolled, where full-sheet RV averages all five lines
  *
- * - Weighted by roll count, so callers printing `rolls × this` get the true sum of roll qualities
- * - An unweighted mean gave two builds with the same rolls but opposite distributions the same figure
+ * Weighted by roll count, so callers printing `rolls × this` get the true sum of roll qualities
  */
 export function calculateSelectedStatsRV(
   selectedSubstats: Map<string, { total: number; count: number }>,
@@ -106,6 +105,7 @@ export function calculateSelectedStatsRV(
     if (count === 0) continue;
     const quality = calculateSubstatQuality(statType, total / count, getSubstatValues);
     if (quality === 0) continue;
+    // Unweighted mean gives two builds with the same rolls but opposite distributions the same figure
     sumStatQuality += quality * count;
     validRollCount += count;
   }
@@ -189,8 +189,7 @@ export const getEchoCVTierStyle = (cv: number): QualityTier => getQualityTierSty
 /**
  * Grades RV one quality tier more generously than the same CV percentile
  *
- * - RV averages all five lines against their max roll, so reaching a given percentile is rarer
- * - MAX still needs a literal 100 with every line maxed, and a genuinely low RV stays Bad
+ * MAX still needs a literal 100 with every line maxed, and a genuinely low RV stays Bad
  */
 export const getEchoRVTierStyle = (rv: number): QualityTier => {
   const normalized = Math.max(0, Math.min(100, Number.isFinite(rv) ? rv : 0));
@@ -198,6 +197,7 @@ export const getEchoRVTierStyle = (rv: number): QualityTier => {
   const lastIdx = QUALITY_TIERS.length - 1;
   const baseIdx = QUALITY_TIERS.findIndex((tier) => normalized >= tier.minPct);
   const idx = baseIdx < 0 ? lastIdx : baseIdx;
+  // RV averages all five lines against their max roll, so reaching a given percentile is rarer than for CV
   const bumpedIdx = idx === lastIdx ? lastIdx : Math.max(1, idx - 1);
   return { ...QUALITY_TIERS[bumpedIdx] };
 };

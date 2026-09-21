@@ -45,10 +45,7 @@ export async function prefetchBuilds(
 /**
  * Move breakdown for one build on one board
  *
- * - The home page bakes the first hero slide's profile bar into its ISR HTML, so the record card's
- *   signature graphic is there at first paint instead of popping in after hydration
- * - A 404 means no computed moves, and it resolves to null like any failure, since the bar is an
- *   enhancement and never a blocking dependency
+ * Null on any failure, 404 included, since the breakdown is an enhancement and never a blocking dependency
  */
 export async function prefetchBuildMoves(
   buildId: string,
@@ -63,6 +60,7 @@ export async function prefetchBuildMoves(
       next: { revalidate: revalidateS },
     });
     if (!response.ok) {
+      // 404 means no computed moves, so only other statuses log
       if (response.status !== 404) {
         console.error('[lbServer] prefetchBuildMoves non-OK response', {
           buildId,

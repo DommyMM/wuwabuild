@@ -709,7 +709,7 @@ export async function listProfileBuilds(
 /**
  * Sort keys for GET /profile/{uid}/echoes, matching the backend echoSortClause whitelist one for one
  *
- * - A substat key in snake_case, crit_dmg say, sorts by that sub_* column
+ * A substat key in snake_case, crit_dmg say, sorts by that sub_* column
  */
 export type LBEchoSortKey = LBStatSortKey
   | 'cv'
@@ -967,10 +967,8 @@ export interface LBCharacterDisplay {
 /**
  * Name and icon maps for every id a board can reference, serialized into the page for the first paint
  *
- * - Without it the first paint shows raw ids and blank boxes until the ~12 MB GameDataContext catalog lands
- * - Complete rather than scoped to the response, since switching track or paging swaps in ids it never mentioned
- * - ~5 KB brotli, so completeness costs less than tracking which ids a view happens to need
- * - English only and strictly a fallback, every consumer prefers the localized GameDataContext object
+ * - English-only fallback: every consumer prefers the localized GameDataContext object
+ * - Complete, not scoped to the response, since switching track or paging swaps in ids it never mentioned
  */
 export interface LBBoardDisplay {
   characters: Record<string, LBCharacterDisplay>;
@@ -1462,7 +1460,7 @@ export interface LBSimulateBoard {
  * Where an editor build would rank across every board of its character, read-only so nothing is ever submitted
  *
  * - The server normalizes to a fair ceiling of max level and forte
- * - Only characterId, roverElement and echoPanels move the result, weapon and level in buildState do not
+ * - Only characterId, roverElement and echoPanels move the result, not weapon or level in buildState
  */
 export async function fetchSimulateRanks(
   characterId: string,
@@ -1519,10 +1517,9 @@ export interface LBProfileStandingEntry {
 const profileStandingsCache = new Map<string, Promise<LBProfileStandingEntry[]>>();
 
 /**
- * Every caller for a uid shares the one in-flight promise, which is why there is no AbortSignal
+ * Profile standings for a uid, one in-flight promise shared by every caller
  *
- * - One caller's signal would let its unmount reject the promise for everyone else on that uid
- * - Callers gate their own setState on unmount instead
+ * No AbortSignal since one caller's unmount would reject it for everyone, so callers gate setState on unmount
  */
 export async function getProfileStandings(uid: string): Promise<LBProfileStandingEntry[]> {
   const cacheKey = uid.trim();
@@ -1806,9 +1803,9 @@ export interface LBLinkBuildImageResult {
 }
 
 /**
- * Fire-and-forget after a scan, attaching the screenshot's R2 key to the build row with that exact echo content
+ * Attaches a scan's screenshot R2 key to the build row with that exact echo content, fire-and-forget
  *
- * - Fill-only and idempotent server-side, so no build is ever created
+ * Fill-only and idempotent server-side, so no build is ever created
  */
 export async function linkBuildImage(
   buildState: SavedState,
@@ -1891,8 +1888,8 @@ function parseDistributionAxis(raw: unknown): LBDistributionAxis | null {
 /**
  * How the board's stats are spread, for reading one build against the field
  *
- * - No build id, so one cacheable object per board serves every row and the caller interpolates its own percentile
- * - Null on 404, a board with no optimality reference, and the axes derive from it so there is nothing to plot
+ * - One cacheable object per board with no build id, so the caller interpolates its own percentile
+ * - Null on 404: board has no optimality reference, so there are no axes to plot
  */
 export async function getBoardDistribution(
   characterId: string,
@@ -1944,10 +1941,9 @@ export async function getBoardDistribution(
 }
 
 /**
- * Where `value` falls on a quantile ladder, as a 0-1 fraction
+ * Where `value` falls on a quantile ladder, as a 0-1 fraction clamped to the ladder's ends
  *
- * - Linear between the two bracketing ladder points and clamped at the ends, so no build id is needed
- * - Null when the ladder has no spread, a real case since Healing Bonus is 0 for every build on a DPS board
+ * Null when the ladder has no spread, a real case since Healing Bonus is 0 for every build on a DPS board
  */
 export function interpolatePercentile(value: number, ladder: number[], quantiles: number[]): number | null {
   if (ladder.length === 0 || ladder.length !== quantiles.length) return null;

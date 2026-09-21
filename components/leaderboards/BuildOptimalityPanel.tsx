@@ -46,13 +46,12 @@ type OptimalityTier = 'ceiling' | 'standardized' | 'low_roll';
 /**
  * Display text per stored tier name, told apart by label and order rather than hue
  *
- * - Every tier is a searched-optimal build, differing in roll quality and in how many substat lines do anything
- * - Standard lands on the live population median while Optimal is a top 0.3% build, so Optimal is never "Median"
- * - Three non-overlapping channels: gold is the selected tier, white is this build, teal is this build clearing a reference
+ * - Hues are spoken for: gold is the selected tier, white is this build, teal is this build clearing a reference
  * - `lines` is the damage-board count, only a fallback since a healer reference uses 15 and spends 10 on Standard
  */
 const TIER_META: Record<OptimalityTier, { label: string; rolls: string; lines: number }> = {
   ceiling: { label: 'Ceiling', rolls: 'max rolls', lines: 25 },
+  // Top 0.3% build while Standard lands on the live population median, so never "Median"
   standardized: { label: 'Optimal', rolls: 'median rolls', lines: 25 },
   low_roll: { label: 'Standard', rolls: 'median rolls', lines: 16 },
 };
@@ -94,16 +93,13 @@ interface BenchmarkTrackProps {
   selectedTier: OptimalityTier;
 }
 
-/**
- * One ruler for the whole benchmark: the track runs 0 to ceiling, the fill is this build, each tier is a tick
- *
- * - One scale so the three bar lengths are comparable, unlike a per-tier meter clamped at its own 100%
- * - Per-tier ratios live on the cards as text, which does not clamp
- */
+/** One ruler for the whole benchmark: the track runs 0 to ceiling, the fill is this build, each tier is a tick */
 function BenchmarkTrack({ currentDamage, marks, selectedTier }: BenchmarkTrackProps) {
   // A build can land past the ceiling on rounding or an off-model loadout, so extend the ruler rather than clamp
   const trackMax = Math.max(currentDamage, ...marks.map((m) => m.damage));
   if (!(trackMax > 0)) return null;
+  // One scale so the three lengths stay comparable, where per-tier meters would each clamp at their own 100%
+  // Per-tier ratios live on the cards as text, which does not clamp
   const pct = (value: number) => (value / trackMax) * 100;
 
   return (

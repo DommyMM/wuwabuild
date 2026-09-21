@@ -22,7 +22,6 @@ const formatTopPct = (rank: number, total: number): string => {
  *
  * - Sits under the card so the shareable export stays clean
  * - Only the Simulate button issues a request, so opening the editor, swapping resonators and echo edits cost nothing
- * - Expanded it splits into a summary rail (best placement, resonator swap, Simulate) and the per-board table
  */
 export const SimulateRankPanel: React.FC = () => {
   const { state } = useBuild();

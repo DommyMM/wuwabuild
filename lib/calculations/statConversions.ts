@@ -3,8 +3,7 @@ import { StatName } from '@/lib/constants/statMappings';
 /**
  * An always-on kit clause deriving one panel stat from another, with no trigger, stack or sequence gate
  *
- * - Example: "For every 1000 points of Max HP, Jingran gains 36 additional ATK, up to 1800"
- * - The game panel carries these because a panel is read out of combat, where a conversion is already true
+ * - Game panel carries these because it's read out of combat, where a conversion already holds
  * - Only panel-stat targets belong here, so Sigrika's Energy Regen to Echo Skill DMG lives on the lb side alone
  */
 export interface StatConversion {
@@ -38,9 +37,7 @@ const BASE_STAT_TARGETS = new Set<StatName>(['HP', 'ATK', 'DEF']);
 /**
  * Adds every conversion a character declares on top of a finished panel
  *
- * - One pass after all stats resolve, reading sources from `values` as they stood before any conversion applied
- * - Jingran's two clauses both read Max HP, so declaration order must not change the result
- * - Mutates `values` and `updates` in place, `updates` being the from-gear delta the editor shows next to each stat
+ * Mutates `values` and `updates` in place, `updates` being the from-gear delta the editor shows next to each stat
  */
 export const applyStatConversions = (
   characterId: string | undefined,
@@ -50,6 +47,7 @@ export const applyStatConversions = (
   const conversions = characterId ? CHARACTER_STAT_CONVERSIONS[characterId] : undefined;
   if (!conversions?.length) return;
 
+  // Sources read from the pre-conversion panel so declaration order never changes the result
   const sources = { ...values };
   for (const conversion of conversions) {
     const from = sources[conversion.from];

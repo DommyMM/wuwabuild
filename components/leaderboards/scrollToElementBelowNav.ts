@@ -12,7 +12,7 @@ function getStickyNavOffset(): number {
 /**
  * Smallest scroll that brings an element into view below the sticky nav, and none when it is already there
  *
- * - For a click that reveals something on the same page, where a full jump throws the reader away from what they clicked
+ * For a click that reveals something on the same page, where a full jump throws the reader away from what they clicked
  */
 export function scrollElementIntoViewBelowNav(element: HTMLElement): void {
   const rect = element.getBoundingClientRect();

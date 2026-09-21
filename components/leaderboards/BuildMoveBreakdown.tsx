@@ -33,13 +33,7 @@ const PLAY_MS = 1000;
 const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60';
 const HATCH = `repeating-linear-gradient(135deg, ${STATUS_NEGATIVE_COLOR} 0 2px, transparent 2px 5px)`;
 const FIGURE = 'font-gowun tabular-nums';
-/**
- * Which glyph a damage type wears, so chips and rows show one face per type
- *
- * - The four kit buckets take the same DMG Bonus stat icon the build row's pills use, so a share and its stat read as one
- * - A type that is its own tab takes the kit button, and a negative status takes the element icon
- * - Echo and coordinated damage have no glyph, so they keep the swatch
- */
+/** DMG Bonus stat whose icon a kit type wears, same as the build row's pills so a share and its stat read as one */
 const TYPE_STAT: Record<string, string> = {
   basic_attack: 'Basic Attack DMG Bonus',
   heavy_attack: 'Heavy Attack DMG Bonus',
@@ -66,11 +60,7 @@ type EquationToken =
   | { kind: 'op'; text: string }
   | { kind: 'term'; label: string; value: string; score?: boolean };
 
-/**
- * Renders "Damage × factor (Energy Regen er% of target%) = Score"
- *
- * - Modifiers apply in payload order against the running score, so a factor after an additive bonus parenthesizes what precedes it
- */
+/** Renders "Damage × factor (Energy Regen er% of target%) = Score" */
 const ScoreEquation: React.FC<{ rawLabel: string; raw: number; modifiers: ProcessedModifier[]; score: number }> = ({
   rawLabel,
   raw,
@@ -82,6 +72,7 @@ const ScoreEquation: React.FC<{ rawLabel: string; raw: number; modifiers: Proces
   for (const modifier of modifiers) {
     const info = modifier.info;
     if (info?.kind === 'energy-regen' && info.factor > 0) {
+      // Modifiers apply in order to the running score, so a factor after an additive bonus brackets all before it
       if (hasAdditive) tokens = [{ kind: 'op', text: '(' }, ...tokens, { kind: 'op', text: ')' }];
       tokens.push(
         { kind: 'op', text: '×' },
@@ -124,8 +115,7 @@ interface BuildMoveBreakdownProps {
   /**
    * The board's own score for this build, preferred so the row and this panel print the same figure
    *
-   * - Ignored unless it agrees with the local sum, so a stale board is never shown as this rotation's total
-   * - The local sum of per-move floats lands an integer or two off the backend total after rounding
+   * Ignored unless it agrees with the local sum, so a stale board is never shown as this rotation's total
    */
   scoreOverride?: number;
   /** Per-tab skill icons, keyed as `Characters.json` skillIcons is */
@@ -168,6 +158,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   const hasData = !isLoading && !error && breakdown.moves.length > 0;
   const rawDamage = breakdown.rawDamage;
   const localScore = breakdown.totalScore;
+  // Tolerance because the per-move float sum lands an integer or two off the backend total after rounding
   const agreesWithBoard = scoreOverride !== undefined
     && scoreOverride > 0
     && Math.abs(scoreOverride - localScore) <= Math.max(1, localScore * 0.001);
@@ -260,6 +251,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
     if (stat) return statIcons?.[stat];
     const tab = TYPE_TAB[type];
     if (tab) return skillIcons?.[tab];
+    // Echo and coordinated damage have no glyph, so they keep the swatch
     return statusTypes.has(type) ? elementIcon : undefined;
   }, [elementIcon, skillIcons, statIcons, statusTypes]);
 

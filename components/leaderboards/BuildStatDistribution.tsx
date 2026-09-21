@@ -37,8 +37,7 @@ const MOVE_KEYS: LBStatSortKey[] = ['basic_attack_dmg', 'heavy_attack_dmg', 'res
 /**
  * Sibling sets a rim label strips its shared wrapper against, matched in order
  *
- * - Healing has no siblings of its own, so the catch-all family lends it the affixes every bonus-shaped stat carries
- * - That catch-all is last because the specific families give a tighter wrapper
+ * Catch-all lends sibling-less Healing the bonus affixes, and goes last since specific families strip tighter
  */
 const AXIS_FAMILIES: LBStatSortKey[][] = [ELEMENT_KEYS, MOVE_KEYS, [...ELEMENT_KEYS, ...MOVE_KEYS, 'healing_bonus']];
 
@@ -52,13 +51,7 @@ const hasCJK = (value: string): boolean => /[぀-ヿ㐀-鿿가-힯]/u.test(value
 const isLatinScript = (value: string): boolean => /^[\p{Script=Latin}\p{Nd}\s'’.\-:]+$/u.test(value);
 const rimBudget = (value: string): number => (hasCJK(value) ? RIM_BUDGET_CJK : RIM_BUDGET_LATIN);
 
-/**
- * Longest prefix and suffix every name in a family shares
- *
- * - Snapped back to a separator on space- and hyphen-delimited scripts because a raw common prefix stops mid-word
- * - German's four move names share "SCH-Bonus de", and trimming that leaves "s Standardangriffs"
- * - CJK has no separators, so it keeps the raw affix
- */
+/** Longest prefix and suffix every name in a family shares, snapped back to a separator outside CJK */
 function sharedAffixes(names: string[]): { prefix: string; suffix: string } {
   if (names.length < 2) return { prefix: '', suffix: '' };
   const first = names[0];
@@ -73,6 +66,8 @@ function sharedAffixes(names: string[]): { prefix: string; suffix: string } {
 
   let prefix = first.slice(0, head);
   let suffix = first.slice(first.length - tail);
+  // Raw common affix stops mid-word, so snap back to a separator, but CJK has none and keeps the raw affix
+  // German move names share "SCH-Bonus de", and trimming that leaves "s Standardangriffs"
   if (!hasCJK(first)) {
     const lastBreak = [...prefix].reduce((at, char, i) => (SEPARATOR.test(char) ? i : at), -1);
     prefix = lastBreak < 0 ? '' : prefix.slice(0, lastBreak + 1);
@@ -91,14 +86,11 @@ function stripFamilyAffixes(full: string, family: string[]): string {
   return out || full;
 }
 
-/**
- * Initials of the significant words, null outside Latin script
- *
- * - "Resonance Liberation" gives RL and "Liberación de resonancia" gives LR, right in each language rather than English twice
- * - Cyrillic and Thai get null because an initialism there is not a convention anyone reads, so they take the stat code
- */
+/** Initials of the significant words, null outside Latin script */
 function initialism(stem: string): string | null {
+  // Initialism in Cyrillic or Thai is not a convention anyone reads, so those take the stat code
   if (!isLatinScript(stem)) return null;
+  // Short lowercase words are particles, so "Liberación de resonancia" gives LR in its own word order
   const words = stem
     .split(/[\s ]+/u)
     .filter((word) => word && !(glyphCount(word) <= 3 && word === word.toLowerCase()));
@@ -114,11 +106,9 @@ function axisCode(key: LBStatSortKey): string {
 }
 
 /**
- * Rim label within the glyph budget, derived from the localized name rather than tabulated
+ * Rim label within the glyph budget, derived from the localized name
  *
- * - Every member of a family carries the same wrapper, so what the names share is boilerplate and what differs is the label
- * - That covers all three wrapper shapes without knowing which a language uses: " DMG Bonus", "Bonus : Dégâts " and "伤害加成"
- * - Initials, then the stat code, take over when the stem is still too long
+ * Tries the full name, then the name without its family's shared wrapper, then initials, else the stat code
  */
 function axisShortLabel(
   key: LBStatSortKey,
@@ -128,6 +118,8 @@ function axisShortLabel(
   const full = axisFullLabel(key, language, statTranslations);
   if (glyphCount(full) <= rimBudget(full)) return full;
 
+  // Family members share one wrapper, so what the names share is boilerplate and what differs is the label
+  // Covers " DMG Bonus", "Bonus : Dégâts " and "伤害加成" without knowing which shape a language uses
   const family = AXIS_FAMILIES.find((keys) => keys.includes(key));
   const siblings = family
     ? family.map((sibling) => axisFullLabel(sibling, language, statTranslations)).filter(Boolean)
@@ -144,16 +136,13 @@ function axisShortLabel(
   return axisCode(key);
 }
 
-/**
- * Unabbreviated name for the tooltip, in the reader's language
- *
- * - `getLBStatLabel` doubles as the join key because `Stats.json`, and so `statTranslations` and `statIcons`, is indexed by it
- */
+/** Unabbreviated name for the tooltip, in the reader's language */
 function axisFullLabel(
   key: LBStatSortKey,
   language: LanguageCode,
   statTranslations: Record<string, Record<string, string>> | null,
 ): string {
+  // `getLBStatLabel` is the join key because `Stats.json`, and so `statTranslations` and `statIcons`, is keyed by it
   const canonical = getLBStatLabel(key);
   // Truthiness rather than `??` because some languages ship a blank string for a stat
   return statTranslations?.[canonical]?.[language] || canonical;
@@ -162,7 +151,7 @@ function axisFullLabel(
 /**
  * Cohort selector labels, phrased in parallel so the control reads as one series of narrowing fields
  *
- * - The backend publishes `top1` only on boards large enough to clear its sample floor
+ * The backend publishes `top1` only on boards large enough to clear its sample floor
  */
 const COHORT_LABELS: Record<string, string> = {
   all: 'All builds',
@@ -180,14 +169,10 @@ function formatStat(key: LBStatSortKey, value: number): string {
   return formatStatByKey(key, value);
 }
 
-/**
- * Standing in the cohort selector's own words, "top 10%" or "bottom 15%", so nothing has to be inverted to read it
- *
- * - The median is the pivot: above it count down from the top, below it count up from the bottom
- * - Both directions are true at every value, so this only picks the shorter half
- */
+/** Standing in the cohort selector's own words, "top 10%" above the median or "bottom 15%" below it */
 function formatStanding(fraction: number): string {
   const pct = Math.round(fraction * 100);
+  // Both directions are true at every value, so pick the shorter half and nothing has to be inverted to read it
   if (pct >= 50) return `top ${100 - pct}%`;
   return `bottom ${pct}%`;
 }
@@ -211,12 +196,9 @@ interface AxisView {
   degenerate: boolean;
 }
 
-/**
- * Radius fraction for a vertex
- *
- * - A degenerate axis sits on the median ring, not the centre, since zero variance means this build is the median
- */
+/** Radius fraction for a vertex */
 function radiusFraction(view: AxisView): number {
+  // Degenerate axis sits on the median ring, not the centre, since zero variance means this build is the median
   if (view.degenerate || view.percentile === null) return 0.5;
   return view.percentile;
 }
@@ -268,12 +250,9 @@ function wedgePath(index: number, count: number): string {
   return `M ${CX} ${CY} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${RADIUS + 20} ${RADIUS + 20} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
 }
 
-/**
- * One-line status where the section's content would be
- *
- * - Sized to its text rather than a full-width bordered panel, because a card that wide frames an absence as content
- */
+/** One-line status where the section's content would be */
 const SectionNote: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  // Sized to its text, because a full-width bordered card frames an absence as content
   <p className="mx-auto w-fit max-w-full px-4 py-1.5 text-center text-xs text-text-primary/45">
     {children}
   </p>

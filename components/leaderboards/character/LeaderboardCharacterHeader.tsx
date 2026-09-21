@@ -39,9 +39,9 @@ const BUFF_LABEL_ORDER = [
 const FLAT_BUFF_LABELS = new Set(['ATK', 'HP', 'DEF']);
 
 /**
- * Renders a backend buff map (label → value) as ordered { name, value } rows
+ * Formats a backend buff map (label → value) as ordered { name, value } rows
  *
- * - The label's own trailing "%" is stripped, then re-added as the unit for everything but flat ATK/HP/DEF
+ * The label's own trailing "%" is stripped, then re-added as the unit for everything but flat ATK/HP/DEF
  */
 function formatBuffEntries(buffs: Record<string, number>): { name: string; value: string }[] {
   return Object.entries(buffs)

@@ -35,12 +35,7 @@ interface ProfileBuildCardStageProps {
 const INDICATOR_DELAY_MS = 200;
 const INDICATOR_MIN_VISIBLE_MS = 400;
 
-/**
- * Progress-indicator timing that leaves short waits, warm reopens included, indicator-free
- *
- * - Nothing shows before INDICATOR_DELAY_MS because a momentary flash reads slower than no indicator
- * - Once shown it stays INDICATOR_MIN_VISIBLE_MS so it never flickers
- */
+/** Progress-indicator visibility that leaves short waits, warm reopens included, indicator-free */
 const useLoadingIndicator = (isActive: boolean): boolean => {
   const [isVisible, setIsVisible] = useState(false);
   const shownAtRef = useRef(0);
@@ -48,6 +43,7 @@ const useLoadingIndicator = (isActive: boolean): boolean => {
   useEffect(() => {
     if (isActive) {
       if (isVisible) return;
+      // Delayed because a momentary flash reads slower than no indicator
       const showId = window.setTimeout(() => {
         shownAtRef.current = performance.now();
         setIsVisible(true);
@@ -56,6 +52,7 @@ const useLoadingIndicator = (isActive: boolean): boolean => {
     }
 
     if (!isVisible) return;
+    // Once shown it stays a minimum time so it never flickers
     const remaining = INDICATOR_MIN_VISIBLE_MS - (performance.now() - shownAtRef.current);
     if (remaining <= 0) {
       setIsVisible(false);
@@ -84,7 +81,7 @@ const ProfileBuildLoading: React.FC<{ showIndicator: boolean }> = ({ showIndicat
 /**
  * Profile's card view of one build: ProfileCard with the leaderboard bench beneath it
  *
- * - Placement-agnostic, so a table row and the featured region render a build identically
+ * Placement-agnostic, so a table row and the featured region render a build identically
  */
 export const ProfileBuildCardStage: React.FC<ProfileBuildCardStageProps> = ({
   buildId,

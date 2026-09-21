@@ -45,14 +45,7 @@ function discFor(columnWidth: number): { className: string; size: number } {
   return { className: 'size-5.5', size: 22 };
 }
 
-/**
- * The rotation as a guide writes it, over the rotation as damage
- *
- * - Skill icons in cast order, and under them one ribbon in the same order whose segments are each cast's damage
- * - Nothing links the two at rest, so hovering a slot, a segment or a table row rings every run of that ability
- * - One hairline leader per run, all in one SVG group with the opacity on the group, so shared rails never read whiter
- * - Clicking a slot opens its row below and scrolls only as far as needed, the strip itself is never pinned
- */
+/** The rotation as a guide writes it (skill icons in cast order) over the rotation as damage (one ribbon of casts) */
 export const RotationStrip: React.FC<RotationStripProps> = ({
   width,
   buttonSlots,
@@ -119,6 +112,7 @@ export const RotationStrip: React.FC<RotationStripProps> = ({
     return [{ id: slot.id, dropX: columns[index].x + (columns[index].w / 2), segments }];
   }));
 
+  // Never pinned, a slot click opens its row below and scrolls only as far as needed
   return (
     <div className="relative select-none" style={{ height }} onPointerLeave={onSlotLeave}>
       {leaders.length > 0 && (
@@ -130,6 +124,7 @@ export const RotationStrip: React.FC<RotationStripProps> = ({
           height={height}
           viewBox={`0 0 ${width} ${height}`}
         >
+          {/* One hairline leader per run, opacity on the group, so shared rails never read whiter */}
           <g
             className="mb-fade"
             opacity={0.42}
@@ -151,6 +146,7 @@ export const RotationStrip: React.FC<RotationStripProps> = ({
 
       {slots.map((slot, index) => {
         const column = columns[index];
+        // Strip and ribbon are unlinked at rest, so a hovered slot, segment or table row rings every run of its ability
         const lit = highlight.hovered(slot.rowKeys);
         const dimmed = highlight.typeActive && !highlight.typeOn(slot.rowKeys);
         return (

@@ -47,8 +47,7 @@ interface ProfileSearchProps {
     /**
      * Real player shown in the placeholder as a format example, never an invented handle
      *
-     * - Home hero feeds the current record holder, so the example stays live data
-     * - With both set the placeholder teaches both accepted forms ("Username or UID, e.g. yuuhi or 500006092")
+     * With both set the placeholder teaches both accepted forms ("Username or UID, e.g. yuuhi or 500006092")
      */
     exampleName?: string;
     exampleUid?: string;

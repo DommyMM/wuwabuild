@@ -85,11 +85,7 @@ function applyLimit(items: BulkItem[], limit: number | null) {
   return limit && limit > 0 ? items.slice(0, limit) : items;
 }
 
-/**
- * Date-input string from a file mtime
- *
- * - The R2 backup sync stamps mtimes to the upload date, so lastModified reads as "uploaded on" for date-window reruns
- */
+/** Date-input string from a file mtime */
 function toDateInput(ms: number): string {
   const date = new Date(ms);
   const year = date.getFullYear();
@@ -118,6 +114,7 @@ function matchesDateRange(lastModified: number, fromStr: string, toStr: string):
 
 function filterByDate(items: BulkItem[], fromStr: string, toStr: string) {
   if (!fromStr && !toStr) return items;
+  // R2 backup sync stamps mtimes to the upload date, so lastModified reads as "uploaded on" for date-window reruns
   return items.filter(item => matchesDateRange(item.file.lastModified, fromStr, toStr));
 }
 

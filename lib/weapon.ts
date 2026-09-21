@@ -38,7 +38,7 @@ export interface CDNWeapon {
   /**
    * Refinement values keyed by placeholder index ("0","1",...), e.g. ["12%","15%","18%","21%","24%"]
    *
-   * - Each array holds R1 to R5 in full since ratios vary per weapon, there is no scaling formula
+   * Each array holds R1 to R5 in full since ratios vary per weapon and no formula derives them
    */
   params: Record<string, string[]>;
   /** Parsed from the first unconditional sentence of effect.en, each value R1 to R5 */

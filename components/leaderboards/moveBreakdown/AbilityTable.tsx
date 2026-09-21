@@ -9,10 +9,10 @@ import { HEAL_COLOR, HOVER_RING, Highlight, RibbonSegment, RotationModel, Rotati
 /**
  * Icon | name | casts | bar | share | damage | chevron
  *
- * - The bar lane flexes and the name is capped, so the cast count stays beside the name and spare width goes to the bar
- * - Under 40rem of panel width the row becomes icon | name | figures, with the bar on a second line
+ * Bar lane flexes and name is capped, so the cast count stays beside the name and spare width goes to the bar
  */
 const GRID = 'grid grid-cols-[32px_minmax(0,22rem)_44px_minmax(120px,1fr)_58px_104px_16px] items-center gap-x-3.5';
+// Under 40rem of panel width the row becomes icon | name | figures, with the bar on a second line
 const NARROW_GRID = '@max-[40rem]:grid-cols-[32px_minmax(0,1fr)_auto] @max-[40rem]:gap-x-2.5';
 const NARROW_HIDDEN = '@max-[40rem]:hidden';
 const FIGURES = 'contents @max-[40rem]:col-start-3 @max-[40rem]:row-start-1 @max-[40rem]:flex @max-[40rem]:flex-col @max-[40rem]:items-end @max-[40rem]:gap-0.5';
@@ -74,14 +74,11 @@ const SublineView: React.FC<{ sub: Subline; showTag?: boolean }> = ({ sub, showT
   );
 };
 
-/**
- * The whole ribbon as one full-width track with this row's casts lit, so a row far below the strip shows where it sits
- *
- * - No gaps, so the unlit casts fuse into one grey line and back-to-back casts of this row read as one span
- */
+/** Whole ribbon as one full-width track with this row's casts lit, so a row far below the strip shows where it sits */
 const MiniRibbon: React.FC<{ ribbon: RibbonSegment[]; rowKey: string }> = ({ ribbon, rowKey }) => {
   const segments = ribbon.filter((segment) => segment.group !== 'bonus');
   return (
+    // No gaps, so unlit casts fuse into one grey line and back-to-back casts of this row read as one span
     <span aria-hidden className="flex h-1.5 min-w-0 flex-1 items-stretch overflow-hidden rounded-full">
       {segments.map((segment) => (
         <span

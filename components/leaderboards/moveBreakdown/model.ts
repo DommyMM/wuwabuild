@@ -56,8 +56,7 @@ export const isStatusTab = (tab: string) => tab === 'status';
 /**
  * Rebuilds rotation order from every row's casts
  *
- * - Back-to-back casts of one row under one caption become a single slot with one beat per cast
- * - Status rows are not button presses, so they sit after the divider as one slot each
+ * Back-to-back casts of one row under one caption become a single slot with one beat per cast
  */
 export function buildRotation(moves: ProcessedMove[]): RotationModel {
   const buttonCasts: Array<{ move: ProcessedMove; cast: ProcessedMove['casts'][number] }> = [];
@@ -65,6 +64,7 @@ export function buildRotation(moves: ProcessedMove[]): RotationModel {
 
   for (const move of moves) {
     const color = typeMeta(move.primaryType).color;
+    // Status rows are not button presses, so each is one slot after the divider
     if (isStatusTab(move.skillTab)) {
       if (move.casts.length === 0) continue;
       const damage = move.casts.reduce((sum, cast) => sum + cast.damage, 0);
@@ -163,12 +163,7 @@ export function mergeSmallSlots(slots: RotationSlot[], rawDamage: number): Rotat
 
 export const isSmallShare = (damage: number, rawDamage: number) => rawDamage > 0 && damage / rawDamage < SMALL_SHARE;
 
-/**
- * Keys of the sub-1% rows that fold into one summary row, empty when nothing folds
- *
- * - Only kits with DENSE_ROW_COUNT or more abilities fold, and only when two or more rows qualify
- * - Both the table and a strip slot's click need the set
- */
+/** Keys of the sub-1% rows that fold into one summary row, empty when nothing folds */
 export function foldedKeys(moves: Pick<ProcessedMove, 'key' | 'damage'>[], rawDamage: number): Set<string> {
   if (moves.length < DENSE_ROW_COUNT) return new Set();
   const small = moves.filter((move) => isSmallShare(move.damage, rawDamage)).map((move) => move.key);
@@ -240,17 +235,13 @@ export function buildRibbon(
 
 export type RibbonLayout = { spans: Span[]; lostWidth: number };
 
-/**
- * Proportional widths with a 2px surface gap, one unbroken line from the first cast to the last bonus
- *
- * - Sub-pixel casts floor to a sliver and the rest shrink to pay for it, so the bar still ends exactly at the width
- * - Edges snap to whole pixels so every segment renders crisp at the same height
- */
+/** Proportional widths with a 2px surface gap, one unbroken line from the first cast to the last bonus */
 export function layoutRibbon(segments: RibbonSegment[], width: number, lostDamage: number): RibbonLayout {
   if (segments.length === 0 || width <= 0) return { spans: [], lostWidth: 0 };
   const usable = Math.max(0, width - ((segments.length - 1) * SEGMENT_GAP));
   const total = segments.reduce((sum, segment) => sum + Math.max(0, segment.damage), 0);
   const raw = segments.map((segment) => (total > 0 ? (Math.max(0, segment.damage) / total) * usable : 0));
+  // Sub-pixel casts floor to a sliver and the rest shrink to pay for it, so the bar still ends exactly at the width
   const floorCost = raw.reduce((sum, w) => (w < MIN_SEGMENT ? sum + (MIN_SEGMENT - w) : sum), 0);
   const flexible = raw.reduce((sum, w) => (w >= MIN_SEGMENT ? sum + w : sum), 0);
   const scale = flexible > 0 ? Math.max(0, (flexible - floorCost) / flexible) : 1;
@@ -259,6 +250,7 @@ export function layoutRibbon(segments: RibbonSegment[], width: number, lostDamag
   raw.forEach((w, index) => {
     if (index > 0) cursor += SEGMENT_GAP;
     const finalWidth = w < MIN_SEGMENT ? MIN_SEGMENT : w * scale;
+    // Edges snap to whole pixels so every segment renders crisp at the same height
     const x0 = Math.round(cursor);
     const x1 = Math.max(x0 + MIN_SEGMENT, Math.round(cursor + finalWidth));
     spans.push({ x: x0, w: x1 - x0 });
@@ -281,13 +273,13 @@ export type Leader = { id: string; dropX: number; stems: number[] };
 /**
  * Where each leader's verticals stand
  *
- * - One stem per segment centre, so a ×3 slot gets three teeth off one rail and the count reads at a glance
- * - Segments too narrow for teeth to separate get one stem, on the centre of the middle segment
- * - Only the drop moves: onto a stem within DROP_SLACK, away from another leader's vertical within LEADER_CLEARANCE
+ * Only the drop moves: onto a stem within DROP_SLACK, away from another leader's vertical within LEADER_CLEARANCE
  */
 export function layoutLeaders(items: LeaderInput[]): Leader[] {
   const leaders = items.map((item) => {
+    // One stem per segment centre, so a ×3 slot gets three teeth off one rail and the count reads at a glance
     const centres = item.segments.map((span) => span.x + (span.w / 2));
+    // Segments too narrow for teeth to separate get one stem, on the middle segment's centre
     const teeth = centres.length > 0 && item.segments.every((span) => span.w >= MIN_TOOTH);
     const middle = Math.floor((centres.length - 1) / 2);
     const stems = teeth ? centres : centres.slice(middle, middle + 1);
@@ -347,8 +339,7 @@ const TAB_LABELS: Record<string, string> = {
 /**
  * Damage types a tab deals without any conversion
  *
- * - A row whose every scored type is native needs no arrow: a basic attack under Normal Attack is just "Basic Attack"
- * - Inherent, set and weapon damage has no native type, so it always shows what it counts as
+ * Inherent, set and weapon damage has no native type, so it always shows what it counts as
  */
 const TAB_NATIVE_TYPES: Record<string, string[]> = {
   'normal-attack': ['basic_attack', 'heavy_attack'],
@@ -371,14 +362,9 @@ export type Subline = {
   text: string;
 };
 
-/**
- * Subline for a row: "{Tab} → {Type}" when its tab does not natively deal the scored type, otherwise the type alone
- *
- * - A negative status folds its exemption into the label, "Negative Status · No Crit or DMG Bonus", not a pill
- * - Rows with no kit button (Tune Rupture) read as their type, with the tag as a pill
- * - Types always use their legend label, so one type reads the same everywhere
- */
+/** Row subline: "{Tab} → {Type}" when its tab does not natively deal the scored type, otherwise the type alone */
 export function describeRow(move: Pick<ProcessedMove, 'skillTab' | 'moveTypes' | 'noCrit' | 'bypassDmgBonus'>): Subline {
+  // Types always use their legend label, so one type reads the same everywhere
   const types = move.moveTypes.map((type) => ({ type, ...typeMeta(type) }));
   const typeText = types.map((entry) => entry.label).join(' + ');
   const tabLabel = TAB_LABELS[move.skillTab] ?? null;
@@ -393,9 +379,11 @@ export function describeRow(move: Pick<ProcessedMove, 'skillTab' | 'moveTypes' |
 
   // Everything on the status tab is a negative status except a Tune Rupture
   if (isStatusTab(move.skillTab) && types.length > 0 && types.every((entry) => entry.type !== 'tune_rupture')) {
+    // Exemption folds into the label, "Negative Status · No Crit or DMG Bonus", not a pill
     const statusText = tag ? `Negative Status · ${tag}` : 'Negative Status';
     return { tab: null, types, statusText, tag: null, text: statusText };
   }
+  // Rows with no kit button (Tune Rupture) read as their type, with the tag as a pill
   if (isStatusTab(move.skillTab)) {
     return { tab: null, types, statusText: null, tag, text: typeText };
   }
@@ -440,7 +428,7 @@ export function castRangeLabel(slot: RotationSlot, totalCasts: number): string |
 /**
  * Where a row's casts sit in the rotation, in words: "Moves 9-10, 12-14 of 18" or "Move 17 of 18"
  *
- * - A move is one button press, so a row with no button casts gets null
+ * A move is one button press, so a row with no button casts gets null
  */
 export function rotationPositionsText(move: ProcessedMove, rotation: RotationModel): string | null {
   const positions = move.casts

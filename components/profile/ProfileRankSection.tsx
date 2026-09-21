@@ -22,11 +22,7 @@ interface ProfileRankSectionProps {
   boardHref?: string | null;
 }
 
-/**
- * Replaces ForteCardSection in the profile flow, with condensed forte chips above a RankModule
- *
- * - Holds roughly the same ~124px of height, so echoes and stats below it stay put
- */
+/** Replaces ForteCardSection in the profile flow, with condensed forte chips above a RankModule */
 export const ProfileRankSection: React.FC<ProfileRankSectionProps> = ({
   availableBoards,
   activeBoard,
@@ -146,6 +142,7 @@ export const ProfileRankSection: React.FC<ProfileRankSectionProps> = ({
 
   if (!selected) return null;
 
+  // Holds roughly ForteCardSection's ~124px of height, so echoes and stats below stay put
   return (
     <div className="flex flex-col items-start gap-2 overflow-visible">
       <TalentPills character={selected.character} forte={state.forte} />

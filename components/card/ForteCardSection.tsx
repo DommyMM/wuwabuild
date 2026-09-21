@@ -113,11 +113,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
     if (!value) return '';
     return typeof value === 'string' ? value : t(value);
   };
-  /**
-   * Attributes an always-on bonus (Mornye ER +10%, say) to the inherent skill whose EN description names the stat
-   *
-   * - character.inherentBonuses carries no move pointer, and the sync parser emits only bonuses lifted from that text
-   */
+  /** Attributes an always-on bonus (Mornye ER +10%, say) to the inherent skill whose EN description names the stat */
   const inherentHoverKeysFor = (move: MoveEntry | undefined): StatHoverKey[] => {
     const bonuses = character.inherentBonuses ?? [];
     if (!move || bonuses.length === 0) return [];
@@ -125,6 +121,7 @@ export const ForteCardSection: React.FC<ForteCardSectionProps> = ({
     const descEn = stripGameMarkup(
       typeof description === 'string' ? description : description?.en ?? ''
     ).toLowerCase();
+    // Text match since inherentBonuses has no move pointer, and sync parser emits only bonuses lifted from this text
     return bonuses
       .filter((bonus) => descEn.includes(bonus.stat.replace('%', '').toLowerCase()))
       .map((bonus) => normalizeStatHoverKey(bonus.stat))

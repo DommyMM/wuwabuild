@@ -5,8 +5,7 @@ import type { LBMoveCastEntry, LBMoveEntry, LBMoveModifierInfo } from '@/lib/lb'
  *
  * - Hues cleared for contrast and all-pairs colorblind separation on the dark surface
  * - Red is reserved for penalties, and echo stays neutral because it is an external summon, not kit
- * - The reactive family is a second tier past where 14 hues stay airtight, so near-neighbours that rarely co-occur are fine
- * - Lives outside the panel because the home hero renders the same bar, one palette so the two surfaces cannot disagree
+ * - Reactive types are a second tier where near-neighbour hues are fine, since they rarely co-occur
  */
 const MOVE_TYPE_META: Record<string, { label: string; color: string }> = {
   basic_attack: { label: 'Basic Attack', color: '#c98500' },
@@ -79,8 +78,7 @@ export type ProcessedMove = {
 /**
  * Global score adjustment: ER scaling, set, echo and sub-DPS bonuses
  *
- * - Scales or extends the whole rotation rather than sitting inside it, so it renders as the score equation, not a row
- * - Kept in payload order because the backend applies them in sequence, each against the running score
+ * Kept in payload order because the backend applies them in sequence, each against the running score
  */
 export type ProcessedModifier = {
   key: string;

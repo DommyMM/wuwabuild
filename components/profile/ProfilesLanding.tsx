@@ -44,7 +44,7 @@ function ProfileCardLink({ profile, pinned }: { profile: StoredProfile; pinned?:
 /**
  * Profile landing: search any player, with pinned and recently opened profiles as a directory
  *
- * - All history is localStorage, so it never leaves the device
+ * All history is localStorage, so it never leaves the device
  */
 export function ProfilesLanding() {
   const pinned = useSyncExternalStore(subscribeProfileHistory, getPinnedProfilesSnapshot, getProfilesServerSnapshot);

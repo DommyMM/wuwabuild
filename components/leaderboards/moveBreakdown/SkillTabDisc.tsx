@@ -1,11 +1,6 @@
 import React from 'react';
 
-/**
- * skillTab → the character's skillIcons key
- *
- * - Inherent skills have two icons, a scored inherent ability takes the first
- * - Tune Break is a real kit button with one of five weapon-type icons, the glyph only covers data missing that key
- */
+/** skillTab → the character's skillIcons key */
 const TAB_ICON_KEY: Record<string, string> = {
   'normal-attack': 'normal-attack',
   skill: 'skill',
@@ -13,7 +8,9 @@ const TAB_ICON_KEY: Record<string, string> = {
   circuit: 'circuit',
   intro: 'intro',
   outro: 'outro',
+  // Inherent skills have two icons, a scored inherent ability takes the first
   inherent: 'inherent-1',
+  // Real kit button with one of five weapon-type icons, the glyph only covers data missing that key
   'tune-break': 'tune-break',
 };
 
@@ -66,11 +63,7 @@ interface SkillTabDiscProps {
   className?: string;
 }
 
-/**
- * The ability's kit button: its tab icon on a dark disc, the scored type a short arc along the disc's underside
- *
- * - Status damage has no button, so it gets a dashed outline around the element icon instead, with the same arc
- */
+/** The ability's kit button: its tab icon on a dark disc, the scored type a short arc along the disc's underside */
 export const SkillTabDisc: React.FC<SkillTabDiscProps> = ({
   skillTab,
   merged = false,
@@ -100,6 +93,7 @@ export const SkillTabDisc: React.FC<SkillTabDiscProps> = ({
     </svg>
   ) : null;
 
+  // Status damage has no button, so it gets a dashed outline around the element icon instead, with the same arc
   if (skillTab === 'status') {
     return (
       <span className={`relative grid shrink-0 place-items-center rounded-full border border-dashed text-white/80 transition-colors duration-150 ${lit ? 'border-white/75' : 'border-white/25'} ${className}`} aria-hidden>

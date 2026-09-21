@@ -54,7 +54,7 @@ function findWeaponById(id: string): WeaponRecord | undefined {
 /**
  * The three fields the weapon page renders per matching resonator
  *
- * - Passing whole CDNCharacter records serialized moves and chains into the RSC payload, 3.7 MB a page
+ * Kept narrow because whole CDNCharacter records serialize moves and chains into the RSC payload
  */
 interface MatchingCharacter {
     id: CDNCharacter['id'];
