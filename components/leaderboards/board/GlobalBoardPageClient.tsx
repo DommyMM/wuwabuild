@@ -17,8 +17,8 @@ import { GlobalBoardRowExpandedProps } from './GlobalBoardRow';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from '../types';
 import { useBuildDetails } from '../useBuildDetails';
 import { useExpandedRows } from '../useExpandedRows';
-import { createRowsSignature } from '../queryHelpers';
-import posthog from 'posthog-js';
+import { changedFilterKeys, createRowsSignature } from '../queryHelpers';
+import { capture } from '@/lib/analytics';
 
 interface GlobalBoardPageClientProps {
   initialData?: LBListBuildsResponse | null;
@@ -29,7 +29,8 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   const searchParams = useSearchParams();
   const { characters, weaponList, fetters } = useGameData();
   const { t } = useLanguage();
-  const lastTrackedFilterSignatureRef = useRef<string | null>(null);
+  // Filters at the last tracked settle, the baseline board_filter_apply.changed diffs against
+  const lastTrackedFiltersRef = useRef<Record<string, unknown> | null>(null);
   // initialData is always the default query result, so use it only when the URL carries no params
   const isDefaultQuery = searchParams.toString() === '';
   const ssrData = isDefaultQuery ? initialData : null;
@@ -168,7 +169,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
     window.history.replaceState(null, '', next ? `/builds?${next}` : '/builds');
   }, [querySnapshot]);
 
-  const filterSignature = useMemo(() => JSON.stringify({
+  const trackedFilters = useMemo(() => ({
     characterIds,
     weaponIds,
     regionPrefixes,
@@ -186,10 +187,15 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
   useEffect(() => {
     if (!settledQueryKey) return;
     if (settledQueryKey !== currentQueryKey) return;
-    if (lastTrackedFilterSignatureRef.current === filterSignature) return;
-    lastTrackedFilterSignatureRef.current = filterSignature;
-    posthog.capture('discovery_filter_apply', {
+    const previous = lastTrackedFiltersRef.current;
+    lastTrackedFiltersRef.current = trackedFilters;
+    // First settle is the landing state, deep-linked filters included, so only later changes count
+    if (!previous) return;
+    const changed = changedFilterKeys(previous, trackedFilters);
+    if (changed.length === 0) return;
+    capture('board_filter_apply', {
       surface: 'builds',
+      changed,
       character_count: characterIds.length,
       weapon_count: weaponIds.length,
       region_count: regionPrefixes.length,
@@ -203,7 +209,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
       direction,
       page_size: pageSize,
     });
-  }, [characterIds.length, currentQueryKey, direction, echoMains.length, echoSets.length, filterSignature, pageSize, regionPrefixes.length, sequences.length, settledQueryKey, sort, statFilters.length, uid, username, weaponIds.length]);
+  }, [characterIds.length, currentQueryKey, direction, echoMains.length, echoSets.length, pageSize, regionPrefixes.length, sequences.length, settledQueryKey, sort, statFilters.length, trackedFilters, uid, username, weaponIds.length]);
 
   useEffect(() => {
     if (settledQueryKey === currentQueryKey) {
@@ -289,10 +295,10 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
     if (!normalizedBuildId) return;
     toggleExpandedId(normalizedBuildId, (id) => {
         const build = buildsRef.current.find((entry) => entry.id === normalizedBuildId);
-        posthog.capture('discovery_result_expand', {
+        capture('build_expand', {
           surface: 'builds',
+          source: 'row',
           character_id: build?.character.id ?? null,
-          track_key: null,
         });
       loadBuildDetail(id);
     });

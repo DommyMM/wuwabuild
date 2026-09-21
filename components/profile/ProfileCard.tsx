@@ -23,9 +23,9 @@ import { RankBoard } from '@/components/card/RankModule';
 import { ProfileRankSection } from './ProfileRankSection';
 import { SubstatSummaryRow } from './SubstatSummaryRow';
 import { AdjustRankingButton, NO_RANKING_KEY } from './AdjustRankingButton';
-import { BUILD_CARD_DESIGN_WIDTH, BUILD_CARD_EXPORT_WIDTH, downloadBuildCard } from '@/lib/buildCardExport';
+import { BUILD_CARD_DESIGN_WIDTH, downloadBuildCard } from '@/lib/buildCardExport';
 import { DEFAULT_PREFERRED_STATS, getAvailablePreferredSubstats } from '@/lib/calculations/rollValues';
-import posthog from 'posthog-js';
+import { capture, captureException } from '@/lib/analytics';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -323,16 +323,15 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
         cardRef.current,
         `${charSlug}_${dateStr}_${timeStr}`,
       );
-      posthog.capture('profile_card_download', {
-        byte_size: result.blob.size,
+      capture('card_download', {
+        surface: 'profile',
         character_id: characterId,
-        character_name: characterName,
         build_id: entry.id,
-        export_width: BUILD_CARD_EXPORT_WIDTH,
+        byte_size: result.blob.size,
         format: result.format,
       });
     } catch (e) {
-      posthog.captureException(e);
+      captureException(e);
       toastError('Failed to download build card.');
       console.error('Profile card download failed:', e);
     } finally {

@@ -3,12 +3,14 @@
 import Link from 'next/link';
 import { useSyncExternalStore } from 'react';
 import { ProfileSearch } from '@/components/home/ProfileSearch';
+import { capture } from '@/lib/analytics';
 import { clearRecentProfiles, getPinnedProfilesSnapshot, getProfilesServerSnapshot, getRecentProfilesSnapshot, StoredProfile, subscribeProfileHistory } from '@/lib/profileHistory';
 
 function ProfileCardLink({ profile, pinned }: { profile: StoredProfile; pinned?: boolean }) {
   return (
     <Link
       href={`/profile/${profile.uid}`}
+      onClick={() => capture('profile_open', { source: pinned ? 'profiles_pinned' : 'profiles_recent', surface: 'profiles' })}
       className={`flex items-center gap-3 rounded-lg border px-3.5 py-2.5 transition-colors ${
         pinned
           ? 'border-accent/35 bg-accent/6 hover:border-accent/60 hover:bg-accent/10'

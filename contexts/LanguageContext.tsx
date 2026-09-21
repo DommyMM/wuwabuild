@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import type { I18nString } from '@/lib/character';
 import { getLocalStorageItem, setLocalStorageItem } from '@/lib/clientStorage';
+import { setSharedProperties } from '@/lib/analytics';
 
 /**
  * Supported languages, matching I18nString in character.ts
@@ -60,6 +61,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
   useEffect(() => {
     document.documentElement.lang = language;
+    setSharedProperties({ ui_language: language });
   }, [language]);
 
   const setLanguage = useCallback((lang: LanguageCode) => {

@@ -18,8 +18,8 @@ import { LeaderboardResultsPanel } from './LeaderboardResultsPanel';
 import { scrollToElementBelowNav } from '../scrollToElementBelowNav';
 import { useBuildDetails } from '../useBuildDetails';
 import { useExpandedRows } from '../useExpandedRows';
-import { createRowsSignature } from '../queryHelpers';
-import posthog from 'posthog-js';
+import { changedFilterKeys, createRowsSignature } from '../queryHelpers';
+import { capture } from '@/lib/analytics';
 
 function mergeGhostBuild(entries: LBLeaderboardEntry[], ghostBuild: LBLeaderboardEntry | null | undefined): LBLeaderboardEntry[] {
   if (!ghostBuild || entries.some((entry) => entry.id === ghostBuild.id)) {
@@ -100,7 +100,8 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       ? createBoardConfigKey(initialData.activeWeaponId, initialData.activeTrack)
       : null
   ));
-  const lastTrackedFilterSignatureRef = useRef<string | null>(null);
+  // Filters at the last tracked settle, the baseline board_filter_apply.changed diffs against
+  const lastTrackedFiltersRef = useRef<Record<string, unknown> | null>(null);
 
   const initialEntries = mergeGhostBuild(initialData?.builds ?? [], initialData?.ghostBuild);
 
@@ -348,7 +349,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const isLoading = isPendingQuery && !entriesMatchCurrentQuery;
   const isRefreshing = isPendingQuery && entriesMatchCurrentQuery;
   const error = fetchError?.queryKey === queryKey ? fetchError.message : null;
-  const filterSignature = useMemo(() => JSON.stringify({
+  const trackedFilters = useMemo(() => ({
     characterId,
     weaponId,
     track,
@@ -368,10 +369,15 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   useEffect(() => {
     if (!settledQueryKey) return;
     if (settledQueryKey !== queryKey) return;
-    if (lastTrackedFilterSignatureRef.current === filterSignature) return;
-    lastTrackedFilterSignatureRef.current = filterSignature;
-    posthog.capture('discovery_filter_apply', {
+    const previous = lastTrackedFiltersRef.current;
+    lastTrackedFiltersRef.current = trackedFilters;
+    // First settle is the landing state, deep-linked filters included, so only later changes count
+    if (!previous) return;
+    const changed = changedFilterKeys(previous, trackedFilters);
+    if (changed.length === 0) return;
+    capture('board_filter_apply', {
       surface: 'leaderboard_character',
+      changed,
       character_id: characterId,
       weapon_id: weaponId || null,
       track_key: track || null,
@@ -387,7 +393,7 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
       direction,
       page_size: pageSize,
     });
-  }, [characterId, direction, echoMains.length, echoSets.length, filterSignature, pageSize, queryKey, regionPrefixes.length, scoring, sequences.length, settledQueryKey, sort, statFilters.length, track, uid, username, weaponId]);
+  }, [characterId, direction, echoMains.length, echoSets.length, pageSize, queryKey, regionPrefixes.length, scoring, sequences.length, settledQueryKey, sort, statFilters.length, track, trackedFilters, uid, username, weaponId]);
 
   // Fetches the board when the view changes or a fresh deep link needs resolving
   useEffect(() => {
@@ -488,8 +494,9 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
   const handleToggleExpand = useCallback((id: string) => {
     toggleExpandedId(id, (expandedId) => {
         const entry = entriesRef.current.find((row) => row.id === id);
-        posthog.capture('discovery_result_expand', {
+        capture('build_expand', {
           surface: 'leaderboard_character',
+          source: 'row',
           character_id: entry?.character.id ?? characterId,
           track_key: track,
         });
@@ -696,13 +703,6 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 weaponIndex={weaponIndex}
                 onSelectWeapon={(idx) => {
                   if (idx === weaponIndex) return;
-                  const nextWeaponId = configWeaponIds[idx] ?? null;
-                  posthog.capture('leaderboard_tab_change', {
-                    character_id: characterId,
-                    weapon_id: nextWeaponId,
-                    track_key: track,
-                    tab_kind: 'weapon',
-                  });
                   pendingHistoryModeRef.current = 'push';
                   setWeaponIndex(idx);
                   setPage(1);
@@ -711,12 +711,6 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 activeTrack={track}
                 onSelectTrack={(trackKey) => {
                   if (trackKey === track) return;
-                  posthog.capture('leaderboard_tab_change', {
-                    character_id: characterId,
-                    weapon_id: weaponId || null,
-                    track_key: trackKey,
-                    tab_kind: 'track',
-                  });
                   pendingHistoryModeRef.current = 'push';
                   setTrack(trackKey);
                   if (isHealTrackKey(trackKey)) setScoring(DEFAULT_SCORING);
@@ -725,13 +719,6 @@ export const LeaderboardCharacterClient: React.FC<LeaderboardCharacterClientProp
                 scoring={scoring}
                 onSelectScoring={(mode) => {
                   if (mode === scoring) return;
-                  posthog.capture('leaderboard_tab_change', {
-                    character_id: characterId,
-                    weapon_id: weaponId || null,
-                    track_key: track,
-                    tab_kind: 'scoring',
-                    scoring: mode,
-                  });
                   setScoring(mode);
                   setPage(1);
                 }}

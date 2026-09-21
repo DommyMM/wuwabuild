@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import posthog from 'posthog-js';
+import { capture } from '@/lib/analytics';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { Character } from '@/lib/character';
 import { loadDraftBuild, saveDraftBuild } from '@/lib/storage';
@@ -114,7 +114,8 @@ export const ProfileBuildCardStage: React.FC<ProfileBuildCardStageProps> = ({
   /** Loads this build into the editor as the working draft, replacing whatever was there */
   const openInEditor = useCallback(() => {
     if (!detail) return;
-    posthog.capture('profile_open_in_editor_click', {
+    capture('editor_load', {
+      surface: 'profile',
       character_id: detail.buildState.characterId ?? null,
       weapon_id: detail.buildState.weaponId ?? null,
     });
@@ -188,6 +189,7 @@ export const ProfileBuildCardStage: React.FC<ProfileBuildCardStageProps> = ({
               baseDamage={activeBoard?.damage}
               globalRank={activeBoard?.rank}
               onOpenInEditor={handleOpenInEditor}
+              surface="profile"
             />
           )}
         </div>

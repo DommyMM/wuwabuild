@@ -15,6 +15,7 @@ import { BuildSubstatUpgrades, BuildUpgradeColumn } from './BuildSubstatUpgrades
 import { BuildStandingsTable } from './BuildStandingsTable';
 import { RegionBadge, ScoringMode } from './constants';
 import { transportError, useKeyedResource } from './useKeyedResource';
+import { capture } from '@/lib/analytics';
 
 const BuildOptimalityPanel = dynamic(() => import('./BuildOptimalityPanel').then((module) => module.BuildOptimalityPanel), {
   ssr: false,
@@ -217,7 +218,12 @@ interface BuildSimulationSectionProps {
   onViewProfile?: () => void;
   /** Loads the build into the editor, for the profile surface and for a build with no profile to go to */
   onOpenInEditor?: () => void;
+  /** Page hosting the row, recorded as `surface` on `build_panel_open` */
+  surface: 'builds' | 'leaderboard_character' | 'profile';
 }
+
+/** Disclosure under a build, sent as `build_panel_open.panel` */
+type BenchPanel = 'moves' | 'upgrades' | 'rank' | 'stat_comparison' | 'bench';
 
 export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   buildId,
@@ -235,6 +241,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   viewProfileHref,
   onViewProfile,
   onOpenInEditor,
+  surface,
 }) => {
   const { getWeapon, getSubstatValues, getSubstatRollProbabilities, statIcons, statTranslations } = useGameData();
   const { t } = useLanguage();
@@ -380,6 +387,14 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
 
   const boardTitle = `${weaponName} \u2022 ${trackLabel}`;
 
+  /** Flips one bench panel, recording the open and not the close */
+  const togglePanel = (panel: BenchPanel, isOpen: boolean, setOpen: (open: boolean) => void) => {
+    if (!isOpen) {
+      capture('build_panel_open', { panel, surface, character_id: characterId || null, track_key: activeTrackKey || null });
+    }
+    setOpen(!isOpen);
+  };
+
   return (
     // Width comes from the host shell so every section of the expanded row shares one measure
     <div className="relative w-full space-y-3 font-plus-jakarta">
@@ -400,13 +415,13 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
               <SectionToggle
                 label={`${isHealing ? 'Heal' : 'Move'} breakdown`}
                 isOpen={isMovesOpen}
-                onToggle={() => setIsMovesOpen((prev) => !prev)}
+                onToggle={() => togglePanel('moves', isMovesOpen, setIsMovesOpen)}
                 title={boardTitle}
               />
               <SectionToggle
                 label="Substat upgrades"
                 isOpen={isUpgradesOpen}
-                onToggle={() => setIsUpgradesOpen((prev) => !prev)}
+                onToggle={() => togglePanel('upgrades', isUpgradesOpen, setIsUpgradesOpen)}
                 title={boardTitle}
               />
             </>
@@ -415,7 +430,7 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
           <SectionToggle
             label="Leaderboard rank"
             isOpen={isStandingsOpen}
-            onToggle={() => setIsStandingsOpen((prev) => !prev)}
+            onToggle={() => togglePanel('rank', isStandingsOpen, setIsStandingsOpen)}
           />
 
           {hasBoardContext && (
@@ -423,13 +438,13 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
               <SectionToggle
                 label="Stat comparison"
                 isOpen={isDistributionOpen}
-                onToggle={() => setIsDistributionOpen((prev) => !prev)}
+                onToggle={() => togglePanel('stat_comparison', isDistributionOpen, setIsDistributionOpen)}
                 title={boardTitle}
               />
               <SectionToggle
                 label="Theoretical bench"
                 isOpen={isOptimalityOpen}
-                onToggle={() => setIsOptimalityOpen((prev) => !prev)}
+                onToggle={() => togglePanel('bench', isOptimalityOpen, setIsOptimalityOpen)}
                 title={boardTitle}
               />
             </>

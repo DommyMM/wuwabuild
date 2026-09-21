@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import posthog from 'posthog-js';
+import { capture } from '@/lib/analytics';
 
 type HomeCta = 'import' | 'edit' | 'builds' | 'leaderboards' | 'profile' | 'changelog';
-type HomeSection = 'hero' | 'search' | 'boards_index' | 'news' | 'guide';
+type HomeSection = 'hero' | 'boards_index' | 'news' | 'guide';
 
 interface HomeLinkProps {
     href: string;
@@ -19,7 +19,7 @@ interface HomeLinkProps {
 /** Internal link with the `home_cta_click` capture attached, so server sections stay server-rendered */
 export function HomeLink({ href, cta, section, characterId, className, children }: HomeLinkProps) {
     const handleClick = () => {
-        posthog.capture('home_cta_click', {
+        capture('home_cta_click', {
             cta,
             section,
             ...(characterId ? { character_id: characterId } : {}),

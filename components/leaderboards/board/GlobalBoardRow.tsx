@@ -172,6 +172,8 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
               uid={entry.owner.uid}
               username={entry.owner.username}
               regionBadge={regionBadge}
+              surface="builds"
+              characterId={entry.character.id}
             />
           </div>
         )}

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import posthog from 'posthog-js';
+import { capture } from '@/lib/analytics';
 import { resolveRegionBadge } from '@/components/leaderboards/formatters';
 import { getPinnedProfiles, getRecentProfiles, StoredProfile } from '@/lib/profileHistory';
 import { LB_API_BASE } from '@/lib/apiEndpoints';
@@ -28,7 +28,7 @@ interface SearchResults {
 }
 
 interface ProfileSearchProps {
-    /** Where this search lives, recorded on the navigate capture */
+    /** Where this search lives, recorded as `surface` on `profile_open` */
     surface?: 'home' | 'profiles' | 'nav';
     /**
      * Chrome around the shared input and results
@@ -171,7 +171,7 @@ export function ProfileSearch({
     };
 
     const go = (uid: string) => {
-        posthog.capture('home_cta_click', { cta: 'profile', section: 'search', surface });
+        capture('profile_open', { source: 'search', surface });
         router.push(`/profile/${uid}`);
     };
 

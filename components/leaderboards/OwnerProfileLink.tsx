@@ -2,12 +2,16 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { capture } from '@/lib/analytics';
 import { RegionBadge } from './constants';
 
 interface OwnerProfileLinkProps {
   uid: string;
   username: string;
   regionBadge: RegionBadge | null;
+  /** Board the row sits on, recorded as `surface` on `profile_open` */
+  surface: 'builds' | 'leaderboard_character';
+  characterId: string | null;
 }
 
 /**
@@ -17,7 +21,7 @@ interface OwnerProfileLinkProps {
  * - The name layers its own accent and underline hover, so the two targets read as separate intents
  * - Falls back to plain text on a row with no uid to route to
  */
-export const OwnerProfileLink: React.FC<OwnerProfileLinkProps> = ({ uid, username, regionBadge }) => {
+export const OwnerProfileLink: React.FC<OwnerProfileLinkProps> = ({ uid, username, regionBadge, surface, characterId }) => {
   const label = username || 'Anonymous';
 
   const badge = regionBadge ? (
@@ -39,7 +43,10 @@ export const OwnerProfileLink: React.FC<OwnerProfileLinkProps> = ({ uid, usernam
     <Link
       href={`/profile/${uid}`}
       title={`View ${label}'s profile`}
-      onClick={(event) => event.stopPropagation()}
+      onClick={(event) => {
+        event.stopPropagation();
+        capture('profile_open', { source: 'row_name', surface, character_id: characterId });
+      }}
       onKeyDown={(event) => event.stopPropagation()}
       className="group/owner flex w-fit min-w-0 max-w-full items-center gap-2 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/75"
     >

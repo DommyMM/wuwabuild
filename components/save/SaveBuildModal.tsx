@@ -13,7 +13,7 @@ import { activeElementForPanel, ELEMENT_SETS, UNKNOWN_SET_ACTIVATION_THRESHOLD }
 import { getBuildSetCounts } from '@/lib/calculations/setSummary';
 import { getEchoPaths } from '@/lib/paths';
 import { ELEMENT_TINT_CLASS } from '@/lib/elementVisuals';
-import posthog from 'posthog-js';
+import { capture, captureException } from '@/lib/analytics';
 
 interface SaveBuildModalProps {
   isOpen: boolean;
@@ -110,7 +110,7 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
       });
 
       markClean();
-      posthog.capture('build_save', {
+      capture('build_save', {
         is_update: Boolean(existingBuild),
         character_id: state.characterId,
         weapon_id: state.weaponId,
@@ -121,7 +121,7 @@ export const SaveBuildModal: React.FC<SaveBuildModalProps> = ({
       onSave?.(savedBuild);
       onClose();
     } catch (err) {
-      posthog.captureException(err);
+      captureException(err);
       setError(err instanceof Error ? err.message : 'Failed to save build');
     } finally {
       setIsSaving(false);

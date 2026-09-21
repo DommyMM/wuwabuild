@@ -15,7 +15,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { buildLegacyIdMaps, clearLegacySavesFromStorage, convertLegacyBuilds, getLegacySavesSummaryFromStorage, readLegacySavesPayload } from '@/lib/legacyMigration';
 import legacyEchoes from '@/lib/data/legacyEchoes.json';
 import legacyWeapons from '@/lib/data/legacyWeapons.json';
-import posthog from 'posthog-js';
+import { capture, captureException } from '@/lib/analytics';
 
 type SortBy = 'date' | 'name' | 'cv';
 type SortDirection = 'asc' | 'desc';
@@ -182,17 +182,16 @@ export const SavesPageClient: React.FC = () => {
   const handleExportAll = useCallback(() => {
     try {
       exportAllBuilds();
-      posthog.capture('saves_export_all', { build_count: builds.length });
       success('Exported all builds.');
     } catch {
       notifyError('Failed to export all builds.');
     }
-  }, [builds.length, notifyError, success]);
+  }, [notifyError, success]);
 
   const confirmLoadBuild = useCallback((build: SavedBuild) => {
     try {
-      posthog.capture('saves_load', {
-        build_id: build.id,
+      capture('editor_load', {
+        surface: 'saves',
         character_id: build.state.characterId ?? null,
         weapon_id: build.state.weaponId ?? null,
       });
@@ -246,7 +245,6 @@ export const SavesPageClient: React.FC = () => {
       if (isV2ImportPayload(parsed)) {
         const imported = await importBuild(file);
         refreshStorage();
-        posthog.capture('saves_import', { count: imported.length, format: 'json' });
         success(`Imported ${imported.length} build(s).`);
         return;
       }
@@ -258,13 +256,12 @@ export const SavesPageClient: React.FC = () => {
 
       const merged = mergeBuilds(converted.builds);
       refreshStorage();
-      posthog.capture('saves_import', { count: merged.length, format: 'json', skipped: converted.skippedCount });
       success(`Migrated and imported ${merged.length} legacy build(s).`);
       if (converted.skippedCount > 0) {
         warning(`Skipped ${converted.skippedCount} invalid legacy build(s).`);
       }
     } catch (error) {
-      posthog.captureException(error);
+      captureException(error);
       notifyError(error instanceof Error ? error.message : 'Failed to import file.');
     } finally {
       event.target.value = '';
@@ -308,11 +305,6 @@ export const SavesPageClient: React.FC = () => {
       if (expandedBuildId === build.id) {
         setExpandedBuildId(null);
       }
-      posthog.capture('saves_delete', {
-        build_id: build.id,
-        character_id: build.state.characterId ?? null,
-        weapon_id: build.state.weaponId ?? null,
-      });
       refreshStorage();
       success(`Deleted "${build.name}".`);
     } catch {
@@ -346,17 +338,12 @@ export const SavesPageClient: React.FC = () => {
       const merged = mergeBuilds(converted.builds);
       clearLegacySavesFromStorage();
       refreshStorage();
-      posthog.capture('legacy_migration_complete', {
-        migrated_count: merged.length,
-        skipped_count: converted.skippedCount,
-      });
-
       success(`Migrated ${merged.length} legacy build(s).`);
       if (converted.skippedCount > 0) {
         warning(`Skipped ${converted.skippedCount} invalid legacy build(s).`);
       }
     } catch (error) {
-      posthog.captureException(error);
+      captureException(error);
       notifyError(error instanceof Error ? error.message : 'Failed to migrate legacy saves.');
     } finally {
       setIsLegacyMigrating(false);

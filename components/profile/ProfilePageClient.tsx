@@ -19,7 +19,8 @@ import { GlobalBoardResultsPanel } from '@/components/leaderboards/board/GlobalB
 import { GlobalBoardRowExpandedProps } from '@/components/leaderboards/board/GlobalBoardRow';
 import { useBuildDetails } from '@/components/leaderboards/useBuildDetails';
 import { useExpandedRows } from '@/components/leaderboards/useExpandedRows';
-import { createRowsSignature } from '@/components/leaderboards/queryHelpers';
+import { changedFilterKeys, createRowsSignature } from '@/components/leaderboards/queryHelpers';
+import { capture } from '@/lib/analytics';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from '@/components/leaderboards/types';
 import { isRover } from '@/lib/character';
 import { warmBundledSplashArt } from '@/lib/splashArt';
@@ -108,6 +109,8 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
 
   const [builds, setBuilds] = useState<LBBuildRowEntry[]>([]);
   const buildsRef = useRef<LBBuildRowEntry[]>([]);
+  // Filters at the last tracked settle, the baseline board_filter_apply.changed diffs against
+  const lastTrackedFiltersRef = useRef<Record<string, unknown> | null>(null);
   useEffect(() => { buildsRef.current = builds; }, [builds]);
   const [total, setTotal] = useState(0);
   const [settledQueryKey, setSettledQueryKey] = useState<string | null>(null);
@@ -200,6 +203,43 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
 
   const currentQueryKey = useMemo(() => serializeQuery(querySnapshot), [querySnapshot]);
   const isPendingQuery = settledQueryKey !== currentQueryKey;
+
+  const trackedFilters = useMemo(() => ({
+    characterIds,
+    weaponIds,
+    regionPrefixes,
+    echoSets,
+    echoMains,
+    sequences,
+    statFilters,
+    sort,
+    direction,
+    pageSize,
+  }), [characterIds, weaponIds, regionPrefixes, echoSets, echoMains, sequences, statFilters, sort, direction, pageSize]);
+
+  useEffect(() => {
+    if (!settledQueryKey || settledQueryKey !== currentQueryKey) return;
+    const previous = lastTrackedFiltersRef.current;
+    lastTrackedFiltersRef.current = trackedFilters;
+    // First settle is the landing state, deep-linked filters included, so only later changes count
+    if (!previous) return;
+    const changed = changedFilterKeys(previous, trackedFilters);
+    if (changed.length === 0) return;
+    capture('board_filter_apply', {
+      surface: 'profile',
+      changed,
+      character_count: characterIds.length,
+      weapon_count: weaponIds.length,
+      region_count: regionPrefixes.length,
+      echo_set_count: echoSets.length,
+      echo_main_count: echoMains.length,
+      seq_count: sequences.length,
+      stat_filter_count: statFilters.length,
+      sort,
+      direction,
+      page_size: pageSize,
+    });
+  }, [characterIds.length, currentQueryKey, direction, echoMains.length, echoSets.length, pageSize, regionPrefixes.length, sequences.length, settledQueryKey, sort, statFilters.length, trackedFilters, weaponIds.length]);
   const isLoading = isPendingQuery && builds.length === 0;
   const isRefreshing = isPendingQuery && builds.length > 0;
   const error = fetchError?.queryKey === currentQueryKey ? fetchError.message : null;
@@ -293,6 +333,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       if (!hasOpenCard) setIsExpandedLayoutSettled(false);
       // Row already names the art, so the splash download runs at click alongside the build-detail request
       const entry = buildsRef.current.find((build) => build.id === id);
+      capture('build_expand', { surface: 'profile', source: 'row', character_id: entry?.character.id ?? null });
       const characterRef = entry ? getCharacter(entry.character.id) : null;
       if (characterRef) {
         warmBundledSplashArt(
@@ -335,6 +376,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       setFeatured(null);
       return;
     }
+    capture('build_expand', { surface: 'profile', source: 'standing', character_id: entry.characterId, track_key: entry.trackKey });
     openFeatured({
       buildId: entry.buildId,
       standingKey: `${entry.weaponId}:${entry.trackKey}`,
@@ -345,6 +387,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
 
   /** Opens a build from the echo inventory's "Equipped by" strip, which knows no board */
   const handleOpenBuild = useCallback((buildId: string, characterId: string) => {
+    capture('build_expand', { surface: 'profile', source: 'echo', character_id: characterId });
     openFeatured({ buildId, standingKey: null, characterId, topPercent: null });
   }, [openFeatured]);
 

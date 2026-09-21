@@ -88,3 +88,8 @@ export function serializeStatThresholds(filters: LBStatThreshold[]): string {
     .map((entry) => `${entry.stat}:${entry.op}:${entry.value}`)
     .join('.');
 }
+
+/** Top-level filter keys whose values differ between two settles, sent as `board_filter_apply.changed` */
+export function changedFilterKeys(previous: Record<string, unknown>, next: Record<string, unknown>): string[] {
+  return Object.keys(next).filter((key) => JSON.stringify(previous[key]) !== JSON.stringify(next[key]));
+}

@@ -19,7 +19,7 @@ import type { AnalysisData } from '@/lib/import/types';
 import type { SavedState } from '@/lib/build';
 import { getDefaultReportReason, type OcrIssueReason } from '@/lib/import/report';
 import { RotateCcw } from 'lucide-react';
-import posthog from 'posthog-js';
+import { capture, captureException } from '@/lib/analytics';
 import { validateImportedEchoPanels } from '@/lib/import/validateEchoPanels';
 import { useResolvedLeaderboardLinkState } from '@/hooks/useResolvedLeaderboardLink';
 import { buildOcrIssueReportForm } from '@/lib/import/issueReport';
@@ -32,6 +32,9 @@ interface ImportOutcome {
   buildId: string | null;
   lbAction: 'created' | 'updated' | null;
   localReason: string | null;
+  /** Why the upload landed where it did, sent as `import_complete.lb_reason` */
+  lbReason: 'success' | 'upload_disabled' | 'client_echo_preflight' | 'missing_character_or_weapon' | 'illegal_echo' | 'submit_failed';
+  damageComputed: boolean;
 }
 
 const ILLEGAL_ECHO_UPLOAD_MESSAGE =
@@ -73,6 +76,34 @@ export function ImportPageClient() {
   const [reportReason, setReportReason] = useState<OcrIssueReason>('manual_report');
   const preflightSignatureRef = useRef<string | null>(null);
 
+  /** Unedited scan as a saved state, the OCR read that image linking and the echo check both judge */
+  const convertScan = (scan: AnalysisData): SavedState => convertAnalysisToSavedState({
+    ...scan,
+    watermark: {
+      username: scan.watermark?.username ?? '',
+      uid: Number(scan.watermark?.uid) || 0,
+    },
+  }, {
+    characters: gameData.characters,
+    weapons:    gameData.weapons,
+    echoes:     gameData.echoes,
+  });
+
+  /** Illegal echo panels in the unedited scan, or null when the scan is too incomplete to convert */
+  const findScanEchoViolations = (scan: AnalysisData): string[] | null => {
+    try {
+      return validateImportedEchoPanels({
+        echoPanels: convertScan(scan).echoPanels,
+        getEcho: gameData.getEcho,
+        getMainStatsByCost: gameData.getMainStatsByCost,
+        getSubstatValues: gameData.getSubstatValues,
+        ocrEchoPresent: [scan.echo1, scan.echo2, scan.echo3, scan.echo4, scan.echo5].map((echo) => Boolean(echo)),
+      });
+    } catch {
+      return null;
+    }
+  };
+
   /**
    * Hands the LB service the raw scan and the screenshot's R2 key so it can attach the image to a matching build row
    *
@@ -84,28 +115,7 @@ export function ImportPageClient() {
     correlationScanId: string | null,
   ) => {
     try {
-      const rawState = convertAnalysisToSavedState({
-        ...scan,
-        watermark: {
-          username: scan.watermark?.username ?? '',
-          uid: Number(scan.watermark?.uid) || 0,
-        },
-      }, {
-        characters: gameData.characters,
-        weapons:    gameData.weapons,
-        echoes:     gameData.echoes,
-      });
-      const result = await linkBuildImage(rawState, sourceImageKey, correlationScanId);
-      // Expected misses and already-linked rows are routine, so they stay out of analytics
-      if ((result.linked && result.reason !== 'already_linked') || result.reason === 'ambiguous') {
-        posthog.capture('build_image_link', {
-          linked: result.linked,
-          method: result.method ?? null,
-          reason: result.reason ?? null,
-          character_id: rawState.characterId ?? null,
-          scan_id: correlationScanId,
-        });
-      }
+      await linkBuildImage(convertScan(scan), sourceImageKey, correlationScanId);
     } catch {
       // Best-effort only, so linking never affects the import flow
     }
@@ -125,7 +135,7 @@ export function ImportPageClient() {
       setValidationError(errorMsg);
       setSelectedFile(null);
       notifyError(errorMsg);
-      posthog.capture('import_validation_fail', {
+      capture('import_validation_fail', {
         reason: 'file_too_large',
         file_size: f.size,
         max_file_size: MAX_OCR_IMAGE_BYTES,
@@ -142,7 +152,7 @@ export function ImportPageClient() {
       setSelectedFile(null);
       setValidationError(errorMsg);
       notifyError(errorMsg);
-      posthog.capture('import_validation_fail', {
+      capture('import_validation_fail', {
         reason: 'decode_failed',
         file_type: f.type || null,
       });
@@ -153,7 +163,7 @@ export function ImportPageClient() {
         `For best results, download the image from Discord instead of screenshotting`;
       setValidationError(errorMsg);
       notifyError('Image must be 1920x1080. Download it from Discord instead of screenshotting.');
-      posthog.capture('import_validation_fail', {
+      capture('import_validation_fail', {
         reason: 'bad_dimensions',
         width: img.naturalWidth,
         height: img.naturalHeight,
@@ -162,7 +172,7 @@ export function ImportPageClient() {
       return;
     }
 
-    posthog.capture('import_start', {
+    capture('import_start', {
       method,
       has_existing_draft: Boolean(draftBuildState?.characterId),
     });
@@ -178,9 +188,9 @@ export function ImportPageClient() {
       }
       if (summary.unsupportedLanguage) {
         warning('Non-English card detected, please re-upload');
-        posthog.capture('import_non_english', { character_id: summary.characterId });
       }
-      posthog.capture('ocr_complete', {
+      const echoViolations = findScanEchoViolations(summary.analysisData);
+      capture('ocr_complete', {
         duration_ms: summary.durationMs,
         failed_regions_count: summary.failedRegionsCount,
         failed_regions: summary.failedRegions,
@@ -189,24 +199,21 @@ export function ImportPageClient() {
         has_uid: summary.hasUid,
         character_id: summary.characterId,
         unsupported_language: summary.unsupportedLanguage,
-        has_source_image_key: Boolean(optimisticSourceImageKey),
-        has_confirmed_training_image_key: Boolean(summary.trainingImageKey),
+        echo_violation_count: echoViolations?.length ?? null,
+        first_echo_violation: echoViolations?.[0] ?? null,
         scan_id: summary.scanId,
-        r2_result: summary.storage?.result ?? null,
-        r2_ms: summary.storage?.elapsedMs ?? null,
-        timings: summary.timings ?? null,
       });
       if (optimisticSourceImageKey && !summary.unsupportedLanguage && summary.hasCharacter && summary.hasWeapon) {
         void linkScannedImage(summary.analysisData, optimisticSourceImageKey, summary.scanId);
       }
     }).catch((err) => {
-      posthog.captureException(err);
+      captureException(err);
     });
   };
 
   const handleInvalidFile = (payload: { reason: 'bad_file_type'; fileType: string | null }) => {
     notifyError('Unsupported file type. Use PNG or JPG.');
-    posthog.capture('import_validation_fail', {
+    capture('import_validation_fail', {
       reason: payload.reason,
       file_type: payload.fileType,
     });
@@ -285,61 +292,54 @@ export function ImportPageClient() {
   };
 
   const uploadImportedState = async (importedState: SavedState, hideUid: boolean): Promise<ImportOutcome> => {
-    const captureSubmitResult = (result: 'created' | 'updated' | 'warning' | 'skipped' | 'error', reason: string, damageComputed?: boolean) => {
-      posthog.capture('leaderboard_submit_result', {
-        result,
-        reason,
-        damage_computed: damageComputed ?? false,
-        character_id: importedState.characterId ?? null,
-        has_source_image_key: Boolean(sourceImageKey),
-        scan_id: scanId,
-      });
-    };
-    const skipped = (localReason: string): ImportOutcome => ({
+    const skipped = (localReason: string, lbReason: ImportOutcome['lbReason']): ImportOutcome => ({
       uploaded: false,
       buildId: null,
       lbAction: null,
       localReason,
+      lbReason,
+      damageComputed: false,
     });
 
     if (!uploadToLb) {
-      captureSubmitResult('skipped', 'upload_disabled');
-      return skipped('Leaderboard upload was turned off.');
+      return skipped('Leaderboard upload was turned off.', 'upload_disabled');
     }
 
     if (lbUploadError) {
       warning(ILLEGAL_ECHO_UPLOAD_MESSAGE, 12000);
-      captureSubmitResult('skipped', 'client_echo_preflight');
-      return skipped('Leaderboard upload was skipped, check the notice above.');
+      return skipped('Leaderboard upload was skipped, check the notice above.', 'client_echo_preflight');
     }
 
     if (!importedState.characterId || !importedState.weaponId) {
       warning('Leaderboard skipped: character or weapon was not recognized.');
-      captureSubmitResult('skipped', 'missing_character_or_weapon');
-      return skipped('Character or weapon was not recognized, so the leaderboard was skipped.');
+      return skipped('Character or weapon was not recognized, so the leaderboard was skipped.', 'missing_character_or_weapon');
     }
 
     try {
       const result = await submitBuild(importedState, { sourceImageKey, scanId, hideUid });
       const lbAction = result.action === 'created' ? 'created' : 'updated';
 
-      captureSubmitResult(lbAction, 'success', result.damageComputed);
       if (!result.damageComputed) {
         info('Saved without fresh damage data for this character.');
       }
-      return { uploaded: true, buildId: result.id || null, lbAction, localReason: null };
+      return {
+        uploaded: true,
+        buildId: result.id || null,
+        lbAction,
+        localReason: null,
+        lbReason: 'success',
+        damageComputed: result.damageComputed,
+      };
     } catch (err) {
-      posthog.captureException(err);
+      captureException(err);
       const msg = err instanceof Error ? err.message : '';
       if (msg.includes('illegal echo')) {
         setLbUploadError(formatIllegalEchoUploadError());
         warning(ILLEGAL_ECHO_UPLOAD_MESSAGE, 12000);
-        captureSubmitResult('error', 'illegal_echo');
-        return skipped('Leaderboard upload was skipped, check the notice above.');
+        return skipped('Leaderboard upload was skipped, check the notice above.', 'illegal_echo');
       }
       notifyError(msg ? `Leaderboard upload failed: ${msg}` : 'Leaderboard upload failed.');
-      captureSubmitResult('error', 'submit_failed');
-      return skipped('Leaderboard upload failed.');
+      return skipped('Leaderboard upload failed.', 'submit_failed');
     }
   };
 
@@ -371,13 +371,6 @@ export function ImportPageClient() {
         const detail = violations[0];
         queueMicrotask(() => {
           if (!cancelled) setLbUploadError(formatIllegalEchoUploadError(detail));
-        });
-        posthog.capture('leaderboard_submit_result', {
-          result: 'skipped',
-          reason: 'client_echo_preflight',
-          character_id: importedState.characterId ?? null,
-          violation_count: violations.length,
-          first_violation: detail,
         });
       } else {
         queueMicrotask(() => {
@@ -413,7 +406,7 @@ export function ImportPageClient() {
     try {
       importedState = buildImportedState(wm);
     } catch (err) {
-      posthog.captureException(err);
+      captureException(err);
       notifyError(err instanceof Error ? err.message : 'Failed to import build.');
       return;
     }
@@ -438,15 +431,16 @@ export function ImportPageClient() {
       setCompletedState(importedState);
       setImportOutcome(outcome);
       setSavedCopyName(null);
-      posthog.capture('import_complete', {
+      capture('import_complete', {
         character_id: importedState.characterId,
         uploaded_to_lb: outcome.uploaded,
         lb_action: outcome.lbAction,
-        has_source_image_key: Boolean(sourceImageKey),
+        lb_reason: outcome.lbReason,
+        damage_computed: outcome.damageComputed,
         scan_id: scanId,
       });
     } catch (err) {
-      posthog.captureException(err);
+      captureException(err);
       notifyError(err instanceof Error ? err.message : 'Failed to import build.');
     } finally {
       setIsSubmitting(false);
@@ -471,7 +465,7 @@ export function ImportPageClient() {
     : null;
 
   const captureDestinationClick = (destination: ImportDestination | 'import_another' | 'save_copy') => {
-    posthog.capture('import_destination_click', {
+    capture('import_destination_click', {
       destination,
       character_id: completedState?.characterId ?? null,
       uploaded_to_lb: importOutcome?.uploaded ?? false,
@@ -512,7 +506,7 @@ export function ImportPageClient() {
       captureDestinationClick('save_copy');
       success(`Saved "${saved.name}".`);
     } catch (err) {
-      posthog.captureException(err);
+      captureException(err);
       notifyError(err instanceof Error ? err.message : 'Failed to save imported build.');
     }
   };
@@ -568,7 +562,7 @@ export function ImportPageClient() {
         if (!sourceImageKey) setSourceImageKey(payload.trainingImageKey);
       }
 
-      posthog.capture('ocr_issue_report_submit', {
+      capture('ocr_issue_report_submit', {
         reason: reportReason,
         has_note: note.trim().length > 0,
         has_training_image_key: Boolean(confirmedTrainingImageKey || payload.trainingImageKey),
@@ -578,7 +572,7 @@ export function ImportPageClient() {
       success('Reported.');
       setIsReportModalOpen(false);
     } catch (err) {
-      posthog.captureException(err);
+      captureException(err);
       notifyError(err instanceof Error ? err.message : 'Failed to submit issue report.');
     } finally {
       setIsSubmittingReport(false);

@@ -29,8 +29,8 @@ import { SaveBuildModal } from '@/components/save/SaveBuildModal';
 import { BuildActionBar } from './BuildActionBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { getSplashUrlCandidates, logSplashArtTransform, resolveSplashCardArt, SplashArtVariant } from '@/lib/splashArt';
-import { BUILD_CARD_DESIGN_HEIGHT, BUILD_CARD_DESIGN_WIDTH, BUILD_CARD_EXPORT_WIDTH, downloadBuildCard } from '@/lib/buildCardExport';
-import posthog from 'posthog-js';
+import { BUILD_CARD_DESIGN_HEIGHT, BUILD_CARD_DESIGN_WIDTH, downloadBuildCard } from '@/lib/buildCardExport';
+import { capture, captureException } from '@/lib/analytics';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -262,7 +262,7 @@ export const BuildEditor: React.FC = () => {
   useEffect(() => {
     if (!editorStartedTrackedRef.current && state.isDirty && !previousDirtyRef.current) {
       editorStartedTrackedRef.current = true;
-      posthog.capture('editor_start', {
+      capture('editor_start', {
         character_id: state.characterId,
         weapon_id: state.weaponId,
       });
@@ -292,18 +292,17 @@ export const BuildEditor: React.FC = () => {
         `${charName}_${dateStr}_${timeStr}`,
         { height: BUILD_CARD_DESIGN_HEIGHT },
       );
-      posthog.capture('build_card_download', {
-        byte_size: result.blob.size,
+      capture('card_download', {
+        surface: 'editor',
         character_id: state.characterId,
-        character_name: selected?.character.name ?? null,
-        export_width: BUILD_CARD_EXPORT_WIDTH,
-        format: result.format,
         weapon_id: state.weaponId,
         sequence: state.sequence,
+        byte_size: result.blob.size,
+        format: result.format,
       });
       toastSuccess('Build card downloaded.');
     } catch (e) {
-      posthog.captureException(e);
+      captureException(e);
       toastError('Failed to download build card.');
       console.error('Download failed:', e);
     } finally {
@@ -328,23 +327,17 @@ export const BuildEditor: React.FC = () => {
 
   const handleGenerateCard = useCallback(() => {
     setIsCardGenerated(true);
-    posthog.capture('build_card_generate', {
+    capture('build_card_generate', {
       character_id: state.characterId,
-      character_name: selected?.character.name ?? null,
       weapon_id: state.weaponId,
       sequence: state.sequence,
     });
-  }, [selected?.character.name, state.characterId, state.sequence, state.weaponId]);
+  }, [state.characterId, state.sequence, state.weaponId]);
 
   const handleViewRanking = useCallback(() => {
     if (!leaderboardLink) return;
-    posthog.capture('leaderboard_open_from_editor', {
-      character_id: state.characterId,
-      weapon_id: state.weaponId,
-      sequence: state.sequence,
-    });
     router.push(leaderboardLink.href);
-  }, [leaderboardLink, router, state.characterId, state.sequence, state.weaponId]);
+  }, [leaderboardLink, router]);
 
   const handleCustomArtUpload = useCallback(async (file: File) => {
     if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {

@@ -253,6 +253,8 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
               uid={entry.owner.uid}
               username={entry.owner.username}
               regionBadge={regionBadge}
+              surface="leaderboard_character"
+              characterId={entry.character.id}
             />
           </div>
 

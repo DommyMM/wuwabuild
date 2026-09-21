@@ -8,7 +8,14 @@ const eslintConfig = defineConfig([
   {
     rules: {
       "@next/next/no-img-element": "off",
+      "no-restricted-imports": ["error", {
+        paths: [{ name: "posthog-js", message: "Use capture/captureException from '@/lib/analytics', which loads posthog-js after hydration." }],
+      }],
     },
+  },
+  {
+    files: ["lib/analytics.ts"],
+    rules: { "no-restricted-imports": "off" },
   },
   // Override default ignores of eslint-config-next.
   globalIgnores([

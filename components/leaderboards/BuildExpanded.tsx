@@ -17,7 +17,7 @@ import { BuildSimulationSection } from './BuildSimulationSection';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
 import { buildSubstatSummary, SubstatSummaryEntry } from './substatSummary';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
-import posthog from 'posthog-js';
+import { capture } from '@/lib/analytics';
 
 const SkeletonBlock: React.FC<{ className: string }> = ({ className }) => (
   <div className={`animate-pulse rounded bg-white/8 ${className}`} />
@@ -150,21 +150,19 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   }, [activeBoardWeaponId, activeTrackKey, entry.id, entry.owner.uid]);
 
   const trackViewProfile = () => {
-    posthog.capture('discovery_view_in_profile_click', {
+    capture('profile_open', {
+      source: 'build_panel',
       surface,
       character_id: detail?.buildState.characterId ?? entry.character.id ?? null,
-      track_key: activeTrackKey ?? null,
-      weapon_id: activeBoardWeaponId ?? null,
     });
   };
 
   const openBuildInEditor = () => {
     if (!detail) return;
-    posthog.capture('discovery_open_in_editor_click', {
+    capture('editor_load', {
       surface,
       character_id: detail.buildState.characterId ?? null,
-      track_key: activeTrackKey ?? null,
-      weapon_id: activeBoardWeaponId ?? null,
+      weapon_id: detail.buildState.weaponId ?? null,
     });
     saveDraftBuild(detail.buildState);
     router.push('/edit');
@@ -364,6 +362,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   viewProfileHref={profileHref ?? undefined}
                   onViewProfile={profileHref ? trackViewProfile : undefined}
                   onOpenInEditor={profileHref ? undefined : handleViewBuild}
+                  surface={surface}
                 />
               </>
             )}

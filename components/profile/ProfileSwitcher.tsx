@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSyncExternalStore } from 'react';
 import { Star, X } from 'lucide-react';
 import { resolveRegionBadge } from '@/components/leaderboards/formatters';
+import { capture } from '@/lib/analytics';
 import { getPinnedProfilesSnapshot, getProfilesServerSnapshot, getRecentProfilesSnapshot, removeRecentProfile, StoredProfile, subscribeProfileHistory } from '@/lib/profileHistory';
 
 interface ProfileSwitcherProps {
@@ -47,6 +48,9 @@ export function ProfileSwitcher({ currentUid }: ProfileSwitcherProps) {
                 href={`/profile/${entry.uid}`}
                 aria-current={isCurrent ? 'page' : undefined}
                 title={`${entry.username || 'Anonymous'} · ${entry.uid}`}
+                onClick={() => {
+                  if (!isCurrent) capture('profile_open', { source: 'switcher', surface: 'profile' });
+                }}
                 className="flex h-full min-w-0 items-center gap-2 py-1.5 pl-2 pr-2"
               >
                 {entry.head ? (
