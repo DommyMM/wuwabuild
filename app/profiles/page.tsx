@@ -1,22 +1,15 @@
 import type { Metadata } from 'next';
+import { socialMetadata } from '@/lib/metadata';
 import { ProfilesLanding } from '@/components/profile/ProfilesLanding';
 
+const PAGE_TITLE = 'Wuthering Waves Player Profiles';
+const PAGE_DESCRIPTION = 'Search Wuthering Waves player profiles by UID or username. Star a profile to keep it here, then open submitted builds and leaderboard ranks.';
+
 export const metadata: Metadata = {
-    title: 'Wuthering Waves Player Profiles',
-    description: 'Search Wuthering Waves player profiles by UID or username. Star a profile to keep it here, then open submitted builds and leaderboard ranks.',
+    title: PAGE_TITLE,
+    description: PAGE_DESCRIPTION,
     alternates: { canonical: '/profiles' },
-    openGraph: {
-        title: 'Wuthering Waves Player Profiles',
-        description: 'Search Wuthering Waves player profiles by UID or username. Star a profile to keep it here, then open submitted builds and leaderboard ranks.',
-        url: 'https://wuwa.build/profiles',
-        images: [{ url: 'https://wuwa.build/api/og/profiles', width: 1200, height: 630, alt: 'Player Profiles' }],
-    },
-    twitter: {
-        card: 'summary_large_image',
-        title: 'Wuthering Waves Player Profiles',
-        description: 'Search Wuthering Waves player profiles by UID or username. Star a profile to keep it here, then open submitted builds and leaderboard ranks.',
-        images: ['https://wuwa.build/api/og/profiles'],
-    },
+    ...socialMetadata({ title: PAGE_TITLE, description: PAGE_DESCRIPTION, path: '/profiles', image: 'https://wuwa.build/api/og/profiles' }),
 };
 
 export default function ProfilesPage() {

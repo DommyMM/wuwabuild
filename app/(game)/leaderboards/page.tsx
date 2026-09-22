@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { socialMetadata } from '@/lib/metadata';
 import { LeaderboardOverviewClient } from '@/components/leaderboards/overview/LeaderboardOverviewClient';
 import { prefetchLeaderboardOverview } from '@/lib/lbServer';
 import { loadBoardDisplayCatalog } from '@/lib/server/gameData';
@@ -8,20 +9,13 @@ import { loadBoardDisplayCatalog } from '@/lib/server/gameData';
 // revalidate is passed to the prefetch so it does not drag the page below hourly
 export const revalidate = 3600;
 
+const PAGE_TITLE = 'Wuthering Waves Leaderboards';
+const PAGE_DESCRIPTION = 'Compare Wuthering Waves builds on standardized character rotations. Everyone runs the same optimal rotation, weapon, and team, so the only difference is your echoes.';
+
 export const metadata: Metadata = {
-  title: 'Wuthering Waves Leaderboards',
-  description: 'Compare Wuthering Waves builds on standardized character rotations. Everyone runs the same optimal rotation, weapon, and team, so the only difference is your echoes.',
-  openGraph: {
-    title: 'Wuthering Waves Leaderboards',
-    description: 'Compare Wuthering Waves builds on standardized character rotations. Everyone runs the same optimal rotation, weapon, and team, so the only difference is your echoes.',
-    url: 'https://wuwa.build/leaderboards',
-    images: [{ url: 'https://wuwa.build/api/og/leaderboards', width: 1200, height: 630, alt: 'Wuthering Waves Leaderboards' }],
-  },
-  twitter: {
-    title: 'Wuthering Waves Leaderboards',
-    description: 'Compare Wuthering Waves builds on standardized character rotations. Everyone runs the same optimal rotation, weapon, and team, so the only difference is your echoes.',
-    images: ['https://wuwa.build/api/og/leaderboards'],
-  },
+  title: PAGE_TITLE,
+  description: PAGE_DESCRIPTION,
+  ...socialMetadata({ title: PAGE_TITLE, description: PAGE_DESCRIPTION, path: '/leaderboards', image: 'https://wuwa.build/api/og/leaderboards' }),
   alternates: { canonical: '/leaderboards' },
 };
 

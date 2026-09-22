@@ -1,20 +1,14 @@
 import type { Metadata } from 'next';
+import { socialMetadata } from '@/lib/metadata';
 import { ImportPageClient } from '@/components/import/ImportPageClient';
 
+const PAGE_TITLE = 'Import Wuthering Waves Builds';
+const PAGE_DESCRIPTION = 'Scan a wuwa-bot card to import echoes, stats, weapons, and UID, then submit it to the leaderboards and see where you rank.';
+
 export const metadata: Metadata = {
-  title: 'Import Wuthering Waves Builds',
-  description: 'Scan a wuwa-bot card to import echoes, stats, weapons, and UID, then submit it to the leaderboards and see where you rank.',
-  openGraph: {
-    title: 'Import Wuthering Waves Builds',
-    description: 'Scan a wuwa-bot card to import echoes, stats, weapons, and UID, then submit it to the leaderboards and see where you rank.',
-    url: 'https://wuwa.build/import',
-    images: [{ url: 'https://wuwa.build/api/og/import', width: 1200, height: 630, alt: 'Import Wuthering Waves Builds' }],
-  },
-  twitter: {
-    title: 'Import Wuthering Waves Builds',
-    description: 'Scan a wuwa-bot card to import echoes, stats, weapons, and UID, then submit it to the leaderboards and see where you rank.',
-    images: ['https://wuwa.build/api/og/import'],
-  },
+  title: PAGE_TITLE,
+  description: PAGE_DESCRIPTION,
+  ...socialMetadata({ title: PAGE_TITLE, description: PAGE_DESCRIPTION, path: '/import', image: 'https://wuwa.build/api/og/import' }),
   alternates: { canonical: '/import' },
 };
 

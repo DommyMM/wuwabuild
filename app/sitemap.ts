@@ -1,7 +1,10 @@
 import type { MetadataRoute } from 'next';
 import fs from 'fs';
 import path from 'path';
+import { CHANGELOG } from '@/lib/changelog';
 import { prefetchLeaderboardOverview } from '@/lib/lbServer';
+import { PRIVACY_UPDATED, TOS_UPDATED } from '@/lib/legalDates';
+import { SITE_URL } from '@/lib/metadata';
 
 type WeaponSitemapEntry = {
     id?: string | number;
@@ -10,19 +13,8 @@ type WeaponSitemapEntry = {
 const DATA_DIR = path.join(process.cwd(), 'public', 'Data');
 const CHARACTERS_PATH = path.join(DATA_DIR, 'Characters.json');
 const WEAPONS_PATH = path.join(DATA_DIR, 'Weapons.json');
-const CHANGELOG_PATH = path.join(process.cwd(), 'lib', 'changelog.ts');
-const PRIVACY_PATH = path.join(process.cwd(), 'components', 'legal', 'PrivacyPage.tsx');
-const TOS_PATH = path.join(process.cwd(), 'components', 'legal', 'TosPage.tsx');
 
 export const revalidate = 600;
-
-function getFileLastModified(filePath: string): Date {
-    try {
-        return fs.statSync(filePath).mtime;
-    } catch {
-        return new Date('2026-01-01T00:00:00.000Z');
-    }
-}
 
 function loadWeaponsForSitemap(): WeaponSitemapEntry[] {
     if (!fs.existsSync(WEAPONS_PATH)) {
@@ -48,37 +40,31 @@ function loadWeaponsForSitemap(): WeaponSitemapEntry[] {
     });
 }
 
+// Only pages with a date the content actually carries get lastModified, since file mtimes on Vercel are the deploy time
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const baseUrl = 'https://wuwa.build';
-    const characterDataModified = getFileLastModified(CHARACTERS_PATH);
-    const weaponDataModified = getFileLastModified(WEAPONS_PATH);
-    const staticLastModified = characterDataModified > weaponDataModified
-        ? characterDataModified
-        : weaponDataModified;
+    const staticRoutes: MetadataRoute.Sitemap = [
+        { url: SITE_URL, priority: 1.0, changeFrequency: 'daily' },
+        { url: `${SITE_URL}/builds`, priority: 0.9, changeFrequency: 'daily' },
+        { url: `${SITE_URL}/leaderboards`, priority: 0.9, changeFrequency: 'daily' },
+        { url: `${SITE_URL}/profiles`, priority: 0.8, changeFrequency: 'weekly' },
+        { url: `${SITE_URL}/edit`, priority: 0.9, changeFrequency: 'weekly' },
+        { url: `${SITE_URL}/import`, priority: 0.8, changeFrequency: 'weekly' },
+        { url: `${SITE_URL}/changelog`, priority: 0.7, changeFrequency: 'daily', lastModified: new Date(CHANGELOG[0].date) },
+        { url: `${SITE_URL}/privacy`, priority: 0.3, changeFrequency: 'monthly', lastModified: new Date(PRIVACY_UPDATED) },
+        { url: `${SITE_URL}/tos`, priority: 0.3, changeFrequency: 'monthly', lastModified: new Date(TOS_UPDATED) },
+    ];
 
-    const staticRoutes = [
-        { path: '', priority: 1.0, changeFrequency: 'daily' as const, lastModified: staticLastModified },
-        { path: '/builds', priority: 0.9, changeFrequency: 'daily' as const },
-        { path: '/leaderboards', priority: 0.9, changeFrequency: 'daily' as const },
-        { path: '/profiles', priority: 0.8, changeFrequency: 'weekly' as const },
-        { path: '/edit', priority: 0.9, changeFrequency: 'weekly' as const },
-        { path: '/import', priority: 0.8, changeFrequency: 'weekly' as const },
-        { path: '/changelog', priority: 0.7, changeFrequency: 'daily' as const, lastModified: getFileLastModified(CHANGELOG_PATH) },
-        { path: '/privacy', priority: 0.3, changeFrequency: 'monthly' as const, lastModified: getFileLastModified(PRIVACY_PATH) },
-        { path: '/tos', priority: 0.3, changeFrequency: 'monthly' as const, lastModified: getFileLastModified(TOS_PATH) },
-    ].map((route) => ({
-        url: `${baseUrl}${route.path}`,
-        ...('lastModified' in route ? { lastModified: route.lastModified } : {}),
-        changeFrequency: route.changeFrequency,
-        priority: route.priority,
-    }));
-
-    let dynamicRoutes: MetadataRoute.Sitemap = [];
     const leaderboardOverview = await prefetchLeaderboardOverview();
+    // A failed overview would silently drop every board URL for the revalidate window, so the last good sitemap keeps serving
+    // The build has no last good copy to fall back on, so it ships without boards and ISR fills them in
+    if (!leaderboardOverview && process.env.NEXT_PHASE !== 'phase-production-build') {
+        throw new Error('sitemap: leaderboard overview unavailable');
+    }
     const leaderboardCharacterIds = new Set(
         (leaderboardOverview ?? []).map((entry) => entry.id).filter(Boolean),
     );
 
+    let dynamicRoutes: MetadataRoute.Sitemap = [];
     try {
         if (fs.existsSync(CHARACTERS_PATH)) {
             const charsData = JSON.parse(fs.readFileSync(CHARACTERS_PATH, 'utf8')) as unknown;
@@ -87,13 +73,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
                     Boolean(char) && typeof char === 'object' && (char as { id?: unknown }).id != null
                 ));
             const charRoutes = chars.map((char) => ({
-                url: `${baseUrl}/characters/${char.id}`,
-                lastModified: characterDataModified,
+                url: `${SITE_URL}/characters/${char.id}`,
                 changeFrequency: 'weekly' as const,
                 priority: 0.6,
             }));
             const lbRoutes = chars.filter((char) => leaderboardCharacterIds.has(String(char.id))).map((char) => ({
-                url: `${baseUrl}/leaderboards/${char.id}`,
+                url: `${SITE_URL}/leaderboards/${char.id}`,
                 changeFrequency: 'daily' as const,
                 priority: 0.9,
             }));
@@ -104,8 +89,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             const wepRoutes = loadWeaponsForSitemap()
                 .filter((weapon): weapon is WeaponSitemapEntry & { id: string | number } => weapon.id != null)
                 .map((weapon) => ({
-                    url: `${baseUrl}/weapons/${weapon.id}`,
-                    lastModified: weaponDataModified,
+                    url: `${SITE_URL}/weapons/${weapon.id}`,
                     changeFrequency: 'weekly' as const,
                     priority: 0.6,
                 }));

@@ -1,9 +1,14 @@
 import type { Metadata } from 'next';
+import { socialMetadata } from '@/lib/metadata';
 import { ChangelogPage } from '@/components/changelog/ChangelogPage';
 
+const PAGE_TITLE = 'Changelog';
+const PAGE_DESCRIPTION = 'New features, fixes, and Wuthering Waves game data updates for WuWaBuilds.';
+
 export const metadata: Metadata = {
-    title: 'Changelog',
-    description: 'New features, fixes, and Wuthering Waves game data updates for WuWaBuilds.',
+    title: PAGE_TITLE,
+    description: PAGE_DESCRIPTION,
+    ...socialMetadata({ title: PAGE_TITLE, description: PAGE_DESCRIPTION, path: '/changelog' }),
     alternates: { canonical: '/changelog' },
 };
 

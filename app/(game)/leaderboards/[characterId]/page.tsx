@@ -5,6 +5,7 @@ import { DEFAULT_LB_TRACK, parseLBSeqLevel, stripLBSeqPrefix } from '@/component
 import { adaptCDNCharacter, formatCharacterDisplayName } from '@/lib/character';
 import type { LBLeaderboardResponse, LBTrack } from '@/lib/lb';
 import { prefetchLeaderboard, prefetchLeaderboardOverview } from '@/lib/lbServer';
+import { socialMetadata } from '@/lib/metadata';
 import { loadBoardDisplayCatalog, loadCharacterDisplayMap, loadCharacterRaw, loadWeaponSummary } from '@/lib/server/gameData';
 
 export const dynamic = 'force-static';
@@ -98,8 +99,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
-    openGraph: { title, description, url: canonical, images: [{ url: image, width: 1200, height: 630, alt: title }] },
-    twitter: { title, description, images: [image] },
+    ...socialMetadata({ title, description, path: canonical, image }),
     alternates: { canonical },
   };
 }

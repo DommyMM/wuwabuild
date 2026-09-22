@@ -5,6 +5,7 @@ import path from 'path';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CDNCharacter } from '@/lib/character';
+import { socialMetadata } from '@/lib/metadata';
 import { WeaponReferenceSections } from './WeaponReferenceSections';
 
 // Rendered on demand and cached per id, not prerendered
@@ -136,13 +137,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     return {
         title,
         description,
-        openGraph: {
-            title,
-            description,
-            url: `https://wuwa.build/weapons/${id}`,
-            images: [{ url: `https://wuwa.build/api/og/weapon?id=${encodeURIComponent(id)}`, width: 1200, height: 630, alt: title }],
-        },
-        twitter: { title, description, images: [`https://wuwa.build/api/og/weapon?id=${encodeURIComponent(id)}`] },
+        ...socialMetadata({ title, description, path: `/weapons/${id}`, image: `https://wuwa.build/api/og/weapon?id=${encodeURIComponent(id)}` }),
         alternates: { canonical: `/weapons/${id}` },
     };
 }
@@ -185,12 +180,6 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
             {
                 "@type": "ListItem",
                 "position": 2,
-                "name": "Builds",
-                "item": "https://wuwa.build/builds"
-            },
-            {
-                "@type": "ListItem",
-                "position": 3,
                 "name": wepName || "Weapon",
                 "item": `https://wuwa.build/weapons/${id}`
             }
@@ -228,7 +217,7 @@ export default async function WeaponPage({ params }: { params: Promise<{ id: str
                                 {weaponIcon && (
                                     <img
                                         src={weaponIcon}
-                                        alt=""
+                                        alt={wepName}
                                         className="absolute inset-x-0 bottom-6 mx-auto h-52 w-52 object-contain opacity-95"
                                         loading="eager"
                                     />

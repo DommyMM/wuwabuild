@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Crown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
@@ -45,6 +45,12 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
   }));
   // Holds the current signature so the effect can diff without taking overview as a dep
   const overviewSigRef = useRef(overviewSignature(initialOverview));
+  // First row per character is the board /leaderboards/{id} opens on, so links to it stay parameter-free
+  const defaultTrackByCharacter = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const entry of overview) if (!map.has(entry.id)) map.set(entry.id, entry.trackKey);
+    return map;
+  }, [overview]);
 
   useEffect(() => {
     if (initialData) {
@@ -166,7 +172,7 @@ export const LeaderboardOverviewClient: React.FC<LeaderboardOverviewClientProps>
                             );
 
                             const defaultWeaponId = entry.weaponIds[0] ?? '';
-                            const defaultTrack = entry.trackKey;
+                            const defaultTrack = defaultTrackByCharacter.get(entry.id) ?? entry.trackKey;
                             const seqLevel = parseLBSeqLevel(entry.trackKey);
                             const cleanTrackLabel = stripLBSeqPrefix(entry.trackLabel);
 

@@ -119,7 +119,8 @@ function resolveLeaderboardLink(
       track: trackEntry.trackKey,
       weaponId: resolvedWeaponId || undefined,
     }, {
-      defaultTrack: trackEntry.trackKey,
+      // Character defaults, since serialize drops a param that matches its default and the first row is the bare board
+      defaultTrack: entries[0].trackKey,
       defaultWeaponId,
     }),
     characterId,

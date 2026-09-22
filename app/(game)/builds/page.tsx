@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import { socialMetadata } from '@/lib/metadata';
 import { GlobalBoardPageClient } from '@/components/leaderboards/board/GlobalBoardPageClient';
 import { prefetchBuilds } from '@/lib/lbServer';
+import { loadBoardDisplayCatalog } from '@/lib/server/gameData';
 
 export const dynamic = 'force-static';
 // ISR page cadence is a cost lever, not a freshness one
@@ -8,20 +10,13 @@ export const dynamic = 'force-static';
 // prefetchBuilds gets this same window so it does not drag the page back down to the API TTL
 export const revalidate = 3600;
 
+const PAGE_TITLE = 'Wuthering Waves Builds';
+const PAGE_DESCRIPTION = 'Browse and search every community-submitted Wuthering Waves build. Filter and sort by character, weapon, Sonata set, Crit Value, or any stat, then open any build in the editor.';
+
 export const metadata: Metadata = {
-  title: 'Wuthering Waves Builds',
-  description: 'Browse and search every community-submitted Wuthering Waves build. Filter and sort by character, weapon, Sonata set, Crit Value, or any stat, then open any build in the editor.',
-  openGraph: {
-    title: 'Wuthering Waves Builds',
-    description: 'Browse and search every community-submitted Wuthering Waves build. Filter and sort by character, weapon, Sonata set, Crit Value, or any stat, then open any build in the editor.',
-    url: 'https://wuwa.build/builds',
-    images: [{ url: 'https://wuwa.build/api/og/builds', width: 1200, height: 630, alt: 'Wuthering Waves Builds' }],
-  },
-  twitter: {
-    title: 'Wuthering Waves Builds',
-    description: 'Browse and search every community-submitted Wuthering Waves build. Filter and sort by character, weapon, Sonata set, Crit Value, or any stat, then open any build in the editor.',
-    images: ['https://wuwa.build/api/og/builds'],
-  },
+  title: PAGE_TITLE,
+  description: PAGE_DESCRIPTION,
+  ...socialMetadata({ title: PAGE_TITLE, description: PAGE_DESCRIPTION, path: '/builds', image: 'https://wuwa.build/api/og/builds' }),
   alternates: { canonical: '/builds' },
 };
 
@@ -54,7 +49,8 @@ export default async function Builds() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <GlobalBoardPageClient initialData={initialData} />
+      {/* Names and icons for the server HTML, since the client game data only lands after hydration */}
+      <GlobalBoardPageClient initialData={initialData} boardDisplay={loadBoardDisplayCatalog()} />
     </>
   );
 }

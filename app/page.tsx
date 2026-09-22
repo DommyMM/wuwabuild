@@ -91,6 +91,10 @@ export default async function Home() {
         totalLeaderboards: overview?.length ?? 0,
     };
 
+    // First row per character is the board /leaderboards/{id} opens on, so links to it stay parameter-free
+    const defaultTrackByCharacter = new Map<string, string>();
+    for (const entry of overview ?? []) if (!defaultTrackByCharacter.has(entry.id)) defaultTrackByCharacter.set(entry.id, entry.trackKey);
+
     const records: HomeBoardRecord[] = (overview ?? []).map((entry) => {
         let top: { weaponId: string; buildId: string; damage: number; owner: { username: string; uid: string }; reignSince: string } | null = null;
         for (const weapon of entry.weapons) {
@@ -101,7 +105,7 @@ export default async function Home() {
             trackKey: entry.trackKey,
             href: buildLeaderboardHref(entry.id, { track: entry.trackKey }, {
                 defaultWeaponId: entry.weaponIds[0] ?? '',
-                defaultTrack: entry.trackKey,
+                defaultTrack: defaultTrackByCharacter.get(entry.id) ?? entry.trackKey,
             }),
             name: entry.display?.name ?? `Character ${entry.id}`,
             element: entry.display?.element ?? '',

@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { getLocalStorageItem, setLocalStorageItem } from '@/lib/clientStorage';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
-import { LBBuildDetailEntry, LBBuildRowEntry, LBSortDirection, LBSortKey } from '@/lib/lb';
+import { LBBoardDisplay, LBBuildDetailEntry, LBBuildRowEntry, LBSortDirection, LBSortKey } from '@/lib/lb';
 import { ACTIVE_SORT_COLUMN_CLASS, CV_OPTIONS, CVSortKey, DEFAULT_STAT_COLUMNS, SORTABLE_GROUP_GRID, STAT_OPTION_KEYS, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS, TABLE_STAT_GROUP_MIN } from '../constants';
 import { getSortLabel } from '../formatters';
 import { BuildPagination } from '../BuildPagination';
@@ -42,6 +42,7 @@ interface GlobalBoardResultsPanelProps {
   onToggleExpand: (buildId: string) => void;
   onRetryDetail: (buildId: string) => void;
   renderExpanded?: (props: GlobalBoardRowExpandedProps) => React.ReactNode;
+  boardDisplay?: LBBoardDisplay | null;
   tableGrid?: string;
   showOwner?: boolean;
   showTableGate?: boolean;
@@ -128,6 +129,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   onToggleExpand,
   onRetryDetail,
   renderExpanded,
+  boardDisplay,
   tableGrid = TABLE_GRID,
   showOwner = true,
   showTableGate = true,
@@ -378,6 +380,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
                           onToggleExpand={onToggleExpand}
                           onRetryDetail={onRetryDetail}
                           renderExpanded={renderExpanded}
+                          boardDisplay={boardDisplay}
                           tableGrid={tableGrid}
                           showOwner={showOwner}
                         />

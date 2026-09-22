@@ -6,9 +6,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { adaptCDNCharacter } from '@/lib/character';
 import { prefetchLeaderboardOverview } from '@/lib/lbServer';
+import { socialMetadata } from '@/lib/metadata';
 import { loadCharacterRaw } from '@/lib/server/gameData';
 import { getLeaderboardInsight, formatInsightProse } from '@/lib/server/leaderboardInsight';
-import { CharacterReferenceSections } from './CharacterReferenceSections';
+import { CharacterReferenceSections, ReferenceChain, ReferenceMove } from './CharacterReferenceSections';
 
 // Leaderboard insight prose is data-driven and shifts as builds land, so it regenerates daily
 // Rendered on demand and cached per id, not prerendered, since the dossiers draw under 0.5% of traffic
@@ -96,13 +97,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     return {
         title,
         description,
-        openGraph: {
-            title,
-            description,
-            url: `https://wuwa.build/characters/${id}`,
-            images: [{ url: `https://wuwa.build/api/og/character?id=${encodeURIComponent(id)}`, width: 1200, height: 630, alt: title }],
-        },
-        twitter: { title, description, images: [`https://wuwa.build/api/og/character?id=${encodeURIComponent(id)}`] },
+        ...socialMetadata({ title, description, path: `/characters/${id}`, image: `https://wuwa.build/api/og/character?id=${encodeURIComponent(id)}` }),
         alternates: { canonical: `/characters/${id}` },
     };
 }
@@ -132,7 +127,8 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
     const hasLeaderboard = leaderboardOverview === null
         || leaderboardOverview.some((entry) => entry.id === id);
     const weaponType = char ? char.weaponType : '';
-    const element = char ? char.element : '';
+    // Rover's element slot holds "Rover", the real element sits beside it
+    const element = char ? (char.roverElementName ?? char.element) : '';
     const matchingWeaponRefs = matchingWeapons.map((weapon) => ({
         id: String(weapon.id),
         name: getI18nText(weapon.name) || String(weapon.id),
@@ -158,17 +154,28 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
             {
                 "@type": "ListItem",
                 "position": 2,
-                "name": "Builds",
-                "item": "https://wuwa.build/builds"
-            },
-            {
-                "@type": "ListItem",
-                "position": 3,
                 "name": charName || "Character",
                 "item": `https://wuwa.build/characters/${id}`
             }
         ]
     };
+
+    // English only, since the sections render one language and the full i18n set was 80 KB of unused props
+    const referenceMoves: ReferenceMove[] = (rawChar?.moves ?? []).map((move) => ({
+        id: move.id,
+        name: getI18nText(move.name),
+        description: getI18nText(move.description),
+        descriptionParams: move.descriptionParams,
+        maxLevel: move.maxLevel,
+        values: move.values?.map((value) => ({ id: value.id, name: getI18nText(value.name), values: value.values })),
+    }));
+    const referenceChains: ReferenceChain[] = (rawChar?.chains ?? []).map((chain) => ({
+        id: chain.id,
+        name: getI18nText(chain.name),
+        description: getI18nText(chain.description),
+        icon: chain.icon,
+        param: chain.param,
+    }));
 
     return (
         <main className="bg-background">
@@ -185,7 +192,7 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
                                 {rawChar.icon?.banner && (
                                     <img
                                         src={rawChar.icon.banner}
-                                        alt=""
+                                        alt={charName}
                                         className="absolute inset-x-0 bottom-0 mx-auto h-67.5 w-full object-contain object-bottom opacity-90"
                                         loading="eager"
                                     />
@@ -195,7 +202,7 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
                                 <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
                                     <div>
                                         <p className="text-2xs font-semibold uppercase tracking-[0.24em] text-accent">Resonator dossier</p>
-                                        <h1 className={`char-sig ${element.toLowerCase()} mt-2 font-plus-jakarta text-4xl font-semibold leading-[1.02] tracking-[-0.02em] md:text-6xl`}>
+                                        <h1 className={`char-sig ${char.element.toLowerCase()} mt-2 font-plus-jakarta text-4xl font-semibold leading-[1.02] tracking-[-0.02em] md:text-6xl`}>
                                             {charName}
                                         </h1>
                                         <p className="mt-4 max-w-2xl text-base leading-relaxed text-text-primary/68">
@@ -256,8 +263,9 @@ export default async function CharacterPage({ params }: { params: Promise<{ id: 
                     characterName={charName}
                     weaponType={weaponType}
                     matchingWeapons={matchingWeaponRefs}
-                    moves={rawChar.moves ?? []}
-                    chains={rawChar.chains ?? []}
+                    moves={referenceMoves}
+                    chains={referenceChains}
+                    hasLeaderboard={hasLeaderboard}
                 />
             )}
         </main>

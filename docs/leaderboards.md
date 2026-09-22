@@ -71,6 +71,10 @@ The URL is the source of truth for shareable table state on `/builds`, `/profile
 - Character boards seed from `useSearchParams()` and write query-only changes with the native History
   API. Weapon, track and pagination use `pushState` so Back and Forward restore the prior board, while
   rapid filters, sorting and canonical cleanup use `replaceState` so they do not flood history.
+- A character's default board (first track, first weapon) is the bare `/leaderboards/{id}`, which is also
+  the page's canonical URL. `serializeLeaderboardQuery` drops `weaponId` and `track` when they match the
+  defaults it is given, so every caller passes the character's defaults, not the row it is rendering. The
+  overview and the home page take them from the character's first overview row.
 - Never use `router.push` or `router.replace` for character-board query state. The server artifact is
   identical for every query variant, so a Next navigation only adds an Edge and RSC request alongside
   the API request the client actually needs.

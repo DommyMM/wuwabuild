@@ -157,8 +157,10 @@ export function serializeLeaderboardQuery(
   if (resolved.pageSize !== defaultPageSize) params.set('pageSize', String(resolved.pageSize));
   if (resolved.sort !== defaultSort) params.set('sort', toLBApiSortKey(resolved.sort));
   if (resolved.direction !== defaultDirection) params.set('direction', resolved.direction);
-  if (resolved.weaponId) params.set('weaponId', resolved.weaponId);
-  if (resolved.track) params.set('track', resolved.track);
+  // Default board stays at the bare canonical URL, so links and the address bar agree with the page's canonical tag
+  // Callers have to pass the character's own defaults (first track, first weapon), not the row they are rendering
+  if (resolved.weaponId && resolved.weaponId !== defaults.defaultWeaponId) params.set('weaponId', resolved.weaponId);
+  if (resolved.track && resolved.track !== defaults.defaultTrack) params.set('track', resolved.track);
   if (resolved.uid) params.set('uid', resolved.uid);
   if (resolved.username) params.set('username', resolved.username);
   if (resolved.buildId) params.set('buildId', resolved.buildId);

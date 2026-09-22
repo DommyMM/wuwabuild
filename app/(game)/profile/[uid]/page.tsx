@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { ProfilePageClient } from '@/components/profile/ProfilePageClient';
 import { fetchProfileSummary } from '@/lib/lbServer';
+import { socialMetadata } from '@/lib/metadata';
 
 interface ProfilePageProps {
   params: Promise<{ uid: string }>;
@@ -10,9 +11,12 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
   const { uid } = await params;
   const summary = await fetchProfileSummary(uid);
   const displayName = summary?.username || uid;
+  const title = `${displayName}'s Profile`;
+  const description = `Browse Wuthering Waves builds submitted by ${displayName} (UID ${uid}).`;
   return {
-    title: `${displayName}'s Profile`,
-    description: `Browse Wuthering Waves builds submitted by ${displayName} (UID ${uid}).`,
+    title,
+    description,
+    ...socialMetadata({ title, description, path: `/profile/${uid}` }),
     alternates: { canonical: `/profile/${uid}` },
     robots: {
       index: false,

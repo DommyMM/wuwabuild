@@ -2,11 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { CDNChainEntry } from '@/lib/character';
 import { renderGameTemplateWithHighlights } from '@/lib/text/gameText';
 import { GlossaryNotes } from '@/components/ui/GlossaryNotes';
-
-type I18nLike = string | { en?: string };
 
 type ReferenceWeapon = {
     id: string;
@@ -16,26 +13,24 @@ type ReferenceWeapon = {
     type: string;
 };
 
-type ReferenceMoveValue = {
+/** Move with its text already resolved to English by the page, so the other twelve languages never reach the client */
+export type ReferenceMove = {
     id: number;
-    name: I18nLike;
-    values: string[];
-};
-
-type ReferenceMove = {
-    id: number;
-    name: I18nLike;
-    description?: I18nLike;
+    name: string;
+    description?: string;
     descriptionParams?: string[];
     maxLevel?: number;
-    values?: ReferenceMoveValue[];
+    values?: Array<{ id: number; name: string; values: string[] }>;
 };
 
-function getI18nText(val: I18nLike | undefined): string {
-    if (!val) return '';
-    if (typeof val === 'string') return val;
-    return val.en || '';
-}
+/** Resonance chain node with English text, icon and template params */
+export type ReferenceChain = {
+    id: number;
+    name: string;
+    description?: string;
+    icon: string;
+    param?: string[];
+};
 
 function RichGameText({
     template,
@@ -73,13 +68,16 @@ export function CharacterReferenceSections({
     matchingWeapons,
     moves,
     chains,
+    hasLeaderboard,
 }: {
     characterId: string;
     characterName: string;
     weaponType: string;
     matchingWeapons: ReferenceWeapon[];
     moves: ReferenceMove[];
-    chains: CDNChainEntry[];
+    chains: ReferenceChain[];
+    /** False when the character has no board, so the link to a 404 stays off the page */
+    hasLeaderboard: boolean;
 }) {
     const maxSkillLevel = useMemo(() => {
         const levels = moves.map((move) => move.maxLevel ?? 0).filter((level) => level > 0);
@@ -98,9 +96,11 @@ export function CharacterReferenceSections({
                                 {weaponType} options that can be opened from this reference page.
                             </p>
                         </div>
-                        <Link className="text-sm font-semibold text-accent hover:text-accent-hover" href={`/leaderboards/${characterId}`}>
-                            {characterName} leaderboard &rarr;
-                        </Link>
+                        {hasLeaderboard && (
+                            <Link className="text-sm font-semibold text-accent hover:text-accent-hover" href={`/leaderboards/${characterId}`}>
+                                {characterName} leaderboard &rarr;
+                            </Link>
+                        )}
                     </div>
                     <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                         {matchingWeapons.slice(0, 8).map((weapon) => (
@@ -154,9 +154,9 @@ export function CharacterReferenceSections({
 
                 <div className="mt-5 space-y-5">
                     {moves.map(move => {
-                        const moveName = getI18nText(move.name);
-                        const description = getI18nText(move.description);
-                        const valueRows = move.values?.filter((value) => getI18nText(value.name) && value.values?.length) ?? [];
+                        const moveName = move.name;
+                        const description = move.description ?? '';
+                        const valueRows = move.values?.filter((value) => value.name && value.values?.length) ?? [];
 
                         return (
                             <article key={move.id} className="rounded-lg border border-border bg-black/20 p-4">
@@ -179,7 +179,7 @@ export function CharacterReferenceSections({
                                     <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                                         {valueRows.map(val => (
                                             <div key={val.id} className="rounded border border-white/8 bg-white/2.5 p-2">
-                                                <p className="truncate text-xs text-text-primary/45">{getI18nText(val.name)}</p>
+                                                <p className="truncate text-xs text-text-primary/45">{val.name}</p>
                                                 <p className="mt-1 font-gowun text-sm text-text-primary tabular-nums">{getLevelValue(val.values, skillLevel)}</p>
                                             </div>
                                         ))}
@@ -192,8 +192,7 @@ export function CharacterReferenceSections({
                     {chains.length ? (
                         <div className="grid gap-3 md:grid-cols-2">
                             {chains.map((chain, index) => {
-                                const name = getI18nText(chain.name);
-                                const description = getI18nText(chain.description);
+                                const { name, description } = chain;
                                 return (
                                     <article key={chain.id} className="rounded-lg border border-border bg-black/20 p-4">
                                         <div className="flex items-center gap-3">

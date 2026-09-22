@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBListBuildsResponse, LBSortDirection, LBSortKey, LBStatThreshold, listBuilds } from '@/lib/lb';
+import { LBBoardDisplay, LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBListBuildsResponse, LBSortDirection, LBSortKey, LBStatThreshold, listBuilds } from '@/lib/lb';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, DEFAULT_PAGE, MAX_ITEMS_PER_PAGE, normalizeSequences } from '../constants';
 import { getSortLabel } from '../formatters';
@@ -22,10 +22,12 @@ import { capture } from '@/lib/analytics';
 
 interface GlobalBoardPageClientProps {
   initialData?: LBListBuildsResponse | null;
+  /** Server-side names and icons the rows fall back to before the client game data loads */
+  boardDisplay?: LBBoardDisplay | null;
   renderExpanded?: (props: GlobalBoardRowExpandedProps) => React.ReactNode;
 }
 
-export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ initialData, renderExpanded }) => {
+export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ initialData, boardDisplay, renderExpanded }) => {
   const searchParams = useSearchParams();
   const { characters, weaponList, fetters } = useGameData();
   const { t } = useLanguage();
@@ -545,6 +547,7 @@ export const GlobalBoardPageClient: React.FC<GlobalBoardPageClientProps> = ({ in
 
               <div className="relative z-10">
                 <GlobalBoardResultsPanel
+                  boardDisplay={boardDisplay}
                   builds={builds}
                   expandedBuildIds={expandedBuildIds}
                   detailById={detailById}

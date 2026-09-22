@@ -45,6 +45,9 @@ const nextConfig: NextConfig = {
         destination: 'https://wuwa.build/:path*',
         permanent: true,
       },
+      // Singular spelling still gets typed and linked
+      { source: '/leaderboard', destination: '/leaderboards', permanent: true },
+      { source: '/leaderboard/:id', destination: '/leaderboards/:id', permanent: true },
     ];
   },
   async rewrites() {

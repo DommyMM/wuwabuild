@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCharacterDisplayName } from '@/lib/character';
 import { getBuildCVRatingColor } from '@/lib/calculations/rollValues';
 import { ELEMENT_ICON_FILTERS } from '@/lib/elementVisuals';
-import { getLBStatCode, LBBuildDetailEntry, LBBuildRowEntry, LBSortKey } from '@/lib/lb';
+import { getLBStatCode, LBBoardDisplay, LBBuildDetailEntry, LBBuildRowEntry, LBSortKey } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
 import { ACTIVE_SORT_COLUMN_CLASS, SEQUENCE_BADGE_STYLES, SORTABLE_GROUP_GRID, TABLE_GRID, TABLE_ROW_HEIGHT_CLASS, TABLE_STAT_GROUP_MIN } from '../constants';
 import { formatStatByKey, getSortLabel } from '../formatters';
@@ -58,6 +58,8 @@ interface GlobalBoardRowProps {
   renderExpanded?: (props: GlobalBoardRowExpandedProps) => React.ReactNode;
   tableGrid?: string;
   showOwner?: boolean;
+  /** Server-side names and icons, read only while the client game data is still loading */
+  boardDisplay?: LBBoardDisplay | null;
 }
 
 const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
@@ -75,6 +77,7 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
   renderExpanded,
   tableGrid = TABLE_GRID,
   showOwner = true,
+  boardDisplay,
 }) => {
   const { fetters, getCharacter, getEcho, getWeapon, statIcons } = useGameData();
   const { t } = useLanguage();
@@ -104,18 +107,22 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
     );
   }, [character, entry.stats, sort]);
 
+  const fallbackCharacter = boardDisplay?.characters[entry.character.id] ?? null;
+  const fallbackWeapon = boardDisplay?.weapons[entry.weapon.id] ?? null;
   const characterName = useMemo(() => (
     character
       ? formatCharacterDisplayName(character, {
           baseName: t(character.nameI18n ?? { en: character.name }),
           showRoverElement: false,
         })
-      : entry.character.id || 'Unknown Character'
-  ), [character, entry.character.id, t]);
+      : fallbackCharacter?.name ?? entry.character.id ?? 'Unknown Character'
+  ), [character, entry.character.id, fallbackCharacter, t]);
+  const characterHead = character?.head ?? fallbackCharacter?.head ?? null;
   const weaponName = useMemo(
-    () => (weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : 'Unknown Weapon'),
-    [t, weapon],
+    () => (weapon ? t(weapon.nameI18n ?? { en: weapon.name }) : fallbackWeapon?.name ?? 'Unknown Weapon'),
+    [fallbackWeapon, t, weapon],
   );
+  const weaponIcon = weapon ? getWeaponPaths(weapon) : fallbackWeapon?.iconUrl ?? null;
   const sequenceLevel = useMemo(
     () => Math.max(0, Math.min(6, Math.trunc(Number(entry.sequence) || 0))),
     [entry.sequence],
@@ -127,13 +134,20 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
     Object.entries(entry.echoSummary.sets)
       .map(([setId, count]) => {
         const fetter = fetters.find((f) => String(f.id) === setId);
-        const threshold = fetter?.pieceCount ?? UNKNOWN_SET_ACTIVATION_THRESHOLD;
-        return { setId, count, active: count >= threshold, icon: fetter?.icon ?? '', name: fetter ? t(fetter.name) : `Set ${setId}` };
+        const fallbackSet = boardDisplay?.sets[setId];
+        const threshold = fetter?.pieceCount ?? fallbackSet?.pieceCount ?? UNKNOWN_SET_ACTIVATION_THRESHOLD;
+        return {
+          setId,
+          count,
+          active: count >= threshold,
+          icon: fetter?.icon ?? fallbackSet?.iconUrl ?? '',
+          name: fetter ? t(fetter.name) : fallbackSet?.name ?? `Set ${setId}`,
+        };
       })
       .filter((s) => s.active)
       .sort((a, b) => b.count - a.count)
       .slice(0, 3)
-  ), [entry.echoSummary.sets, fetters, t]);
+  ), [boardDisplay, entry.echoSummary.sets, fetters, t]);
 
   const translateText = useCallback(
     (i18n: Record<string, string> | undefined, fallback: string) => t(i18n ?? { en: fallback }),
@@ -180,8 +194,8 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
         )}
 
         <div className="flex min-w-0 items-center gap-1.5 py-2">
-          {character?.head ? (
-            <img src={character.head} alt={characterName} className="h-9 w-9 object-cover" />
+          {characterHead ? (
+            <img src={characterHead} alt={characterName} className="h-9 w-9 object-cover" />
           ) : (
             <div className="h-9 w-9 bg-border" />
           )}
@@ -191,8 +205,8 @@ const GlobalBoardRowComponent: React.FC<GlobalBoardRowProps> = ({
         </div>
 
         <div className="flex items-end py-2 text-text-primary/75">
-          {weapon ? (
-            <img src={getWeaponPaths(weapon)} alt={weaponName} className="h-9 w-9" />
+          {weaponIcon ? (
+            <img src={weaponIcon} alt={weaponName} className="h-9 w-9" />
           ) : (
             <div className="h-9 w-9" />
           )}
