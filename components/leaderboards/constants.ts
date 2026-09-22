@@ -60,19 +60,6 @@ export const SORT_OPTIONS: Array<{ key: LBSortKey; label: string }> = ([
   'spectro_dmg',
 ] as LBSortKey[]).map((key) => ({ key, label: getLBSortLabel(key) }));
 
-export type RegionBadge = {
-  label: string;
-  className: string;
-};
-
-export const REGION_BADGES: Record<string, RegionBadge> = {
-  '1': { label: 'CN', className: 'bg-red-500/85 text-white' },
-  '5': { label: 'NA', className: 'bg-amber-400/90 text-black' },
-  '6': { label: 'EU', className: 'bg-indigo-400/90 text-black' },
-  '7': { label: 'Asia', className: 'bg-lime-300/90 text-black' },
-  '9': { label: 'SEA', className: 'bg-cyan-300/90 text-black' },
-};
-
 export type CVSortKey = 'finalCV' | 'crit_rate' | 'crit_dmg';
 
 export const CV_OPTIONS: ReadonlyArray<{ key: CVSortKey; label: string }> = [

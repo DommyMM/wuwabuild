@@ -1,5 +1,4 @@
 import { isLBPercentStatSortKey, LBSortKey } from '@/lib/lb';
-import { REGION_BADGES, RegionBadge } from './constants';
 
 // Re-exported under its old name for the leaderboard components that reach for it here
 export { getLBSortLabel as getSortLabel } from '@/lib/lb';
@@ -31,12 +30,6 @@ export function formatPercentStat(value: number): string {
 export function formatStatByKey(key: LBSortKey, value: number): string {
   if (isLBPercentStatSortKey(key)) return `${Number(value).toFixed(1)}%`;
   return formatFlatStat(value);
-}
-
-export function resolveRegionBadge(uid: string | undefined): RegionBadge | null {
-  if (!uid) return null;
-  const prefix = uid.trim()[0];
-  return REGION_BADGES[prefix] ?? null;
 }
 
 export function formatReignHoldLabel(reignSince: string): string | null {

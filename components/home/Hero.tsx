@@ -22,6 +22,8 @@ const profileKeyOf = (slide: HomeHeroSlide | null) => (
 );
 
 const ROTATE_MS = 6500;
+// Neighbour splashes mount this long after load, so the first paint fetches one 250 KB image instead of three
+const WARM_NEIGHBOURS_MS = 2000;
 // prefers-reduced-motion as an external store: SSR assumes reduced, the client snapshot corrects on hydration
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 function subscribeReducedMotion(onChange: () => void) {
@@ -57,6 +59,8 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
     // Touch users cannot hover to pause, so the first touch on the record card stops rotation for good
     // The card is a link, and a swap timed under a thumb would open a board the user never chose
     const [stopped, setStopped] = useState(false);
+    // Neighbour slides are in the viewport, so lazy loading alone would still fetch them at first paint
+    const [neighboursWarm, setNeighboursWarm] = useState(false);
     const reducedMotion = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, getReducedMotionServer);
     const rotates = slides.length >= 2 && !reducedMotion && !stopped;
     const prevIndex = slides.length > 0 ? (index - 1 + slides.length) % slides.length : 0;
@@ -70,6 +74,11 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
         }, ROTATE_MS);
         return () => clearTimeout(timer);
     }, [slides, rotates, paused, index]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setNeighboursWarm(true), WARM_NEIGHBOURS_MS);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         if (!leaving) return;
@@ -136,13 +145,15 @@ export function Hero({ slides, totalBuilds, totalLeaderboards, initialProfile }:
                                     />
                                 )}
                                 {/* Mobile centers a slice with the per-character card offsets (% of image width), desktop stays right-anchored */}
-                                {(i === prevIndex || i === index || i === nextIndex) && (
+                                {(i === index || (neighboursWarm && (i === prevIndex || i === nextIndex))) && (
                                     <img
                                         src={slide.splashUrl}
                                         alt=""
                                         className="absolute bottom-0 left-1/2 h-full w-auto max-w-none origin-bottom object-contain object-bottom opacity-35 max-md:transform-[translateX(calc(-50%+var(--splash-x,0%)))_scale(var(--splash-s,1))] md:left-auto md:right-0 md:opacity-60 md:mask-[linear-gradient(to_left,rgba(0,0,0,1)_45%,transparent_95%)]"
                                         style={offset ? { '--splash-x': `${offset.xPct}%`, '--splash-s': offset.scale } as React.CSSProperties : undefined}
                                         loading={i === 0 ? 'eager' : 'lazy'}
+                                        fetchPriority={i === 0 ? 'high' : 'auto'}
+                                        decoding="async"
                                     />
                                 )}
                             </div>

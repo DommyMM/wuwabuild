@@ -6,7 +6,7 @@ import { capture } from '@/lib/analytics';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { Character } from '@/lib/character';
 import { loadDraftBuild, saveDraftBuild } from '@/lib/storage';
-import { RegionBadge } from '@/components/leaderboards/constants';
+import { RegionBadge } from '@/lib/regionBadge';
 import { BuildSimulationSection } from '@/components/leaderboards/BuildSimulationSection';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';

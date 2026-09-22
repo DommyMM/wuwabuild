@@ -7,7 +7,8 @@ import { calculateSelectedStatsRV, DEFAULT_PREFERRED_STATS, getAvailablePreferre
 import { Character, Element } from '@/lib/character';
 import { LBBuildDetailEntry, LBBoardOptimality, LBOptimalityReference } from '@/lib/lb';
 import { formatFlatStat, formatPercentStat, normalizeSubstatKey } from './formatters';
-import { getSummaryRowClasses, LB_SECTION_HEADING, LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, PERCENT_STAT_KEYS, RegionBadge, SORT_OPTIONS, STATUS_NEGATIVE_COLOR, STATUS_POSITIVE_COLOR } from './constants';
+import { getSummaryRowClasses, LB_SECTION_HEADING, LB_SUMMARY_ICON, LB_SUMMARY_ICON_EMPTY, PERCENT_STAT_KEYS, SORT_OPTIONS, STATUS_NEGATIVE_COLOR, STATUS_POSITIVE_COLOR } from './constants';
+import { RegionBadge } from '@/lib/regionBadge';
 import { resolveCharacterBaseScaling } from './statColumns';
 import { BuildExpandedEchoPanels } from './BuildExpandedEchoPanels';
 import { buildSubstatSummary } from './substatSummary';

@@ -11,7 +11,8 @@ import { LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBProfileStandingEn
 import { computeTopPercent } from '@/lib/calculations/rankTier';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, DEFAULT_PAGE, MAX_ITEMS_PER_PAGE, normalizeSequences } from '@/components/leaderboards/constants';
-import { getSortLabel, resolveRegionBadge } from '@/components/leaderboards/formatters';
+import { getSortLabel } from '@/components/leaderboards/formatters';
+import { resolveRegionBadge } from '@/lib/regionBadge';
 import { parseInitialQuery, serializeQuery } from '@/components/leaderboards/board/globalBoardQuery';
 import { readCachedBuildList, writeCachedBuildList } from '@/components/leaderboards/board/globalBoardCache';
 import { BuildFiltersPanel } from '@/components/leaderboards/BuildFiltersPanel';

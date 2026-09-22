@@ -315,7 +315,8 @@ export const LeaderboardCharacterHeader: React.FC<LeaderboardCharacterHeaderProp
         </Link>
         <span>/</span>
         {characterId ? (
-          <Link href={`/characters/${characterId}`} className="transition-colors hover:text-accent">
+          // No prefetch because the dossier is 40 KB of RSC that under 1% of board readers open
+          <Link href={`/characters/${characterId}`} prefetch={false} className="transition-colors hover:text-accent">
             {characterName}
           </Link>
         ) : (

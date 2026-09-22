@@ -40,7 +40,7 @@ export function LanguageSwitcher() {
         aria-label="Select language"
         aria-expanded={isOpen}
       >
-        <span className={`fi fi-${currentLang.countryCode} rounded`} />
+        <img src={`/flags/${currentLang.countryCode}.svg`} alt="" width={20} height={15} className="rounded" />
         <span className="inline max-sm:hidden text-sm font-medium text-text-primary">
           {language.toUpperCase()}
         </span>
@@ -73,7 +73,7 @@ export function LanguageSwitcher() {
                 }
               `}
             >
-              <span className={`fi fi-${lang.countryCode} text-lg rounded`} />
+              <img src={`/flags/${lang.countryCode}.svg`} alt="" width={24} height={18} className="rounded" />
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{lang.nativeName}</span>
                 <span className="text-xs text-text-primary/60">{lang.name}</span>

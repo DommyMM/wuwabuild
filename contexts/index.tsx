@@ -5,20 +5,11 @@ import { usePathname } from 'next/navigation';
 import { GameDataLoadingGate, GameDataProvider } from './GameDataContext';
 import { BuildProvider } from './BuildContext';
 import { StatsProvider } from './StatsContext';
-import { LanguageProvider } from './LanguageContext';
 import { SavedState } from '@/lib/build';
 import { ToastProvider } from './ToastContext';
 
 interface AppProvidersProps {
   children: ReactNode;
-}
-
-export function RootProviders({ children }: AppProvidersProps) {
-  return (
-    <LanguageProvider>
-      {children}
-    </LanguageProvider>
-  );
 }
 
 function isServerRenderedDossierPath(pathname: string | null): boolean {

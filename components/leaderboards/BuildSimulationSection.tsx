@@ -13,7 +13,8 @@ import { BuildMoveBreakdown } from './BuildMoveBreakdown';
 import { BuildStatDistribution } from './BuildStatDistribution';
 import { BuildSubstatUpgrades, BuildUpgradeColumn } from './BuildSubstatUpgrades';
 import { BuildStandingsTable } from './BuildStandingsTable';
-import { RegionBadge, ScoringMode } from './constants';
+import { ScoringMode } from './constants';
+import { RegionBadge } from '@/lib/regionBadge';
 import { transportError, useKeyedResource } from './useKeyedResource';
 import { capture } from '@/lib/analytics';
 

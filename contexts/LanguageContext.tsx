@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useCallback, useEffect, useMemo, useSyncExternalStore, ReactNode } from 'react';
 import type { I18nString } from '@/lib/character';
 import { getLocalStorageItem, setLocalStorageItem } from '@/lib/clientStorage';
 import { setSharedProperties } from '@/lib/analytics';
@@ -8,7 +8,7 @@ import { setSharedProperties } from '@/lib/analytics';
 /**
  * Supported languages, matching I18nString in character.ts
  *
- * countryCode is the lowercase ISO 3166-1 alpha-2 code the flag-icons library wants
+ * countryCode names the flag file in public/flags, lowercase ISO 3166-1 alpha-2
  */
 export const SUPPORTED_LANGUAGES = {
   en: { name: 'English', nativeName: 'English', countryCode: 'us' },
@@ -45,19 +45,26 @@ interface LanguageProviderProps {
   children: ReactNode;
 }
 
-const getInitialLanguage = (): LanguageCode => {
-  if (typeof window === 'undefined') return 'en';
+const LANGUAGE_STORAGE_KEY = 'wuwabuilds-language';
 
-  const saved = getLocalStorageItem('wuwabuilds-language') as LanguageCode | null;
-  if (saved && saved in SUPPORTED_LANGUAGES) {
-    return saved;
-  }
-
-  return 'en';
+// External store over localStorage, so hydration renders the server's English and the saved language applies right after
+// A useState initializer reading storage would make the first client render differ from the HTML for every non-English reader
+const listeners = new Set<() => void>();
+const subscribeLanguage = (listener: () => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
 };
+// Set by the switcher, so a pick still applies when storage refuses the write
+let chosenLanguage: LanguageCode | null = null;
+const getLanguageSnapshot = (): LanguageCode => {
+  if (chosenLanguage) return chosenLanguage;
+  const saved = getLocalStorageItem(LANGUAGE_STORAGE_KEY) as LanguageCode | null;
+  return saved && saved in SUPPORTED_LANGUAGES ? saved : 'en';
+};
+const getLanguageServerSnapshot = (): LanguageCode => 'en';
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
-  const [language, setLanguageState] = useState<LanguageCode>(getInitialLanguage);
+  const language = useSyncExternalStore(subscribeLanguage, getLanguageSnapshot, getLanguageServerSnapshot);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -65,8 +72,9 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   }, [language]);
 
   const setLanguage = useCallback((lang: LanguageCode) => {
-    setLanguageState(lang);
-    void setLocalStorageItem('wuwabuilds-language', lang);
+    chosenLanguage = lang;
+    void setLocalStorageItem(LANGUAGE_STORAGE_KEY, lang);
+    listeners.forEach((listener) => listener());
   }, []);
 
   // Falls back to English when the current language has no entry

@@ -7,8 +7,9 @@ Provider boundaries and how editor state flows. Contexts live in `contexts/`, ed
 
 Three nested layers, each mounted by a different boundary:
 
-- `RootProviders` (`app/layout.tsx`) holds `LanguageProvider`, so language selection survives on every
-  route including the static legal pages
+- `app/layout.tsx` mounts `LanguageProvider` directly from its module, so language selection survives on
+  every route including the static legal pages, and the root bundle stays clear of the editor providers
+  that `contexts/index.tsx` imports
 - `ToolProviders` (`app/(game)/layout.tsx`) holds `GameDataProvider`, `ToastProvider` and
   `GameDataLoadingGate`, so the game-data JSON loads once per session for tool routes only
 - `EditorProviders` holds `BuildProvider` and `StatsProvider`, and `/edit` is its only mount

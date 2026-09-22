@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { capture } from '@/lib/analytics';
-import { resolveRegionBadge } from '@/components/leaderboards/formatters';
+import { resolveRegionBadge } from '@/lib/regionBadge';
 import { getPinnedProfiles, getRecentProfiles, StoredProfile } from '@/lib/profileHistory';
 import { LB_API_BASE } from '@/lib/apiEndpoints';
 

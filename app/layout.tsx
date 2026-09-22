@@ -3,7 +3,8 @@ import { Gowun_Dodum, Plus_Jakarta_Sans, Ropa_Sans, Spline_Sans_Mono } from "nex
 import { Analytics } from "@vercel/analytics/next";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
-import { RootProviders } from "@/contexts/index";
+// Imported from its own module because the contexts barrel carries the editor and game-data providers into this bundle
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import "./globals.css";
 
 const ropaSans = Ropa_Sans({
@@ -83,13 +84,13 @@ export default async function RootLayout({
             className={`${ropaSans.variable} ${gowunDodum.variable} ${plusJakartaSans.variable} ${splineSansMono.variable}`}
         >
             <body className="flex min-h-screen flex-col bg-background text-text-primary">
-                <RootProviders>
+                <LanguageProvider>
                     <Navigation />
                     <div className="flex-1">
                         {children}
                     </div>
                     <Footer />
-                </RootProviders>
+                </LanguageProvider>
                 <Analytics />
             </body>
         </html>

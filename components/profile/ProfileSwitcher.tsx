@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useSyncExternalStore } from 'react';
 import { Star, X } from 'lucide-react';
-import { resolveRegionBadge } from '@/components/leaderboards/formatters';
+import { resolveRegionBadge } from '@/lib/regionBadge';
 import { capture } from '@/lib/analytics';
 import { getPinnedProfilesSnapshot, getProfilesServerSnapshot, getRecentProfilesSnapshot, removeRecentProfile, StoredProfile, subscribeProfileHistory } from '@/lib/profileHistory';
 

@@ -3,7 +3,7 @@
 import React from 'react';
 import { LBBuildDetailEntry, LBBuildRowEntry } from '@/lib/lb';
 import { Character } from '@/lib/character';
-import { RegionBadge } from '@/components/leaderboards/constants';
+import { RegionBadge } from '@/lib/regionBadge';
 import { ProfileBuildCardStage } from './ProfileBuildCardStage';
 
 interface ProfileBuildExpandedProps {

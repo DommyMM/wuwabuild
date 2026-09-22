@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { capture } from '@/lib/analytics';
-import { RegionBadge } from './constants';
+import { RegionBadge } from '@/lib/regionBadge';
 
 interface OwnerProfileLinkProps {
   uid: string;

@@ -6,7 +6,7 @@ import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LBBuildDetailEntry } from '@/lib/lb';
 import { getRankTier } from '@/lib/calculations/rankTier';
-import { resolveRegionBadge } from '@/components/leaderboards/formatters';
+import { resolveRegionBadge } from '@/lib/regionBadge';
 import { scrollToElementBelowNav } from '@/components/leaderboards/scrollToElementBelowNav';
 import { useScrollportVar } from '@/components/leaderboards/useScrollportVar';
 import { ProfileBuildCardStage } from './ProfileBuildCardStage';

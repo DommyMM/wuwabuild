@@ -16,7 +16,7 @@ import { EchoHoverCard } from '@/components/echo/EchoHoverCard';
 import { FetterHoverCard } from '@/components/echo/FetterHoverCard';
 import { EchoCVBar, formatStatRoll, StatHoverRow, SubstatRollBar } from '@/components/echo/StatTierBars';
 import { HoverCard } from '@/components/ui/HoverCard';
-import { RegionBadge } from './constants';
+import { RegionBadge } from '@/lib/regionBadge';
 import { normalizeSubstatKey } from './formatters';
 
 interface BuildExpandedEchoPanelsProps {

@@ -7,9 +7,13 @@ export default function NotFound() {
                 How did you even end up here?
             </h1>
 
+            {/* Lazy because React preloads every eager server-rendered img, and this one rides in every page's RSC payload */}
             <img
                 src="/images/roverwhat.webp"
                 alt="Rover looking confused"
+                width={720}
+                height={721}
+                loading="lazy"
                 className="object-cover rounded-2xl"
             />
 
