@@ -31,9 +31,10 @@ import { ProfileShowcase } from './ProfileShowcase';
 import { ProfileEchoes } from './ProfileEchoes';
 
 /** Columns are # | Name | Weapon | Seq | Sets | stats, with no Owner column so Name takes the freed space */
-const PROFILE_TABLE_GRID = 'grid-cols-[48px_220px_72px_80px_112px_minmax(0,1fr)]';
-const PROFILE_RESULTS_COLLAPSED_MAX_WIDTH_CLASS = 'max-w-360';
-const PROFILE_RESULTS_EXPANDED_MAX_WIDTH_CLASS = 'max-w-[1620px]';
+export const PROFILE_TABLE_GRID = 'grid-cols-[48px_220px_72px_80px_112px_minmax(0,1fr)]';
+/** Page column, widening while a card is open so the 1440px card fits beside the table gutters */
+export const PROFILE_RESULTS_COLLAPSED_MAX_WIDTH_CLASS = 'max-w-360';
+export const PROFILE_RESULTS_EXPANDED_MAX_WIDTH_CLASS = 'max-w-[1620px]';
 const PROFILE_EXPANSION_WIDTH_MS = 150;
 
 interface ProfilePageClientProps {
@@ -239,6 +240,10 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     });
   }, [characterIds.length, currentQueryKey, direction, echoMains.length, echoSets.length, pageSize, regionPrefixes.length, sequences.length, settledQueryKey, sort, statFilters.length, trackedFilters, weaponIds.length]);
   const isLoading = isPendingQuery && builds.length === 0;
+  // Unfiltered first page holds min(pageSize, build count) rows, so the skeleton takes that height and the echoes below never jump
+  const skeletonRowCount = !hasActiveFilters && profileSummary && profileSummary.buildCount > 0
+    ? Math.min(pageSize, profileSummary.buildCount)
+    : pageSize;
   const isRefreshing = isPendingQuery && builds.length > 0;
   const error = fetchError?.queryKey === currentQueryKey ? fetchError.message : null;
 
@@ -677,6 +682,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                     showOwner={false}
                     showTableGate={false}
                     hideHorizontalScrollbar={!isExpandedLayoutSettled && hasOpenCard}
+                    skeletonRowCount={skeletonRowCount}
                   />
                 </div>
               </div>

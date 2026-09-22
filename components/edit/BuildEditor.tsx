@@ -30,11 +30,25 @@ import { BuildActionBar } from './BuildActionBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { getSplashUrlCandidates, logSplashArtTransform, resolveSplashCardArt, SplashArtVariant } from '@/lib/splashArt';
 import { BUILD_CARD_DESIGN_HEIGHT, BUILD_CARD_DESIGN_WIDTH, downloadBuildCard } from '@/lib/buildCardExport';
+import { DRAFT_BUILD_STORAGE_KEY } from '@/lib/storage';
 import { capture, captureException } from '@/lib/analytics';
 
 const ACCEPTED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MIN_CUSTOM_IMAGE_HEIGHT = 600;
+// Resonator panel from md up with a character loaded: 28rem portrait row, gap-y-3, the level slider row, p-4 and the border
+const RESONATOR_PANEL_MD_HEIGHT_PX = 572;
+// Every IconRolePile banner is 696 by 960, and the attributes let the browser size the portrait column before the image loads
+const BANNER_WIDTH = 696;
+const BANNER_HEIGHT = 960;
+
+/**
+ * Inline script that holds the resonator panel's loaded height in the server HTML when this device has a draft
+ *
+ * - The draft is restored from localStorage after hydration, so the panel would grow from the empty state about 400px later
+ * - Runs at parse time, before the panel it sizes is first painted, and only from md up where the panel height is fixed
+ */
+const RESONATOR_PANEL_RESERVE_SCRIPT = `try{if(matchMedia('(min-width:768px)').matches){var d=JSON.parse(localStorage.getItem(${JSON.stringify(DRAFT_BUILD_STORAGE_KEY)})||'null');if(d&&d.characterId)document.currentScript.previousElementSibling.style.minHeight='${RESONATOR_PANEL_MD_HEIGHT_PX}px'}}catch(e){}`;
 type RoverElement = (typeof ROVER_ELEMENTS)[number];
 type CharacterArtState = {
   ownerCharacterId: string | null;
@@ -98,6 +112,7 @@ export const BuildEditor: React.FC = () => {
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [splashDisabledIds, setSplashDisabledIds] = useState<Set<string>>(() => new Set());
   const cardRef = useRef<HTMLDivElement>(null);
+  const resonatorPanelRef = useRef<HTMLDivElement>(null);
   const customArtBlobRef = useRef<Blob | null>(null);
   const editorStartedTrackedRef = useRef(false);
   const previousDirtyRef = useRef(false);
@@ -465,6 +480,17 @@ export const BuildEditor: React.FC = () => {
     setArtTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
   }, [setArtTransform]);
 
+  // Once a character renders the panel holds its own height, and a draft with no loadable character gives the reserve up after a beat
+  useEffect(() => {
+    const release = () => resonatorPanelRef.current?.style.removeProperty('min-height');
+    if (selected) {
+      release();
+      return;
+    }
+    const timeoutId = window.setTimeout(release, 1000);
+    return () => window.clearTimeout(timeoutId);
+  }, [selected]);
+
   const handleZoomArt = useCallback((delta: number) => {
     setArtTransform(prev => {
       const next = Number((prev.scale + delta).toFixed(2));
@@ -526,7 +552,7 @@ export const BuildEditor: React.FC = () => {
           <CharacterSelector className="rounded-b-none border-b-0" />
         </div>
 
-        <div className="select-none rounded-lg rounded-tl-none border border-border bg-background-secondary p-3 md:p-4">
+        <div ref={resonatorPanelRef} className="select-none rounded-lg rounded-tl-none border border-border bg-background-secondary p-3 md:p-4">
           {selected ? (
             <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-[auto_auto_1fr] md:grid-rows-[28rem_auto] md:gap-x-6 md:gap-y-3">
                   {/* Row 1, Col 1: Portrait */}
@@ -534,6 +560,8 @@ export const BuildEditor: React.FC = () => {
                     <img
                       src={selected.banner}
                       alt={t(selected.nameI18n)}
+                      width={BANNER_WIDTH}
+                      height={BANNER_HEIGHT}
                       className="pointer-events-none mx-auto h-auto w-full max-w-70 rounded-lg object-contain md:h-full md:w-auto md:max-w-none"
                     />
                     {selected.isRover && (
@@ -624,6 +652,7 @@ export const BuildEditor: React.FC = () => {
             </div>
           )}
         </div>
+        <script dangerouslySetInnerHTML={{ __html: RESONATOR_PANEL_RESERVE_SCRIPT }} />
       </div>
 
       {/* Echoes */}

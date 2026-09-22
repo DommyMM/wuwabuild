@@ -46,6 +46,8 @@ interface GlobalBoardResultsPanelProps {
   showOwner?: boolean;
   showTableGate?: boolean;
   hideHorizontalScrollbar?: boolean;
+  /** Rows the first-load skeleton draws when the caller knows the result size, defaults to pageSize */
+  skeletonRowCount?: number;
 }
 
 interface BuildTableGateOverlayProps {
@@ -130,6 +132,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   showOwner = true,
   showTableGate = true,
   hideHorizontalScrollbar = false,
+  skeletonRowCount,
 }) => {
   const { characters, fetters, statIcons, weaponList } = useGameData();
   const [statColumns, setStatColumns] = useState<StatSortKey[]>([...DEFAULT_STAT_COLUMNS]);
@@ -305,7 +308,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
                   {/* Skeleton rows */}
                   {showInitialSkeleton && (
                     <div className="divide-y divide-border/60">
-                      {Array.from({ length: pageSize }).map((_, index) => (
+                      {Array.from({ length: skeletonRowCount ?? pageSize }).map((_, index) => (
                         <div
                           key={index}
                           className={`grid ${tableGrid} ${TABLE_ROW_HEIGHT_CLASS} cursor-pointer items-center gap-4 text-sm transition-colors odd:bg-background/30 even:bg-background-secondary/20`}

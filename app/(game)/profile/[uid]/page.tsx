@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { Suspense } from 'react';
 import { ProfilePageClient } from '@/components/profile/ProfilePageClient';
 import { fetchProfileSummary } from '@/lib/lbServer';
 
@@ -25,9 +24,7 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { uid } = await params;
   const summary = await fetchProfileSummary(uid);
-  return (
-    <Suspense>
-      <ProfilePageClient uid={uid} profileSummary={summary} />
-    </Suspense>
-  );
+  // No Suspense of its own: the route renders per request, so useSearchParams needs none, and a boundary here would
+  // swap the loading skeleton out for its own fallback while the profile client chunk downloads
+  return <ProfilePageClient uid={uid} profileSummary={summary} />;
 }

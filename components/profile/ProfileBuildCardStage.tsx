@@ -11,6 +11,7 @@ import { BuildSimulationSection } from '@/components/leaderboards/BuildSimulatio
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { RankBoard } from '@/components/card/RankModule';
+import { BUILD_CARD_DESIGN_HEIGHT, BUILD_CARD_DESIGN_WIDTH } from '@/lib/buildCardExport';
 import { ProfileCard } from './ProfileCard';
 
 interface ProfileBuildCardStageProps {
@@ -34,6 +35,8 @@ interface ProfileBuildCardStageProps {
 
 const INDICATOR_DELAY_MS = 200;
 const INDICATOR_MIN_VISIBLE_MS = 400;
+// Design-space height of the node CardScaler scales: the card, its gap-3 and the substat row
+const PROFILE_CARD_DESIGN_HEIGHT = BUILD_CARD_DESIGN_HEIGHT + 46;
 
 /** Progress-indicator visibility that leaves short waits, warm reopens included, indicator-free */
 const useLoadingIndicator = (isActive: boolean): boolean => {
@@ -65,11 +68,20 @@ const useLoadingIndicator = (isActive: boolean): boolean => {
   return isVisible;
 };
 
+/**
+ * Loading state that already holds the loaded stage's footprint, so the card fills it instead of pushing the page down
+ *
+ * - The card lands well after the click or the page load, outside the window layout shift forgives after input
+ * - Aspect box tracks CardScaler, which shrinks the 1440px card to the host width, and h-25 stands in for the action
+ *   bar and the collapsed bench, which never scale
+ */
 const ProfileBuildLoading: React.FC<{ showIndicator: boolean }> = ({ showIndicator }) => (
-  <div className="flex min-h-24 items-center justify-center" role="status">
+  <div className="relative" role="status">
+    <div className="w-full" style={{ aspectRatio: `${BUILD_CARD_DESIGN_WIDTH} / ${PROFILE_CARD_DESIGN_HEIGHT}` }} />
+    <div className="h-25" />
     <span className="sr-only">Loading build</span>
     {showIndicator && (
-      <span className="flex items-center gap-1.5" aria-hidden="true">
+      <span className="absolute inset-x-0 top-11 flex items-center justify-center gap-1.5" aria-hidden="true">
         <span className="profile-build-loading-dot" />
         <span className="profile-build-loading-dot [animation-delay:120ms]" />
         <span className="profile-build-loading-dot [animation-delay:240ms]" />
