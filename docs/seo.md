@@ -34,13 +34,45 @@ Verify with `npm run build`, then read a prerendered board directly, such as
 `.next/server/app/leaderboards/<id>.html`: the rows and JSON-LD must be in the raw HTML.
 
 `app/sitemap.ts` emits `/characters/{id}`, `/leaderboards/{id}` and `/weapons/{id}` alongside the core routes
-and `/changelog`. `app/robots.ts` sits beside it.
+and `/changelog`. Only pages whose content carries a date get `lastModified` (changelog, privacy, terms),
+because file mtimes on Vercel are the deploy time. A failed overview fetch throws instead of emitting a
+sitemap without boards, so ISR keeps serving the last good copy. `app/robots.ts` sits beside it and allows
+`/api/og/` inside the `/api/` disallow, since every preview image is served from there.
+
+Internal links to a character's default board are the bare `/leaderboards/{id}`, matching its canonical
+tag, see `leaderboards.md`.
+
+## Layout stability
+
+Field CLS (PostHog `$web_vitals`) is the one Core Web Vital that was poor, and only on `/profile/[uid]`,
+`/edit` and `/import`. LCP and INP are good on every route, so payload work is bandwidth, not ranking.
+
+Anything that appears after the click or the page load, outside the 500ms window layout shift forgives
+after input, has to hold its space from the start:
+
+- `/profile/[uid]` renders per request, so it has a `loading.tsx` (`ProfilePageSkeleton`). Without one a
+  client navigation shows an empty page slot until the payload arrives, and the footer jumping up and back
+  down scored 0.18 on its own. The skeleton reuses the shelf, table and featured region in their own
+  loading states so their heights cannot drift from the page.
+- The profile card stage reserves the card's footprint (an aspect box that tracks `CardScaler`) from the
+  moment a row or tile opens, so the card fills it instead of pushing the page down when the detail lands
+- Skeleton tables take `min(pageSize, buildCount)` rows when the count is known, so a two-build profile does
+  not shrink by ten rows when the data arrives
+- State that only exists in `localStorage` (the pinned-profile tray, the editor draft) is reserved by an
+  inline script that runs at parse time, before the element it sizes is first painted, and released once the
+  component has rendered. Rendering that state during hydration would mismatch the server HTML, and
+  rendering it in an effect is the shift being avoided.
+
+Measure with `scripts/layout_shift_probe.mjs` (headless Chrome, `PerformanceObserver` on `layout-shift`)
+against prod and a local build, not Lighthouse alone, since the profile shifts only happen on client
+navigation and the editor's only with a saved draft.
 
 ## Client data payload
 
-`Characters.json` is 9.2 MB of the 12 MB across the game-data JSON files, and the global provider fetches and
-parses it client-side. `moves` and `chains` make up about 96% of it, and only the build card reads either, on
-`/edit` and profile cards. The board routes pay for the whole file and read neither.
+`Characters.json` is 9.2 MB of the 12 MB across the game-data JSON files, and `ToolProviders` (every route
+under `app/(game)/`) fetches and parses it client-side. `moves` and `chains` make up about 96% of it, and only
+the build card reads either, on `/edit` and profile cards. The board routes pay for the whole file and read
+neither. `/`, `/profiles`, `/changelog` and the legal pages sit outside the group and never fetch it.
 
 The dossiers need none of the client dataset, so `contexts/index.tsx` short-circuits `/characters/[id]` and
 `/weapons/[id]` out of the provider stack entirely.
@@ -48,17 +80,18 @@ The dossiers need none of the client dataset, so `contexts/index.tsx` short-circ
 ## Metadata direction
 
 Titles and descriptions on `/`, `/edit`, `/import`, `/builds`, `/leaderboards` and
-`/leaderboards/[characterId]` are tuned around category terms rather than brand-only phrasing, and the
-`keywords` array in `app/layout.tsx` captures the queries that actually drive impressions (build maker,
-showcase card, screenshot scanner, damage calculator, leaderboards).
+`/leaderboards/[characterId]` are tuned around category terms rather than brand-only phrasing.
 
-The root layout's `title.template` appends `| WuWa Builds`, so a route title must not append it again.
+The root layout's `title.template` appends `| WuWaBuilds`, so a route title must not append it again. Every
+page builds its `openGraph` and `twitter` blocks through `socialMetadata` in `lib/metadata.ts`, because Next
+replaces a parent's `openGraph` object instead of merging it and a page-level block would otherwise drop
+`og:site_name`, which Discord shows above the title.
 
-Category language is `WuWa Builds`, `Wuthering Waves Builds`, `Build Editor`, `Leaderboards`, `Scanner` and
+Category language is `WuWaBuilds`, `Wuthering Waves Builds`, `Build Editor`, `Leaderboards`, `Scanner` and
 `Calculator`. Character leaderboard metadata preserves weapon, sequence and playstyle context for titles and
-previews. Character dossiers carry server-side, leaderboard-driven prose refreshed daily with a low-data
-fallback, summarizing real top-build data a competitor cannot mirror by hand, but the boards carry the
-organic traffic.
+previews. Character dossiers carry server-side, leaderboard-driven prose refreshed daily, and none below five
+ranked builds, summarizing real top-build data a competitor cannot mirror by hand, but the boards carry the
+organic traffic. Their skill and chain text reaches the client in English only, resolved in the page.
 
 ## Decisions
 
@@ -83,9 +116,6 @@ organic traffic.
 - Split `moves` and `chains` out of `Characters.json` into a sibling file the build card loads lazily, the way
   `lib/terms.ts` loads `Terms.json`. That takes the provider's fetch from 9.2 MB to under 0.4 MB without a
   per-character split.
-- Character dossiers pass every language of `moves` and `chains` to `CharacterReferenceSections`, which renders
-  only English, so a page carries about 112 KB of them on average against the 17 KB it shows. Map them to
-  English on the server, as the weapon page does for its character list.
 - Public read-only response caching to cut Vercel function duration, which bills higher than static bandwidth.
   The leaderboard API sits behind the Cloudflare gateway rather than this repo's `app/api`, so scope this to
   whatever routes still run as functions.
