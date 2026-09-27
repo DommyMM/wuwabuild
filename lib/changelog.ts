@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-09-26',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Hiding your UID now covers your whole account instead of the one card you ticked it on, and carries onto anything you upload later',
+            },
+            {
+                kind: 'fixed',
+                text: 'Hiding your UID no longer leaves your profile page up with your name on it',
+            },
+        ],
+    },
+    {
         date: '2026-09-16',
         changes: [
             {

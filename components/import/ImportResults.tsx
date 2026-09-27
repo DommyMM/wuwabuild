@@ -344,8 +344,14 @@ export function ImportResults({
                   onChange={e => setHideUid(e.target.checked)}
                   className="accent-accent"
                 />
-                Hide my UID
+                Hide my UID on all my builds
               </label>
+            )}
+            {uidReadable && hideUid && (
+              <p className="text-xs text-text-primary/40">
+                Covers every build on this UID, including ones you upload later. Uploading again
+                won&apos;t undo it, ask us on Discord.
+              </p>
             )}
           </div>
         </div>
