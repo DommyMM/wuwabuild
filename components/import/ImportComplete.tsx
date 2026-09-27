@@ -16,6 +16,8 @@ interface ImportCompleteProps {
   leaderboardHref: string | null;
   isLeaderboardLinkLoading: boolean;
   profileHref: string | null;
+  /** The account's UID is hidden, so the build ranks without a name and has no profile to link */
+  uidHidden: boolean;
   /** Set once "Save a copy" ran, which freezes the link into a confirmation */
   savedCopyName: string | null;
   onNavigate: (destination: ImportDestination) => void;
@@ -38,6 +40,7 @@ export function ImportComplete({
   leaderboardHref,
   isLeaderboardLinkLoading,
   profileHref,
+  uidHidden,
   savedCopyName,
   onNavigate,
   onImportAnother,
@@ -75,8 +78,9 @@ export function ImportComplete({
           <div className="flex items-start gap-2 rounded-lg border border-border bg-background/60 p-3 text-sm text-text-primary/70">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
             <span>
-              Leaderboards rank your best build per character. Uploading more builds
-              never removes the others, and every upload stays on your profile.
+              {uidHidden
+                ? 'Your UID is hidden, so this build ranks without your name and has no profile page. Ask us on Discord if you want that lifted.'
+                : 'Leaderboards rank your best build per character. Uploading more builds never removes the others, and every upload stays on your profile.'}
             </span>
           </div>
         )}

@@ -1050,6 +1050,8 @@ interface LBSubmitBuildResult {
   requestId?: string;
   action: string;
   damageComputed: boolean;
+  /** UID the server will show for this build, "" when the account is hidden or the watermark was unreadable */
+  ownerUid: string;
   warnings: string[];
 }
 
@@ -1733,11 +1735,15 @@ function parseSubmitBuildResult(raw: unknown): LBSubmitBuildResult {
     throw new Error('LB submit response is malformed.');
   }
 
+  // Hiding is account-wide, so a build can come back hidden from a box this submission never ticked
+  const owner = isRecord(raw.owner) ? raw.owner : {};
+
   return {
     id: typeof raw._id === 'string' ? raw._id : '',
     requestId: typeof raw.requestId === 'string' ? raw.requestId : undefined,
     action: typeof raw.action === 'string' ? raw.action : 'updated',
     damageComputed: Boolean(raw.damageComputed),
+    ownerUid: typeof owner.uid === 'string' ? owner.uid : '',
     warnings: Array.isArray(raw.warnings)
       ? raw.warnings.filter((warning): warning is string => typeof warning === 'string' && warning.length > 0)
       : [],

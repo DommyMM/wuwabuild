@@ -35,6 +35,8 @@ interface ImportOutcome {
   /** Why the upload landed where it did, sent as `import_complete.lb_reason` */
   lbReason: 'success' | 'upload_disabled' | 'client_echo_preflight' | 'missing_character_or_weapon' | 'illegal_echo' | 'submit_failed';
   damageComputed: boolean;
+  /** UID the server will show, "" when the account is hidden or the watermark was unreadable */
+  ownerUid: string;
 }
 
 const ILLEGAL_ECHO_UPLOAD_MESSAGE =
@@ -299,6 +301,7 @@ export function ImportPageClient() {
       localReason,
       lbReason,
       damageComputed: false,
+      ownerUid: '',
     });
 
     if (!uploadToLb) {
@@ -329,6 +332,7 @@ export function ImportPageClient() {
         localReason: null,
         lbReason: 'success',
         damageComputed: result.damageComputed,
+        ownerUid: result.ownerUid,
       };
     } catch (err) {
       captureException(err);
@@ -454,9 +458,10 @@ export function ImportPageClient() {
   };
 
   // A hidden or unreadable UID gets no profile link, because the leaderboard never shows one either
-  const completedUid = importOutcome?.uploaded && !lastImportWatermark?.hideUid
-    ? (completedState?.watermark.uid.trim() ?? '')
-    : '';
+  // Taken from the response, not the checkbox: hiding is account-wide, so an untouched box still comes back hidden
+  const completedUid = importOutcome?.uploaded ? importOutcome.ownerUid : '';
+  const scannedUid = completedState?.watermark.uid.trim() ?? '';
+  const completedUidHidden = Boolean(importOutcome?.uploaded && /^\d{9}$/.test(scannedUid) && !completedUid);
   const completedLeaderboardHref = importedLeaderboardLink
     ? appendBuildId(importedLeaderboardLink.href, importOutcome?.buildId ?? null)
     : null;
@@ -709,6 +714,7 @@ export function ImportPageClient() {
           leaderboardHref={completedLeaderboardHref}
           isLeaderboardLinkLoading={isLeaderboardAvailabilityLoading}
           profileHref={completedProfileHref}
+          uidHidden={completedUidHidden}
           savedCopyName={savedCopyName}
           onNavigate={handleDestinationClick}
           onImportAnother={handleImportAnother}
