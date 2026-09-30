@@ -231,8 +231,13 @@ CDN_PATH_FIXUPS = {
     "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_Libeika_UI.png":
         "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_LiBeiKa_UI.png",
     "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_Luxi_UI.png":
-        "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_luxi_UI.png"
-    
+        "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_luxi_UI.png",
+    "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_xin_UI.png":
+        "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_Xin_UI.png",
+    "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_suoming_UI.png":
+        "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_SuoMing_UI.png",
+    "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_Suoming_UI.png":
+        "/d/GameData/UIResources/Common/Image/IconRolePile/T_IconRole_Pile_SuoMing_UI.png",
 }
 
 OUTPUT_DIR = Path(__file__).parent.parent / "public/Data/Characters"

@@ -115,6 +115,9 @@ export const ELEMENT_SETS = {
   'Feathered': 'Song of Feathered Trace',
   'EvilPurge': 'Heart of Evil\'s Purge',
   'Nether': 'Lamp of Nether Road',
+  'Vigil': 'Heart of Sworn Vigil',
+  'Reflection': 'Flash of Electric Reflection',
+  'Yearning': 'Flower of Tinged Yearning',
 } as const;
 
 export const COST_SECTIONS = [4, 3, 1] as const;
@@ -165,6 +168,9 @@ export const FETTER_MAP: Record<number, ElementType> = {
   33: 'Feathered',
   34: 'EvilPurge',
   35: 'Nether',
+  36: 'Vigil',
+  37: 'Reflection',
+  38: 'Yearning',
 };
 
 const SET_ID_BY_ELEMENT = Object.fromEntries(

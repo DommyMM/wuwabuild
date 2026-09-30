@@ -16,6 +16,8 @@ Character and weapon templates load .webp only (backend card.py _load_asset_feat
 element load either, so everything standardizes on WebP.
 Character and weapon icons come from Encore because the live SIFT templates were validated on those exact
 images, while echo icons follow whatever source synced public/Data.
+When Encore's image host is down, element, character and weapon templates fall back to the same game path
+in our public/assets mirror or on Nanoka (_with_fallbacks).
 
 Run after the data syncs, or through sync_all.py which calls this.
 The --skip-*-icons and --force-*-icons flags gate each template set.
@@ -61,6 +63,9 @@ BACKEND_ECHOES = BACKEND_DATA / "Echoes"
 UA = {"User-Agent": "wuwabuilds-backend-sync/1.0"}
 ICON_WORKERS = 16
 WEBP_QUALITY = 95
+NANOKA_ASSETS = "https://static.nanoka.cc/assets/ww/"
+# Nanoka converts uncached files on first request, which can take most of a minute
+NANOKA_TIMEOUT = 120
 
 def _encore_json(route: str):
     """Fetch an Encore English route, failing over between Encore hosts."""
@@ -98,9 +103,27 @@ def _source_bytes(src: str | Path) -> bytes:
     """src is either a URL or a local file mirrored into frontend public/assets/."""
     if isinstance(src, Path):
         return src.read_bytes()
+    timeout = NANOKA_TIMEOUT if src.startswith(NANOKA_ASSETS) else 30
     req = urllib.request.Request(src, headers=UA)
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.read()
+
+
+def _with_fallbacks(encore_url: str, nanoka_first: bool = False) -> list[str | Path]:
+    """Encore URL, then the same game path from our mirror and from Nanoka, for when Encore's image host is down
+
+    Mirrored character splashes and set icons are pixel-identical to Encore's, weapon icons differ slightly
+    and Nanoka's are closer, so weapons try Nanoka before the mirror
+    """
+    path = urlparse(encore_url).path
+    idx = path.find("/UIResources/")
+    if idx < 0:
+        return [encore_url]
+    rel = path[idx + 1:]
+    mirror = FRONTEND_PUBLIC / "assets" / rel
+    nanoka = NANOKA_ASSETS + rel
+    fallbacks: list[str | Path] = [nanoka, mirror] if nanoka_first else [mirror, nanoka]
+    return [encore_url] + [f for f in fallbacks if not isinstance(f, Path) or f.exists()]
 
 
 def _needs_reencode(src: str | Path) -> bool:
@@ -138,7 +161,7 @@ def _save_webp(raw: bytes, dest: Path, reencode: bool) -> None:
 def _download_icons(tasks: list[tuple[str, str | Path, Path]], force: bool, reencode, label: str) -> int:
     """Fetch the missing icons, or all of them under force, and return how many were fetched.
 
-    tasks entries are (id, src, dest) where src is a URL or a mirrored local file
+    tasks entries are (id, src, dest) where src is a URL, a mirrored local file, or a list of them tried in order
     reencode is True, False, or "auto" to decide per source by suffix
     "auto" lets echo icons take Encore or mirrored WebP for free while still handling a Wuthery PNG
     """
@@ -149,13 +172,19 @@ def _download_icons(tasks: list[tuple[str, str | Path, Path]], force: bool, reen
         return 0
 
     def work(item):
-        tid, src, dest = item
-        re = _needs_reencode(src) if reencode == "auto" else reencode
-        try:
-            _save_webp(_source_bytes(src), dest, re)
-            return tid, None
-        except Exception as exc:  # noqa: BLE001
-            return tid, str(exc)
+        tid, srcs, dest = item
+        srcs = srcs if isinstance(srcs, list) else [srcs]
+        errs = []
+        for i, src in enumerate(srcs):
+            re = _needs_reencode(src) if reencode == "auto" else reencode
+            try:
+                _save_webp(_source_bytes(src), dest, re)
+                if i:
+                    print(f"    ~ {tid}: fell back to {src}")
+                return tid, None
+            except Exception as exc:  # noqa: BLE001
+                errs.append(str(exc))
+        return tid, "; ".join(errs)
 
     downloaded = errors = 0
     with ThreadPoolExecutor(max_workers=ICON_WORKERS) as pool:
@@ -186,7 +215,7 @@ def _encore_fetter_groups() -> dict[int, dict]:
 
 def sync_element_templates(dry_run: bool, force: bool) -> int:
     groups = _encore_fetter_groups()
-    tasks: list[tuple[str, str, Path]] = []
+    tasks: list[tuple[str, list[str | Path], Path]] = []
     missing: list[int] = []
     for group_id in sorted(_frontend_fetter_ids()):
         group = groups.get(group_id)
@@ -195,7 +224,7 @@ def sync_element_templates(dry_run: bool, force: bool) -> int:
             continue
         url = group.get("Icon")
         suffix = Path(urlparse(url).path).suffix or ".webp"
-        tasks.append((str(group_id), url, BACKEND_ELEMENTS / f"{group_id}{suffix}"))
+        tasks.append((str(group_id), _with_fallbacks(url), BACKEND_ELEMENTS / f"{group_id}{suffix}"))
     if missing:
         raise RuntimeError(f"Encore did not return fetter group IDs: {missing}")
     if dry_run:
@@ -230,12 +259,12 @@ def sync_character_icons(dry_run: bool, force: bool) -> int:
         except Exception:  # noqa: BLE001
             return cid, None
 
-    tasks: list[tuple[str, str, Path]] = []
+    tasks: list[tuple[str, list[str | Path], Path]] = []
     missing_url: list[str] = []
     with ThreadPoolExecutor(max_workers=ICON_WORKERS) as pool:
         for cid, url in pool.map(resolve, needed):
             if url:
-                tasks.append((cid, url, BACKEND_CHARACTERS / f"{cid}.webp"))
+                tasks.append((cid, _with_fallbacks(url), BACKEND_CHARACTERS / f"{cid}.webp"))
             else:
                 missing_url.append(cid)
     if missing_url:
@@ -245,12 +274,12 @@ def sync_character_icons(dry_run: bool, force: bool) -> int:
 
 def sync_weapon_icons(dry_run: bool, force: bool) -> int:
     rows = _encore_rows(_encore_json("weapon"))
-    tasks: list[tuple[str, str, Path]] = []
+    tasks: list[tuple[str, list[str | Path], Path]] = []
     for weapon in rows:
         wid = str(weapon.get("Id", "")).strip()
         url = weapon.get("Icon")
         if wid and isinstance(url, str) and url:
-            tasks.append((wid, url, BACKEND_WEAPONS / f"{wid}.webp"))
+            tasks.append((wid, _with_fallbacks(url, nanoka_first=True), BACKEND_WEAPONS / f"{wid}.webp"))
     if dry_run:
         n = sum(1 for _, _, d in tasks if force or not d.exists())
         print(f"  Weapon icons: {n}/{len(tasks)} to fetch -> {BACKEND_WEAPONS}")

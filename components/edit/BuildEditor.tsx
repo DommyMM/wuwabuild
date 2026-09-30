@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
+import { FirstPaintScript } from '@/components/ui/FirstPaintScript';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
@@ -652,7 +653,7 @@ export const BuildEditor: React.FC = () => {
             </div>
           )}
         </div>
-        <script dangerouslySetInnerHTML={{ __html: RESONATOR_PANEL_RESERVE_SCRIPT }} />
+        <FirstPaintScript code={RESONATOR_PANEL_RESERVE_SCRIPT} />
       </div>
 
       {/* Echoes */}

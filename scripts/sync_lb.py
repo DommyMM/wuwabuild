@@ -84,7 +84,7 @@ FETTER_ID_TO_SET_KEY = {
     19: "Dream", 20: "Crown", 21: "Law", 22: "Flamewing", 23: "Thread", 24: "Pact",
     25: "Halo", 26: "Rite", 27: "Trailblazing", 28: "Chromatic", 29: "Sound",
     30: "QuietSnow", 31: "Memories", 32: "Adam", 33: "Feathered",
-    34: "EvilPurge", 35: "Nether",
+    34: "EvilPurge", 35: "Nether", 36: "Vigil", 37: "Reflection", 38: "Yearning",
 }
 
 

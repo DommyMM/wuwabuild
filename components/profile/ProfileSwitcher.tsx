@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 import { Star, X } from 'lucide-react';
+import { FirstPaintScript } from '@/components/ui/FirstPaintScript';
 import { resolveRegionBadge } from '@/lib/regionBadge';
 import { capture } from '@/lib/analytics';
 import { getPinnedProfilesSnapshot, getProfilesServerSnapshot, getRecentProfilesSnapshot, PINNED_KEY, RECENTS_KEY, removeRecentProfile, StoredProfile, subscribeProfileHistory } from '@/lib/profileHistory';
@@ -126,7 +127,7 @@ export function ProfileSwitcher({ currentUid }: ProfileSwitcherProps) {
           </nav>
         )}
       </div>
-      <script dangerouslySetInnerHTML={{ __html: trayReserveScript(currentUid) }} />
+      <FirstPaintScript code={trayReserveScript(currentUid)} />
     </>
   );
 }

@@ -14,6 +14,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-09-29',
+        patch: '3.7',
+        changes: [
+            {
+                kind: 'new',
+                text: 'Hsin with splash and new content added',
+            },
+        ],
+    },
+    {
         date: '2026-09-26',
         changes: [
             {
