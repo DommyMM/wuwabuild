@@ -22,6 +22,7 @@ const MOVE_TYPE_META: Record<string, { label: string; color: string }> = {
   erosion: { label: 'Erosion', color: '#a06ee0' },
   tune_rupture: { label: 'Tune Rupture', color: '#d3c23c' },
   fusion_burst: { label: 'Fusion Burst', color: '#e08b4a' },
+  electro_flare: { label: 'Electro Flare', color: '#b46bff' },
   tune_break: { label: 'Tune Break', color: '#bb4db3' },
 };
 const FALLBACK_TYPE_COLOR = '#7f93a8';

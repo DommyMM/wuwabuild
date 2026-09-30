@@ -21,6 +21,10 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'new',
                 text: 'Hsin with splash and new content added',
             },
+            {
+                kind: 'new',
+                text: 'Hsin leaderboards',
+            }
         ],
     },
     {
