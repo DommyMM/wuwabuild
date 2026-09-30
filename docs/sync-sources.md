@@ -265,8 +265,9 @@ Two things the delta does not do:
 
 - A new character has no LB board. That is hand-authored, see
   `lb/docs/character-implementation-guide.md`.
-- `kurobot/data/name_id_lookup.json` is built from the live `wuwa.build` CDN, so run `sync_lookup.py`
-  in `kurobot/` only after this deploys, or convene imports will not resolve the new names.
+- kurobot runs locally and is not deployed, so its lookup is not part of a release. Its
+  `data/name_id_lookup.json` is built from the live `wuwa.build` CDN, so the next time kurobot is used
+  after a patch, run `sync_lookup.py` there first or convene imports will not resolve the new names.
 
 One result that looks like a bug and is not: a character whose second tag is a mechanic tag rather
 than a damage-type tag (4 to 7) gets no damage-type substat, and with no "considered X DMG" clause in
