@@ -1482,8 +1482,9 @@ def _extract_team_debuff_buffs(text: str) -> list[dict]:
     return out
 
 
+# An adverb can sit between wielder and gains, as in Unspoken Rue's "the wielder additionally gains"
 _SELF_SCOPE_RE = re.compile(
-    r"\b(?:to|for)\s+the\s+wielder\b|\bwielder'?s\b|\bwielder\s+gains?\b", re.I,
+    r"\b(?:to|for)\s+the\s+wielder\b|\bwielder'?s\b|\bwielder\s+(?:\w+ly\s+)?gains?\b", re.I,
 )
 
 
@@ -1494,7 +1495,8 @@ def _self_scoped_clause_buffs(sentence: str) -> list[dict]:
     The wielder clause's stats must not land on the party
     """
     excluded: list[dict] = []
-    for clause in re.split(r",\s+(?:and\s+)?|;\s*", sentence):
+    # A colon opens a named effect's payload, so Unspoken Rue's "…from all Resonators in the team and gain the Yearning Mind effect: the wielder…" splits there
+    for clause in re.split(r",\s+(?:and\s+)?|;\s*|:\s+", sentence):
         lower = clause.lower()
         if not _SELF_SCOPE_RE.search(clause):
             continue
