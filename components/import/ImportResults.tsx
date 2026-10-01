@@ -349,8 +349,8 @@ export function ImportResults({
             )}
             {uidReadable && hideUid && (
               <p className="text-xs text-text-primary/40">
-                Covers every build on this UID, including ones you upload later. Uploading again
-                won&apos;t undo it, ask us on Discord.
+                Covers every instance of this UID on the site. Uploading again won&apos;t undo it,
+                ask in the Discord
               </p>
             )}
           </div>
