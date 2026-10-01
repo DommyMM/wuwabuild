@@ -79,7 +79,7 @@ export function ImportComplete({
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
             <span>
               {uidHidden
-                ? 'Your UID is hidden, so this build ranks without your name and has no profile page. Ask us on Discord if you want that lifted.'
+                ? 'Your UID is hidden, so this build ranks without your name and has no profile page. Ask in the Discord if you want that lifted.'
                 : 'Leaderboards rank your best build per character. Uploading more builds never removes the others, and every upload stays on your profile.'}
             </span>
           </div>
