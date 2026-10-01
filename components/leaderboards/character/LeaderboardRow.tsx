@@ -365,7 +365,6 @@ const LeaderboardRowComponent: React.FC<LeaderboardRowProps> = ({
           activeBoardWeaponId={activeWeaponId}
           activeTrackKey={activeTrackKey}
           activeBoardDamage={entry.damage}
-          globalRank={entry.globalRank}
           currentScoring={scoring}
           surface="leaderboard_character"
           animateInitialExpand

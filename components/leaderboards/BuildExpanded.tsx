@@ -107,7 +107,6 @@ interface BuildExpandedProps {
   activeBoardWeaponId?: string;
   activeTrackKey?: string;
   activeBoardDamage?: number;
-  globalRank?: number;
   currentScoring?: ScoringMode;
   surface?: 'builds' | 'leaderboard_character';
   animateInitialExpand?: boolean;
@@ -129,7 +128,6 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
   activeBoardWeaponId,
   activeTrackKey,
   activeBoardDamage,
-  globalRank,
   currentScoring = 'adjusted',
   surface = 'builds',
   animateInitialExpand = false,
@@ -358,7 +356,6 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
                   activeTrackKey={activeTrackKey ?? ''}
                   isExpanded={isExpanded}
                   baseDamage={activeBoardDamage}
-                  globalRank={globalRank}
                   currentScoring={currentScoring}
                   viewProfileHref={profileHref ?? undefined}
                   onViewProfile={profileHref ? trackViewProfile : undefined}

@@ -417,16 +417,49 @@ export function parseMovesPayload(payload: unknown): LBMoveEntry[] {
   return moves;
 }
 
-export interface LBSubstatUpgradeTierSet {
-  min: Record<string, number>;
-  median: Record<string, number>;
-  max: Record<string, number>;
-  minRank: Record<string, number>;
-  medianRank: Record<string, number>;
-  maxRank: Record<string, number>;
-  baseDamage?: number;
-  currentRank?: number;
-  currentRankVisible?: boolean;
+/** One substat's possible rolls, ascending, with the odds of each summing to 1 */
+export interface LBSubstatLadder {
+  /** Canonical stat key, `atk_pct` */
+  stat: string;
+  /** Stat name as `Stats.json` and echo panels spell it, `ATK%` */
+  name: string;
+  values: number[];
+  odds: number[];
+}
+
+/** One stat a rerolled line can land on with at least one roll that beats the build's Score */
+interface LBRerollStat {
+  stat: string;
+  /** Board Score at each roll of the stat's ladder */
+  scores: number[];
+  /** Projected rank at each roll, 0 where the roll does not gain */
+  ranks: number[];
+}
+
+/** One substat slot with the outcomes of rerolling it alone, the echo's other lines locked */
+export interface LBRerollLine {
+  /** 0-based echo slot and substat position in the build state */
+  echo: number;
+  line: number;
+  /** Canonical stat key, empty for an unfilled slot */
+  stat: string;
+  value: number;
+  scoreWithout: number;
+  /** How many stats the slot can land on, each equally likely */
+  pool: number;
+  improveChance: number;
+  /** Mean Score gained per roll with every worse result declined */
+  expectedGain: number;
+  stats: LBRerollStat[];
+}
+
+export interface LBRerolls {
+  score: number;
+  currentRank: number;
+  /** Transducers one single-line roll spends */
+  rollCost: number;
+  ladders: LBSubstatLadder[];
+  lines: LBRerollLine[];
 }
 
 export interface LBListBuildsResponseRaw {
@@ -563,26 +596,45 @@ function parseBuildDetailEntry(raw: unknown): LBBuildDetailEntry {
   };
 }
 
-/** Transposes the API's per-stat { crit_rate: { min, median, max, ... } } into the per-tier shape the component wants */
-function parseUpgradeTierSet(raw: unknown): LBSubstatUpgradeTierSet | null {
-  if (!isRecord(raw)) return null;
-  const min: Record<string, number> = {};
-  const median: Record<string, number> = {};
-  const max: Record<string, number> = {};
-  const minRank: Record<string, number> = {};
-  const medianRank: Record<string, number> = {};
-  const maxRank: Record<string, number> = {};
-  for (const [statKey, tierData] of Object.entries(raw)) {
-    if (!isRecord(tierData)) continue;
-    min[statKey] = toFiniteNumber(tierData.min, 0);
-    median[statKey] = toFiniteNumber(tierData.median, 0);
-    max[statKey] = toFiniteNumber(tierData.max, 0);
-    minRank[statKey] = toFiniteNumber(tierData.minRank, 0);
-    medianRank[statKey] = toFiniteNumber(tierData.medianRank, 0);
-    maxRank[statKey] = toFiniteNumber(tierData.maxRank, 0);
-  }
-  if (Object.keys(min).length === 0) return null;
-  return { min, median, max, minRank, medianRank, maxRank };
+function parseNumberList(value: unknown): number[] {
+  return Array.isArray(value) ? value.map((entry) => toFiniteNumber(entry)) : [];
+}
+
+/** Null when the payload carries no lines, so the panel says there is nothing to show rather than rendering an empty table */
+function parseRerollsPayload(payload: unknown): LBRerolls | null {
+  if (!isRecord(payload) || !Array.isArray(payload.lines)) return null;
+  const ladders: LBSubstatLadder[] = (Array.isArray(payload.ladders) ? payload.ladders : [])
+    .filter(isRecord)
+    .map((ladder) => ({
+      stat: parseStringValue(ladder.stat),
+      name: parseStringValue(ladder.name),
+      values: parseNumberList(ladder.values),
+      odds: parseNumberList(ladder.odds),
+    }));
+  const lines: LBRerollLine[] = payload.lines.filter(isRecord).map((line) => ({
+    echo: toFiniteNumber(line.echo),
+    line: toFiniteNumber(line.line),
+    stat: parseStringValue(line.stat),
+    value: toFiniteNumber(line.value),
+    scoreWithout: toFiniteNumber(line.scoreWithout),
+    pool: toFiniteNumber(line.pool),
+    improveChance: toFiniteNumber(line.improveChance),
+    expectedGain: toFiniteNumber(line.expectedGain),
+    stats: (Array.isArray(line.stats) ? line.stats : []).filter(isRecord).map((stat) => ({
+      stat: parseStringValue(stat.stat),
+      scores: parseNumberList(stat.scores),
+      ranks: parseNumberList(stat.ranks),
+    })),
+  }));
+  const score = toFiniteNumber(payload.score);
+  if (lines.length === 0 || score <= 0) return null;
+  return {
+    score,
+    currentRank: toFiniteNumber(payload.currentRank),
+    rollCost: toFiniteNumber(payload.rollCost),
+    ladders,
+    lines,
+  };
 }
 
 /**
@@ -1359,36 +1411,21 @@ export async function getBuildMoves(
   return parseMovesPayload(await response.json());
 }
 
-export async function getBuildSubstatUpgrades(
+/** Every single-line reroll of a build on one board, null when the build does not rank there */
+export async function getBuildRerolls(
   buildId: string,
   weaponId: string,
   trackKey: string,
   signal?: AbortSignal,
-): Promise<LBSubstatUpgradeTierSet | null> {
+): Promise<LBRerolls | null> {
   const response = await lbFetch(
-    `/build/${encodeURIComponent(buildId)}/substat-upgrades/${encodeURIComponent(weaponId)}/${encodeURIComponent(trackKey)}`,
+    `/build/${encodeURIComponent(buildId)}/rerolls/${encodeURIComponent(weaponId)}/${encodeURIComponent(trackKey)}`,
     { method: 'GET', signal, label: 'Failed to fetch substat upgrades', allow: [404] },
   );
   if (response.status === 404) {
     return null;
   }
-
-  const payload = await response.json() as {
-    weaponId?: unknown;
-    track?: unknown;
-    baseDamage?: unknown;
-    currentRank?: unknown;
-    currentRankVisible?: unknown;
-    tiers?: unknown;
-  };
-  const parsed = parseUpgradeTierSet(payload.tiers);
-  if (parsed) {
-    parsed.baseDamage = toFiniteNumber(payload.baseDamage, 0);
-    parsed.currentRank = toFiniteNumber(payload.currentRank, 0);
-    parsed.currentRankVisible = Boolean(payload.currentRankVisible);
-  }
-
-  return parsed;
+  return parseRerollsPayload(await response.json());
 }
 
 export interface LBStandingEntry {

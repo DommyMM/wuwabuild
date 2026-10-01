@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-10-01',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Substat upgrades now show transducer rerolls: what each echo line can really land on, the odds, the cost and the rank you would reach',
+            },
+        ],
+    },
+    {
         date: '2026-09-29',
         patch: '3.7',
         changes: [

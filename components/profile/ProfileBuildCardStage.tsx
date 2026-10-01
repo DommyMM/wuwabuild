@@ -196,7 +196,6 @@ export const ProfileBuildCardStage: React.FC<ProfileBuildCardStageProps> = ({
               activeTrackKey={activeBoard?.trackKey ?? ''}
               isExpanded
               baseDamage={activeBoard?.damage}
-              globalRank={activeBoard?.rank}
               onOpenInEditor={handleOpenInEditor}
               surface="profile"
             />

@@ -1,17 +1,16 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getEchoSubstatShortLabel } from '@/lib/echoStatLabels';
 import { Character } from '@/lib/character';
-import { getBoardDistribution, getBoardOptimality, getBuildMoves, getBuildStandings, getBuildSubstatUpgrades, isHealTrackKey, LBBoardDistribution, LBBoardOptimality, LBBuildDetailEntry, LBMoveEntry, LBStandingEntry, LBSubstatUpgradeTierSet } from '@/lib/lb';
+import { getBoardDistribution, getBoardOptimality, getBuildMoves, getBuildRerolls, getBuildStandings, isHealTrackKey, LBBoardDistribution, LBBoardOptimality, LBBuildDetailEntry, LBMoveEntry, LBRerolls, LBStandingEntry } from '@/lib/lb';
 import { BuildMoveBreakdown } from './BuildMoveBreakdown';
 import { BuildStatDistribution } from './BuildStatDistribution';
-import { BuildSubstatUpgrades, BuildUpgradeColumn } from './BuildSubstatUpgrades';
+import { BuildRerolls } from './BuildRerolls';
 import { BuildStandingsTable } from './BuildStandingsTable';
 import { ScoringMode } from './constants';
 import { RegionBadge } from '@/lib/regionBadge';
@@ -27,76 +26,6 @@ const BuildOptimalityPanel = dynamic(() => import('./BuildOptimalityPanel').then
   ),
 });
 
-const UPGRADE_STAT_LABELS: Record<string, string> = {
-  hp: 'HP',
-  hp_pct: 'HP%',
-  atk: 'ATK',
-  atk_pct: 'ATK%',
-  def: 'DEF',
-  def_pct: 'DEF%',
-  crit_rate: 'Crit Rate',
-  crit_dmg: 'Crit DMG',
-  energy_regen: 'Energy Regen',
-  healing_bonus: 'Healing Bonus',
-  aero_dmg: 'Aero DMG',
-  glacio_dmg: 'Glacio DMG',
-  fusion_dmg: 'Fusion DMG',
-  electro_dmg: 'Electro DMG',
-  havoc_dmg: 'Havoc DMG',
-  spectro_dmg: 'Spectro DMG',
-  basic_attack_dmg: 'Basic Attack DMG Bonus',
-  heavy_attack_dmg: 'Heavy Attack DMG Bonus',
-  resonance_skill_dmg: 'Resonance Skill DMG Bonus',
-  resonance_liberation_dmg: 'Resonance Liberation DMG Bonus',
-};
-
-const FLAT_UPGRADE_STATS = new Set(['hp', 'atk', 'def']);
-const UPGRADE_TIER_OPTIONS = [
-  { key: 'min', label: 'Min' },
-  { key: 'median', label: 'Mid' },
-  { key: 'max', label: 'Max' },
-] as const;
-
-type UpgradeTierKey = keyof LBSubstatUpgradeTierSet;
-
-type UpgradeRow = {
-  key: string;
-  label: string;
-  icon: string;
-  min: number;
-  median: number;
-  max: number;
-  isPercent: boolean;
-};
-
-type OrderedUpgradeColumn = BuildUpgradeColumn & {
-  canonicalLabel: string;
-  projectedRank: number;
-  rankDelta: number;
-  showRankDelta: boolean;
-};
-
-function getWeightedMedianRollValue(probabilities: Array<[number, number]> | null): number | null {
-  if (!probabilities || probabilities.length === 0) return null;
-
-  const validRolls = probabilities.filter(([value, probability]) => (
-    Number.isFinite(value) && Number.isFinite(probability) && probability > 0
-  ));
-  const totalProbability = validRolls.reduce((total, [, probability]) => total + probability, 0);
-  if (totalProbability <= 0) return null;
-
-  const threshold = totalProbability / 2;
-  let cumulative = 0;
-  for (const [value, probability] of validRolls) {
-    cumulative += probability;
-    if (cumulative >= threshold) {
-      return value;
-    }
-  }
-
-  return validRolls[validRolls.length - 1]?.[0] ?? null;
-}
-
 function formatTrackLabel(trackKey: string): string {
   return trackKey
     .split('_')
@@ -106,62 +35,6 @@ function formatTrackLabel(trackKey: string): string {
       return `${part.charAt(0).toUpperCase()}${part.slice(1)}`;
     })
     .join(' ');
-}
-
-function getTierRollValue(
-  values: number[] | null,
-  tier: UpgradeTierKey,
-  probabilities?: Array<[number, number]> | null,
-): number | null {
-  if (!values || values.length === 0) return null;
-  if (tier === 'min') return values[0] ?? null;
-  if (tier === 'max') return values[values.length - 1] ?? null;
-  const weightedMedian = getWeightedMedianRollValue(probabilities ?? null);
-  if (weightedMedian != null) return weightedMedian;
-  return values[Math.max(0, Math.floor((values.length - 1) / 2))] ?? null;
-}
-
-function canonicalUpgradeSort(
-  columns: OrderedUpgradeColumn[],
-  statTranslations: Record<string, Record<string, string>> | null | undefined,
-): OrderedUpgradeColumn[] {
-  const naturalOrder: string[] = [];
-
-  if (statTranslations) {
-    const seen = new Set<string>();
-    for (const key of Object.keys(statTranslations)) {
-      if (seen.has(key)) continue;
-      if (columns.some((column) => column.canonicalLabel === key)) {
-        naturalOrder.push(key);
-        seen.add(key);
-      }
-    }
-  } else {
-    naturalOrder.push(...columns.map((column) => column.canonicalLabel));
-  }
-
-  const crits: string[] = [];
-  const flats: string[] = [];
-  const rest: string[] = [];
-
-  for (const label of naturalOrder) {
-    if (label === 'Crit Rate' || label === 'Crit DMG') {
-      crits.push(label);
-    } else if (label === 'ATK' || label === 'HP' || label === 'DEF') {
-      flats.push(label);
-    } else {
-      rest.push(label);
-    }
-  }
-
-  const orderedLabels = [...crits, ...rest, ...flats];
-  const ordered = orderedLabels
-    .map((label) => columns.find((column) => column.canonicalLabel === label))
-    .filter((column): column is OrderedUpgradeColumn => column !== undefined);
-
-  const orderedKeys = new Set(ordered.map((column) => column.key));
-  const leftovers = columns.filter((column) => !orderedKeys.has(column.key));
-  return [...ordered, ...leftovers];
 }
 
 /** One equal-width control in the row under the card, the surface's action first and the bench sections after */
@@ -207,7 +80,6 @@ interface BuildSimulationSectionProps {
   activeTrackKey: string;
   isExpanded: boolean;
   baseDamage?: number;
-  globalRank?: number;
   currentScoring?: ScoringMode;
   /** Leaderboard surfaces hand the reader to the owner's profile, where the full card lives */
   viewProfileHref?: string;
@@ -233,14 +105,13 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   activeTrackKey,
   isExpanded,
   baseDamage,
-  globalRank,
   currentScoring = 'adjusted',
   viewProfileHref,
   onViewProfile,
   onOpenInEditor,
   surface,
 }) => {
-  const { getWeapon, getSubstatValues, getSubstatRollProbabilities, statIcons, statTranslations } = useGameData();
+  const { getWeapon, statIcons } = useGameData();
   const { t } = useLanguage();
 
   const [isMovesOpen, setIsMovesOpen] = useState(false);
@@ -248,7 +119,6 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   const [isOptimalityOpen, setIsOptimalityOpen] = useState(false);
   const [isStandingsOpen, setIsStandingsOpen] = useState(false);
   const [isDistributionOpen, setIsDistributionOpen] = useState(false);
-  const [selectedUpgradeTier, setSelectedUpgradeTier] = useState<UpgradeTierKey>('median');
 
   const hasBoardContext = buildId.length > 0 && activeWeaponId.length > 0 && activeTrackKey.length > 0;
   // Moves, upgrades and the benchmark are all scoped to one build on one board
@@ -264,10 +134,10 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
     fetch: (signal) => getBuildMoves(buildId, activeWeaponId, activeTrackKey, signal),
     errorMessage: transportError('Failed to load move breakdown.'),
   });
-  const upgradesResource = useKeyedResource<LBSubstatUpgradeTierSet | null>({
+  const rerollsResource = useKeyedResource<LBRerolls | null>({
     key: boardKey,
-    enabled: isExpanded && isUpgradesOpen && buildId.length > 0,
-    fetch: (signal) => getBuildSubstatUpgrades(buildId, activeWeaponId, activeTrackKey, signal),
+    enabled: isExpanded && isUpgradesOpen && hasBoardContext,
+    fetch: (signal) => getBuildRerolls(buildId, activeWeaponId, activeTrackKey, signal),
     errorMessage: transportError('Failed to load substat upgrades.'),
   });
   const optimalityResource = useKeyedResource<LBBoardOptimality | null>({
@@ -293,94 +163,14 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
   });
 
   const moves = movesResource.data ?? [];
-  const activeUpgrades = upgradesResource.data ?? null;
+  const rerolls = rerollsResource.data ?? null;
   const optimality = optimalityResource.data ?? null;
-  const scoreBaseDamage = activeUpgrades?.baseDamage && activeUpgrades.baseDamage > 0
-    ? activeUpgrades.baseDamage
+  // The rerolls payload recomputes the board Score, so once loaded it is the figure every panel prints
+  const scoreBaseDamage = rerolls && rerolls.score > 0
+    ? rerolls.score
     : currentScoring === 'raw'
       ? undefined
       : baseDamage;
-  const scoreGlobalRank = activeUpgrades?.currentRank && activeUpgrades.currentRank > 0
-    ? activeUpgrades.currentRank
-    : currentScoring === 'raw'
-      ? undefined
-      : globalRank;
-  const showUpgradeRankDelta = (scoreGlobalRank ?? 0) > 0;
-
-  const upgradeRows = useMemo<UpgradeRow[]>(() => {
-    if (!activeUpgrades) return [];
-    const keys = new Set([
-      ...Object.keys(activeUpgrades.min),
-      ...Object.keys(activeUpgrades.median),
-      ...Object.keys(activeUpgrades.max),
-    ]);
-
-    return Array.from(keys)
-      .map((key) => {
-        const label = UPGRADE_STAT_LABELS[key] ?? key;
-        const isPercent = !FLAT_UPGRADE_STATS.has(key);
-        const icon = statIcons?.[label] ?? statIcons?.[label.replace('%', '')] ?? '';
-        return {
-          key,
-          label: statTranslations?.[label] ? t(statTranslations[label]) : label,
-          icon,
-          min: activeUpgrades.min[key] ?? 0,
-          median: activeUpgrades.median[key] ?? 0,
-          max: activeUpgrades.max[key] ?? 0,
-          isPercent,
-        };
-      })
-      .filter((row) => row.min > 0 || row.median > 0 || row.max > 0);
-  }, [activeUpgrades, statIcons, statTranslations, t]);
-
-  const upgradeColumns = useMemo<OrderedUpgradeColumn[]>(() => {
-    if (!activeUpgrades || !Number.isFinite(scoreBaseDamage) || (scoreBaseDamage ?? 0) <= 0) {
-      return [];
-    }
-
-    const tierRankMap: Record<string, number> =
-      selectedUpgradeTier === 'min'
-        ? activeUpgrades.minRank
-        : selectedUpgradeTier === 'max'
-          ? activeUpgrades.maxRank
-          : activeUpgrades.medianRank;
-
-    return Object.entries(activeUpgrades[selectedUpgradeTier] ?? {})
-      .map(([key, gain]) => {
-        const label = UPGRADE_STAT_LABELS[key] ?? key;
-        const isPercent = !FLAT_UPGRADE_STATS.has(key);
-        const icon = statIcons?.[label] ?? statIcons?.[label.replace('%', '')] ?? '';
-        const rollValue = getTierRollValue(
-          getSubstatValues(label),
-          selectedUpgradeTier,
-          getSubstatRollProbabilities(label),
-        ) ?? 0;
-        const percentGain = gain > 0 ? (gain / (scoreBaseDamage ?? 1)) * 100 : 0;
-        const projectedRank = tierRankMap[key] ?? 0;
-        const rankDelta = showUpgradeRankDelta ? ((scoreGlobalRank ?? 0) - projectedRank) : 0;
-
-        return {
-          key,
-          canonicalLabel: label,
-          label: getEchoSubstatShortLabel(statTranslations?.[label] ? t(statTranslations[label]) : label),
-          icon,
-          rollValue,
-          gain,
-          result: (scoreBaseDamage ?? 0) + gain,
-          percentGain,
-          isPercent,
-          projectedRank,
-          rankDelta,
-          showRankDelta: showUpgradeRankDelta,
-        };
-      })
-      .filter((column) => column.gain > 0);
-  }, [activeUpgrades, getSubstatRollProbabilities, getSubstatValues, scoreBaseDamage, scoreGlobalRank, selectedUpgradeTier, showUpgradeRankDelta, statIcons, statTranslations, t]);
-
-  const orderedUpgradeColumns = useMemo(
-    () => canonicalUpgradeSort(upgradeColumns, statTranslations),
-    [statTranslations, upgradeColumns],
-  );
 
   const boardTitle = `${weaponName} \u2022 ${trackLabel}`;
 
@@ -467,23 +257,16 @@ export const BuildSimulationSection: React.FC<BuildSimulationSectionProps> = ({
       {hasBoardContext && isUpgradesOpen && (
         <div className="space-y-2">
           {currentScoring === 'raw' && (
-            <p className="text-center text-xs leading-snug text-text-primary/45">
-              Substat projections use Score, matching official ranks and upgrade deltas
+            <p className="text-center text-xs leading-snug text-text-primary/55">
+              Substat upgrades use Score, matching official ranks
             </p>
           )}
-          <BuildSubstatUpgrades
-            isLoading={upgradesResource.isLoading}
-            error={upgradesResource.error}
-            hasUpgradeData={upgradeRows.length > 0}
-            hasBaseDamage={Boolean(scoreBaseDamage)}
-            baseDamage={scoreBaseDamage}
-            globalRank={scoreGlobalRank}
-            showRankDelta={showUpgradeRankDelta}
-            tierOptions={UPGRADE_TIER_OPTIONS}
-            selectedTier={selectedUpgradeTier}
-            onSelectTier={(tier) => setSelectedUpgradeTier(tier as UpgradeTierKey)}
-            orderedUpgradeColumns={orderedUpgradeColumns}
-            onRetry={upgradesResource.retry}
+          <BuildRerolls
+            isLoading={rerollsResource.isLoading}
+            error={rerollsResource.error}
+            data={rerolls}
+            buildDetail={buildDetail}
+            onRetry={rerollsResource.retry}
           />
         </div>
       )}

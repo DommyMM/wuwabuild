@@ -174,6 +174,59 @@ thinner beside Liberation. The band still sits below the validator's normal-visi
 pass: Heavy Attack beside Intro, Liberation beside Tune Break, Echo beside Resonance Skill, and Intro
 against Liberation under deuteranopia.
 
+## Substat upgrades
+
+`BuildRerolls.tsx` with the model in `lib/rerolls.ts`. A table of what the build's weakest substat lines
+could become with a transducer and where the build would then rank. `lb/docs/rerolls.md` is canonical for
+the transducer rule and the response shape.
+
+Every column is a line the build can have. A result replaces the line it lands on, so each gain is net of
+what that line was worth, and a stat the echo already holds on another line never appears.
+
+### Columns
+
+One column is one result: a line of one echo becoming one stat. Columns group under the echo and the line
+they replace, groups run best first by the line's average gain per roll, and the stats inside a group by
+their share of it. Rows are Echo, Replaces, New stat, New roll, Projected result, % gain over base,
+Projected rank and Chance.
+
+Only what gains is drawn, and the info note says so:
+
+- A line gets a group when a roll averages at least 0.02% of Score (`LINE_THRESHOLD`). When none clears it
+  the best three show, and never more than six, since the reader acts on the first few and re-uploads
+- A stat gets a column when its best roll gains at least 0.2% of Score (`STAT_FLOOR`), so a result worth a
+  hundredth of a percent is not one. A line whose every gain is under that still shows its best stat
+- With nothing to show the panel says no line would score higher
+
+Keep it a table of columns with one figure per cell. A ranked list of rows that opened into one cell per
+roll put four figures in each of 32 cells in six roll-tier colours, and read as noise.
+
+### Roll tier
+
+Min, Mid and Max set how lucky a roll the table assumes: the lowest roll that gains, the typical gaining
+roll (half the gaining odds at or below it), or the highest. Min is the default, so the table opens on the
+floor and on each stat's real odds.
+
+- A tier reports the lowest roll that reaches its Score. Energy Regen under its target scores the same at
+  every roll, so all three tiers read the minimum roll and the same chance rather than implying a high roll
+  is needed
+- Chance is the odds one reroll of the line lands the stat at that roll or better, the other four lines
+  locked. It is the only odds figure, and there is no transducer count beside it
+
+### Colour
+
+Everything is neutral except the two delta rows, which share the green ramp (`statusRampColor`), each
+scaled to the strongest value in its own row at the chosen tier. A rank that does not improve stays
+neutral. Roll-tier colours are not used here, since the echo tiles above already carry them.
+
+There is no Original column. The build row above the panel prints the Score and rank, and a column of
+dashes cost a column of width.
+
+An unfilled slot reads "Empty line" in the Replaces row, since tuning the echo fills it.
+
+Once loaded, the payload's Score is the figure the other panels print (`scoreBaseDamage`), because the
+endpoint recomputes it rather than reading the stored row.
+
 ## Reference benchmark
 
 `BuildOptimalityPanel.tsx` shows three independent optimized loadouts: Standard (`low_roll`, 16 of 25 usable
