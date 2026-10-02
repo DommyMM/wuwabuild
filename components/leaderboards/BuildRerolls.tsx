@@ -14,6 +14,7 @@ import { formatStatRoll } from '@/components/echo/StatTierBars';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { HoverCard } from '@/components/ui/HoverCard';
 import { statusRampColor } from './constants';
+import { formatDamage } from './formatters';
 
 interface BuildRerollsProps {
   isLoading: boolean;
@@ -80,6 +81,13 @@ export const BuildRerolls: React.FC<BuildRerollsProps> = ({ isLoading, error, on
   const targets = model?.ways.flatMap((way) => way.targets) ?? [];
   const maxGain = targets.reduce((max, target) => Math.max(max, target.maxGain), 0);
   const currentRank = model?.currentRank ?? 0;
+  /** "+85,544–170,573" for a span of gain shares as Score, one figure when both ends print alike */
+  const scoreRange = (min: number, max: number): string => {
+    const base = model?.score ?? 0;
+    const low = formatDamage(min * base);
+    const high = formatDamage(max * base);
+    return low === high ? `+${high}` : `+${low}–${high}`;
+  };
   const rankDelta = (rank: number): number => (rank > 0 && currentRank > 0 ? currentRank - rank : 0);
 
   const echoRail = (echoIndex: number): React.ReactNode => {
@@ -185,6 +193,12 @@ export const BuildRerolls: React.FC<BuildRerollsProps> = ({ isLoading, error, on
           className={`${CELL} ${divider} ${FIGURE} text-right text-base`}
           style={{ color: statusRampColor(maxGain > 0 ? target.maxGain / maxGain : 0) }}
         >
+          {scoreRange(target.minGain, target.maxGain)}
+        </td>
+        <td
+          className={`${CELL} ${divider} ${FIGURE} text-right text-base`}
+          style={{ color: statusRampColor(maxGain > 0 ? target.maxGain / maxGain : 0) }}
+        >
           {formatGainRange(target.minGain, target.maxGain)}
         </td>
         <td
@@ -196,7 +210,6 @@ export const BuildRerolls: React.FC<BuildRerollsProps> = ({ isLoading, error, on
             <span className="ml-1.5 text-xs text-text-primary/55">at {rollFloor(target.ladder, target.rankValue)}</span>
           )}
         </td>
-        <td className={`${CELL} ${divider} ${FIGURE} text-right text-base text-text-primary/78`}>{formatChance(target.chance)}</td>
         <td className={`${CELL} ${divider} ${FIGURE} text-right text-base text-text-primary/78`}>
           {Math.round(way.cost / target.chance).toLocaleString()}
         </td>
@@ -242,9 +255,9 @@ export const BuildRerolls: React.FC<BuildRerollsProps> = ({ isLoading, error, on
               <col className="w-52" />
               <col className="w-px" />
               <col />
+              <col className="w-44" />
               <col className="w-32" />
               <col className="w-28" />
-              <col className="w-24" />
               <col className="w-36" />
             </colgroup>
             <thead>
@@ -253,8 +266,8 @@ export const BuildRerolls: React.FC<BuildRerollsProps> = ({ isLoading, error, on
                 <th scope="col" className={`${HEAD} text-left`}>Line now</th>
                 <th scope="col" className={`${HEAD} text-left`}>Could become</th>
                 <th scope="col" className={`${HEAD} text-right`}>Score gain</th>
+                <th scope="col" className={`${HEAD} text-right`}>% gain</th>
                 <th scope="col" className={`${HEAD} text-right`}>Rank</th>
-                <th scope="col" className={`${HEAD} text-right`}>Chance</th>
                 <th scope="col" className={`${HEAD} text-right`}>Avg. transducers</th>
               </tr>
             </thead>

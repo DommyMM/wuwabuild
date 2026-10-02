@@ -207,7 +207,8 @@ and rank, so the panel shows changes only.
 
 The left side reads as a sentence: the echo, the line as it is now, an arrow, what it could become. The
 target column takes the table's slack, so every arrow sits right after its line. Four figure columns follow:
-Score gain, Rank, Chance and Avg. transducers.
+Score gain, % gain, Rank and Avg. transducers. Chance is not a column, since transducers is cost over
+chance and says the same thing, so it lives in the hover card.
 
 - An echo appears once, with its icon and name spanning its rows. An echo with no way is left out
 - Bands run by their best way's mean gain per transducer, and an echo's ways the same. That figure compares
@@ -220,7 +221,7 @@ Score gain, Rank, Chance and Avg. transducers.
   A chip on the line plus a name and an "unused" tag beside it read as three things saying one
 - A target's rolls print as the span from its lowest gaining roll to the top roll, so the Score gain beside
   it reads as covering that span. Energy Regen under its target spans every roll with one gain
-- Score gain runs from the lowest gaining roll to the top roll
+- Score gain and % gain run from the lowest gaining roll to the top roll
 - Every target carries a dotted underline on its span and a hover card listing every roll of the stat, even
   where all score alike, so the card always shows the whole ladder. A row is the roll with the tile roll
   bar's tier colour, its own chance, the chance of it or higher, the Score gain and the rank, and a roll
