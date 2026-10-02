@@ -258,7 +258,7 @@ export const BuildExpanded: React.FC<BuildExpandedProps> = ({
               forces 2px of scroll. The expansion keeps its fixed design-space layout at every width, because capping
               it to the scrollport crushes the 5-column echo grid, so the table's own scroll reaches it. */}
           <div className="w-full">
-          <div className={`${LB_EXPANDED_SHELL} min-w-0 space-y-4 py-4`}>
+          <div className={`${LB_EXPANDED_SHELL} group/expanded min-w-0 space-y-4 py-4`}>
             {isDetailLoading && <BuildExpandedSkeleton showForte={surface !== 'leaderboard_character'} />}
 
             {!isDetailLoading && detailError && (

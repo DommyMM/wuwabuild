@@ -176,9 +176,9 @@ against Liberation under deuteranopia.
 
 ## Substat upgrades
 
-`BuildRerolls.tsx` with the model in `lib/rerolls.ts`. Under each echo tile, the lines worth a transducer
-reroll and the stats each could land. `lb/docs/rerolls.md` is canonical for the transducer rule and the
-response shape.
+`BuildRerolls.tsx` with the model in `lib/rerolls.ts`. The lines worth a transducer reroll and the stats each
+could land, one band per echo. `lb/docs/rerolls.md` is canonical for the transducer rule and the response
+shape.
 
 A result replaces the line it lands on, so each gain is net of what that line was worth, and a stat the echo
 already holds on another line never appears.
@@ -200,42 +200,56 @@ Only what gains is kept:
   hundredth of a percent is not one. A line whose every gain is under that still lists its best stat
 - With nothing to show the panel says no line would score higher
 
-A way carries a reason. "unused" is a line worth under `STAT_FLOOR` now or an unfilled slot, and "low roll"
-is a line whose own stat is one of its targets. A useful line that only gains as another stat has none.
-
 ### Layout
 
-Five columns on the echo tiles' own grid, so a column sits under its echo. The build row above prints the
-current Score and rank, so the panel shows changes only.
+One framed table the full width of the row, a band per echo. The build row above prints the current Score
+and rank, so the panel shows changes only.
 
-- A column lists the echo's ways by mean gain per transducer, the one figure that compares ways of different
-  cost. It is never printed, since a share like 0.088% reads as nothing, and the top way on the build is
-  marked "best value" instead
-- A way is a framed panel. Its head is three lines: the echo's icon and name, the line it redraws, then its
-  reason with the transducers a roll costs, so targets start level across columns. Position alone did not
-  tell the reader which echo a panel was about, so the name stays
-- The redrawn line wears the tile's substat chip, so it reads as the row on the tile above, and each target
-  leads with an arrow, so the panel reads as that line becoming this stat
-- Targets follow by their share of the way's mean gain
-- A target is two lines. The stat and its gain range, with the lowest gaining roll after the stat when a
-  lower roll does not gain. Then the chance a roll and cost over chance, the transducers it takes on average
-- A target that reaches a better rank says so, with the roll it needs when the lowest gaining roll does not
-  reach it
-- An echo with no way gets a dashed panel reading "Nothing to gain" rather than a hole in the grid
-- Bare text under the tiles read as nothing at all, so the frame, the head band and the larger gain figure
-  stay
-- The caption under the columns stands in for column headers and holds the info note
+The left side reads as a sentence: the echo, the line as it is now, an arrow, what it could become. The
+target column takes the table's slack, so every arrow sits right after its line. Four figure columns follow:
+Score gain, Rank, Chance and Avg. transducers.
 
-Do not bring back a table. As columns of results it took four header rows and scrolled sideways, and as rows
-it made the reader match each echo and line back to the tiles by name. A ranked list opening into one cell
-per roll put four figures in each of 32 cells in six roll-tier colours and read as noise.
+- An echo appears once, with its icon and name spanning its rows. An echo with no way is left out
+- Bands run by their best way's mean gain per transducer, and an echo's ways the same. That figure compares
+  ways of different cost and is never printed, since a share like 0.088% reads as nothing. The caption says
+  what the order is, because a wide gain range under a smaller single figure otherwise looks unsorted
+- Hovering a band outlines its echo tile, through `data-reroll-echo` on the band and `group/expanded` on the
+  shell both sit in, so no state is shared
+- The line and the target share one grammar, icon, name and roll, so the left side reads as one sentence.
+  Name and roll are one face on one baseline and differ only in colour
+  A chip on the line plus a name and an "unused" tag beside it read as three things saying one
+- A target's rolls print as the span from its lowest gaining roll to the top roll, so the Score gain beside
+  it reads as covering that span. Energy Regen under its target spans every roll with one gain
+- Score gain runs from the lowest gaining roll to the top roll
+- Every target carries a dotted underline on its span and a hover card listing every roll of the stat, even
+  where all score alike, so the card always shows the whole ladder. A row is the roll with the tile roll
+  bar's tier colour, its own chance, the chance of it or higher, the Score gain and the rank, and a roll
+  that does not gain stays listed, dimmed
+- The card is where a rank that needs ATK 50 or higher at 4.5% a roll is spelled out, since splitting the
+  table row by threshold stacked overlapping rows that read as separate outcomes
+- Rank prints the rank the build would hold. An improved one is green, with the roll it needs when the
+  lowest gaining roll does not reach it, and an unchanged one prints the current rank quietly, since a blank
+  read as a broken cell
+- Avg. transducers is cost over chance
+- The cost of a roll is not printed. It is the same for every single-line roll, and Avg. transducers
+  already carries it
+- Rows are a fixed height and spanning cells hold their content to the first row, so a band keeps one rhythm
+  whether a line has one target or three
+
+Forms tried and dropped, so do not bring them back:
+
+- Results as columns: four header rows before the first figure, and it scrolled sideways
+- A table with Redraw, Cost and Lands columns: the line and its target sat far apart with a number between
+- A flat list under a "Now" row: read as plain and empty
+- Five columns under the echo tiles: 230px truncated the names, forced two lines per target, repeated an
+  echo with two lines, and position alone never said which echo a panel was about
+- A ranked list opening into one cell per roll: four figures in each of 32 cells in six roll-tier colours
 
 ### Colour
 
-Everything is neutral except the gain and an improved rank, which share the green ramp (`statusRampColor`),
-each scaled to the strongest target on the build, and the gold "best value" mark with its panel's gold
-border. Roll-tier colours are not
-used here, since the echo tiles above already carry them.
+Everything is neutral except the gain, on the green ramp (`statusRampColor`) scaled to the strongest target
+on the build, and an improved rank at the ramp's top. Roll-tier colours are not used here, since the echo
+tiles above already carry them.
 
 Once loaded, the payload's Score is the figure the other panels print (`scoreBaseDamage`), because the
 endpoint recomputes it rather than reading the stored row.

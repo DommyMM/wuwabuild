@@ -33,6 +33,19 @@ interface BuildExpandedEchoPanelsProps {
   showForte?: boolean;
 }
 
+/**
+ * Outlines a tile while its band in the Substat upgrades panel is hovered, matched through the shared `group/expanded` shell
+ *
+ * An outline because panel-glass owns box-shadow, neutral because the border carries the CV colour. Spelled out per slot for the Tailwind scanner.
+ */
+const REROLL_HOVER_OUTLINE = [
+  'group-has-[[data-reroll-echo="0"]:hover]/expanded:outline-text-primary/55',
+  'group-has-[[data-reroll-echo="1"]:hover]/expanded:outline-text-primary/55',
+  'group-has-[[data-reroll-echo="2"]:hover]/expanded:outline-text-primary/55',
+  'group-has-[[data-reroll-echo="3"]:hover]/expanded:outline-text-primary/55',
+  'group-has-[[data-reroll-echo="4"]:hover]/expanded:outline-text-primary/55',
+] as const;
+
 export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = ({
   detail,
   character,
@@ -145,7 +158,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
           return (
             <div
               key={`${detail.id}-panel-${panel.id ?? 'empty'}-${panelIndex}`}
-              className="panel-glass relative min-w-0 aspect-6/5 transition-[border-color] duration-200"
+              className={`panel-glass relative min-w-0 aspect-6/5 outline-2 outline-offset-2 outline-transparent transition-[border-color,outline-color] duration-150 ${REROLL_HOVER_OUTLINE[panelIndex] ?? ''}`}
               style={{ borderColor: `${frameBorderColor}b3` }}
             >
               {fetterIcon && (

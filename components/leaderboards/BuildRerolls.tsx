@@ -1,17 +1,18 @@
 'use client';
 
 import React, { useCallback, useMemo } from 'react';
-import { ArrowRight, Info } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { isPercentStat } from '@/lib/constants/statMappings';
+import { getSubstatTierInfo } from '@/lib/calculations/substatTiers';
 import { getEchoSubstatShortLabel } from '@/lib/echoStatLabels';
 import { LBBuildDetailEntry, LBRerolls, LBSubstatLadder } from '@/lib/lb';
 import { getEchoPaths } from '@/lib/paths';
-import { RerollReason, RerollTarget, RerollWay, buildRerollModel, formatChance, formatGainRange } from '@/lib/rerolls';
+import { RerollTarget, RerollWay, buildRerollModel, formatChance, formatGain, formatGainRange } from '@/lib/rerolls';
 import { formatStatRoll } from '@/components/echo/StatTierBars';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
-import { HoverTooltip } from '@/components/ui/HoverTooltip';
+import { HoverCard } from '@/components/ui/HoverCard';
 import { statusRampColor } from './constants';
 
 interface BuildRerollsProps {
@@ -23,22 +24,36 @@ interface BuildRerollsProps {
 }
 
 const FIGURE = 'font-gowun tabular-nums';
-/** Same tracks as the echo tiles above, so each column sits under its echo */
-const ECHO_GRID = 'grid min-w-0 grid-cols-5 gap-4';
-/** Quieter than the tiles' glass frame, so a panel reads as belonging to the tile above it */
-const PANEL = 'overflow-hidden rounded-xl border bg-black/25';
-const REASON_LABEL: Record<Exclude<RerollReason, null>, string> = { unused: 'unused', 'low-roll': 'low roll' };
+const FRAME = 'overflow-hidden rounded-xl border border-border/55 bg-black/25';
+const HEAD = 'bg-black/30 px-4 py-2 text-xs font-normal whitespace-nowrap text-text-primary/55';
+/** Fixed row height, so a band keeps one rhythm whether its line has one target or three */
+const ROW = 'h-11';
+const CELL = 'px-4 py-0 whitespace-nowrap';
+/** Holds a spanning cell's content to its first row, a pixel short of it because the cell also carries the divider */
+const FIRST_ROW = 'flex h-[43px] items-center';
+const ECHO_DIVIDER = 'border-t border-border/55';
+const WAY_DIVIDER = 'border-t border-border/35';
+/** A stat's name and roll in one face on one baseline, told apart by colour, because a second face beside the name sat off its baseline */
+const STAT_TEXT = 'inline-flex items-baseline gap-2 tabular-nums';
+/** Roll, its chance, the chance of it or higher, gain and rank in the per-roll hover */
+const STEP_GRID = 'grid grid-cols-[4rem_1fr_1fr_1fr_2rem] items-center gap-2 px-2';
 
 /**
- * What a transducer reroll could turn the build's weak substat lines into, one column under each echo tile
+ * What a transducer reroll could turn the build's weak substat lines into, one band per echo
  *
- * A column lists that echo's lines worth rolling, each with the stats it can land
+ * A band lists the echo's lines worth rolling, each beside the stats it can land, most gain per transducer first
  */
 export const BuildRerolls: React.FC<BuildRerollsProps> = ({ isLoading, error, onRetry, data, buildDetail }) => {
   const { getEcho, statIcons, statTranslations } = useGameData();
   const { t } = useLanguage();
 
   const model = useMemo(() => (data ? buildRerollModel(data) : null), [data]);
+  // Ways arrive best first, so an echo takes the place of its best way
+  const bands = useMemo(() => {
+    const byEcho = new Map<number, RerollWay[]>();
+    model?.ways.forEach((way) => byEcho.set(way.echo, [...(byEcho.get(way.echo) ?? []), way]));
+    return [...byEcho.entries()];
+  }, [model]);
 
   const statLabel = useCallback((ladder: LBSubstatLadder): string => (
     getEchoSubstatShortLabel(statTranslations?.[ladder.name] ? t(statTranslations[ladder.name]) : ladder.name)
@@ -46,135 +61,158 @@ export const BuildRerolls: React.FC<BuildRerollsProps> = ({ isLoading, error, on
   const statIcon = (ladder: LBSubstatLadder): React.ReactNode => {
     const icon = statIcons?.[ladder.name] ?? statIcons?.[ladder.name.replace('%', '')];
     return icon
-      ? <img src={icon} alt="" className="h-3.5 w-3.5 shrink-0 object-contain" />
-      : <span className="h-3.5 w-3.5 shrink-0 rounded bg-white/12" />;
+      ? <img src={icon} alt="" className="h-4 w-4 shrink-0 object-contain" />
+      : <span className="h-4 w-4 shrink-0 rounded bg-white/12" />;
   };
   const rollLabel = (ladder: LBSubstatLadder, value: number): string => formatStatRoll(value, isPercentStat(ladder.name));
   /** "50+" for a roll and up, bare for the ladder's top roll */
   const rollFloor = (ladder: LBSubstatLadder, value: number): string => (
     `${rollLabel(ladder, value)}${value === ladder.values[ladder.values.length - 1] ? '' : '+'}`
   );
+  /** "6.8–12.4%" from a roll to the ladder's top, so the rolls read as the span the gain beside them covers */
+  const rollRange = (ladder: LBSubstatLadder, from: number): string => {
+    const top = ladder.values[ladder.values.length - 1];
+    const high = rollLabel(ladder, top);
+    return from === top ? high : `${rollLabel(ladder, from).replace(/%$/, '')}–${high}`;
+  };
 
-  // Both tints scale to the strongest target on the build
+  // Gain tint scales to the strongest target on the build
   const targets = model?.ways.flatMap((way) => way.targets) ?? [];
   const maxGain = targets.reduce((max, target) => Math.max(max, target.maxGain), 0);
   const currentRank = model?.currentRank ?? 0;
   const rankDelta = (rank: number): number => (rank > 0 && currentRank > 0 ? currentRank - rank : 0);
-  const maxRankDelta = targets.reduce((max, target) => Math.max(max, rankDelta(target.rank)), 0);
-  const bestWay = model?.ways[0]?.key;
 
-  const targetRows = (way: RerollWay, target: RerollTarget): React.ReactNode => (
-    <li key={target.key} className="space-y-1 px-3 py-2.5">
-      <div className="flex items-center gap-1.5">
-        <ArrowRight aria-hidden className="h-3 w-3 shrink-0 text-text-primary/45" />
-        {statIcon(target.ladder)}
-        <span className="min-w-0 truncate text-white/92">{statLabel(target.ladder)}</span>
-        {target.hasFloor && (
-          <span className={`${FIGURE} shrink-0 text-text-primary/78`}>{rollFloor(target.ladder, target.minValue)}</span>
-        )}
-        <span
-          className={`${FIGURE} ml-auto shrink-0 pl-1 text-[15px] leading-none`}
-          style={{ color: statusRampColor(maxGain > 0 ? target.maxGain / maxGain : 0) }}
-        >
-          {formatGainRange(target.minGain, target.maxGain)}
-        </span>
-      </div>
-      <div className={`${FIGURE} flex items-baseline gap-2 pl-[18px] text-xs text-text-primary/60`}>
-        <span>{formatChance(target.chance)}, about {Math.round(way.cost / target.chance).toLocaleString()}</span>
-        {target.rank > 0 && (
-          <span
-            className="ml-auto shrink-0"
-            style={{ color: statusRampColor(maxRankDelta > 0 ? rankDelta(target.rank) / maxRankDelta : 0) }}
-          >
-            rank {target.rank.toLocaleString()}
-            {target.rankValue !== target.minValue && ` at ${rollFloor(target.ladder, target.rankValue)}`}
-          </span>
-        )}
-      </div>
-    </li>
-  );
-
-  const wayBlock = (way: RerollWay): React.ReactNode => {
-    const isBest = way.key === bestWay;
-    const panel = buildDetail.buildState.echoPanels[way.echo];
+  const echoRail = (echoIndex: number): React.ReactNode => {
+    const panel = buildDetail.buildState.echoPanels[echoIndex];
     const echo = panel?.id ? getEcho(panel.id) : null;
     return (
-      <div key={way.key} className={`${PANEL} ${isBest ? 'border-accent/60' : 'border-border/55'}`}>
-        {/* Every head is three lines, so the targets start level across columns */}
-        <div className="space-y-1.5 border-b border-border/45 bg-black/30 px-3 py-2.5">
-          <div className="flex items-center gap-2">
-            {echo && <img src={getEchoPaths(echo, panel?.phantom)} alt="" className="h-6 w-6 shrink-0 rounded object-cover" />}
-            <span className="min-w-0 truncate font-semibold text-text-primary">
-              {echo ? t(echo.nameI18n ?? { en: echo.name }) : `Echo ${way.echo + 1}`}
-            </span>
-            {isBest && <span className="ml-auto shrink-0 text-xs text-accent-hover">best value</span>}
-          </div>
-          <div className="flex items-center gap-2">
-            {way.lines.map((line, lineIndex) => (line.ladder ? (
-              <React.Fragment key={lineIndex}>
-                {/* Same chip as the tile's substat row, so the line reads as the one above */}
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-white/10 bg-black/75 px-1.5 py-0.5">
-                  {statIcon(line.ladder)}
-                  <span className={`${FIGURE} text-text-primary/78`}>{rollLabel(line.ladder, line.value)}</span>
-                </span>
-                <span className="min-w-0 truncate text-text-primary/78">{statLabel(line.ladder)}</span>
-              </React.Fragment>
-            ) : (
-              <span key={lineIndex} className="text-text-primary/78">Empty line</span>
-            )))}
-          </div>
-          <div className="truncate text-xs text-text-primary/55">
-            {way.reason && `${REASON_LABEL[way.reason]}, `}
-            <span className={FIGURE}>{way.cost}</span> transducers a roll
-          </div>
-        </div>
-        <ul className="divide-y divide-border/45">{way.targets.map((target) => targetRows(way, target))}</ul>
+      <div className={`${FIRST_ROW} gap-3`}>
+        {echo && <img src={getEchoPaths(echo, panel?.phantom)} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />}
+        <span className="font-semibold text-text-primary">
+          {echo ? t(echo.nameI18n ?? { en: echo.name }) : `Echo ${echoIndex + 1}`}
+        </span>
       </div>
     );
   };
 
-  const infoNote = (
-    <HoverTooltip
-      placement="top"
-      triggerClassName="inline-flex"
-      content={(
-        <div className="max-w-xs space-y-1.5 text-left">
-          <p className="text-sm font-semibold text-text-primary">Substat upgrades</p>
-          <p className="text-xs leading-relaxed text-text-primary/70">
-            Under each echo, the lines worth a transducer reroll and the stats each could land. Lines and stats
-            that would not raise the Score are left out.
-          </p>
-          <p className="text-xs leading-relaxed text-text-primary/70">
-            The green figure is the Score gained, from the lowest roll that gains to the highest. Below it is the
-            chance one roll lands that stat, then the transducers it takes on average.
-          </p>
-          <p className="text-xs leading-relaxed text-text-primary/70">
-            <span className="font-semibold text-text-primary/85">Best value</span> marks the line that gains the
-            most per transducer.
-          </p>
-        </div>
-      )}
-    >
-      <span
-        tabIndex={0}
-        role="button"
-        aria-label="About substat upgrades"
-        className="inline-flex h-5 w-5 cursor-help items-center justify-center rounded-full text-text-primary/55 transition-colors hover:text-accent focus-visible:text-accent focus-visible:outline-none"
-      >
-        <Info className="h-3.5 w-3.5" />
-      </span>
-    </HoverTooltip>
+  const lineCell = (way: RerollWay): React.ReactNode => (
+    <div className={`${FIRST_ROW} gap-2.5`}>
+      {way.lines.map((line, index) => (line.ladder ? (
+        <span key={index} className="inline-flex items-center gap-2">
+          {statIcon(line.ladder)}
+          <span className={STAT_TEXT}>
+            <span className="text-text-primary/78">{statLabel(line.ladder)}</span>
+            <span className="text-text-primary/60">{rollLabel(line.ladder, line.value)}</span>
+          </span>
+        </span>
+      ) : (
+        <span key={index} className="text-text-primary/78">Empty line</span>
+      )))}
+    </div>
   );
+
+  /** Every roll the stat can land on, tinted like the tile's roll bar, with its own share of the chance */
+  const stepTable = (target: RerollTarget): React.ReactNode => (
+    <div className="space-y-1">
+      <div className={`${STEP_GRID} text-2xs text-white/62`}>
+        <span>Roll</span>
+        <span className="text-right">Chance</span>
+        <span className="text-right">Or higher</span>
+        <span className="text-right">Score gain</span>
+        <span className="text-right">Rank</span>
+      </div>
+      {target.steps.map((step) => {
+        const gains = step.gain > 0;
+        return (
+          <div
+            key={step.value}
+            className={`${STEP_GRID} ${FIGURE} rounded-md py-1 ${gains ? 'bg-white/6 text-white/95' : 'text-white/55'}`}
+          >
+            <span className="flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className="h-2.5 w-1 shrink-0 rounded-xs"
+                style={{ backgroundColor: getSubstatTierInfo(step.value, target.ladder.values)?.color ?? 'transparent' }}
+              />
+              {rollLabel(target.ladder, step.value)}
+            </span>
+            <span className="text-right">{formatChance(step.chance)}</span>
+            <span className="text-right">{formatChance(step.orHigher)}</span>
+            <span className="text-right" style={gains ? { color: statusRampColor(maxGain > 0 ? step.gain / maxGain : 0) } : undefined}>
+              {gains ? formatGain(step.gain) : 'none'}
+            </span>
+            <span className="text-right" style={step.rank > 0 ? { color: statusRampColor(1) } : undefined}>
+              {step.rank > 0 ? step.rank.toLocaleString() : currentRank > 0 ? currentRank.toLocaleString() : ''}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const targetCells = (way: RerollWay, target: RerollTarget, divider: string): React.ReactNode => {
+    const improves = rankDelta(target.rank) > 0;
+    return (
+      <>
+        <td className={`${CELL} ${divider}`}>
+          <div className="flex items-center gap-2">
+            <ArrowRight aria-hidden className="mr-1.5 h-3.5 w-3.5 shrink-0 text-text-primary/45" />
+            <HoverCard
+              placement="top"
+              width="md"
+              triggerClassName="inline-flex"
+              title={statLabel(target.ladder)}
+              subtitle="Every roll it can land on"
+              body={stepTable(target)}
+            >
+              <span
+                tabIndex={0}
+                className="inline-flex cursor-help items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+              >
+                {statIcon(target.ladder)}
+                <span className={STAT_TEXT}>
+                  <span className="text-text-primary">{statLabel(target.ladder)}</span>
+                  {/* Dotted underline is the site's mark for a term with more behind it */}
+                  <span className="text-text-primary/60 underline decoration-text-primary/45 decoration-dotted underline-offset-4">
+                    {rollRange(target.ladder, target.minValue)}
+                  </span>
+                </span>
+              </span>
+            </HoverCard>
+          </div>
+        </td>
+        <td
+          className={`${CELL} ${divider} ${FIGURE} text-right text-base`}
+          style={{ color: statusRampColor(maxGain > 0 ? target.maxGain / maxGain : 0) }}
+        >
+          {formatGainRange(target.minGain, target.maxGain)}
+        </td>
+        <td
+          className={`${CELL} ${divider} ${FIGURE} text-right text-base text-text-primary/55`}
+          style={improves ? { color: statusRampColor(1) } : undefined}
+        >
+          {improves ? target.rank.toLocaleString() : currentRank > 0 ? currentRank.toLocaleString() : ''}
+          {improves && target.rankValue !== target.minValue && (
+            <span className="ml-1.5 text-xs text-text-primary/55">at {rollFloor(target.ladder, target.rankValue)}</span>
+          )}
+        </td>
+        <td className={`${CELL} ${divider} ${FIGURE} text-right text-base text-text-primary/78`}>{formatChance(target.chance)}</td>
+        <td className={`${CELL} ${divider} ${FIGURE} text-right text-base text-text-primary/78`}>
+          {Math.round(way.cost / target.chance).toLocaleString()}
+        </td>
+      </>
+    );
+  };
 
   return (
     <section className="space-y-3 pt-2" aria-label="Substat upgrades">
       {isLoading && (
-        <div className={`${ECHO_GRID} animate-pulse`}>
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div key={`reroll-skeleton-${index}`} className={`${PANEL} space-y-2 border-border/55 p-3`}>
-              <div className="h-4 rounded bg-white/10" />
-              <div className="h-4 w-2/3 rounded bg-white/8" />
-              <div className="h-4 rounded bg-white/8" />
+        <div className={`${FRAME} animate-pulse divide-y divide-border/45`}>
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={`reroll-skeleton-${index}`} className={`${ROW} flex items-center gap-4 px-4`}>
+              <div className="h-9 w-9 shrink-0 rounded-lg bg-white/10" />
+              <div className="h-4 w-40 rounded bg-white/10" />
+              <div className="h-4 flex-1 rounded bg-white/8" />
             </div>
           ))}
         </div>
@@ -190,33 +228,64 @@ export const BuildRerolls: React.FC<BuildRerollsProps> = ({ isLoading, error, on
         </div>
       )}
 
-      {!isLoading && !error && model && model.ways.length === 0 && (
+      {!isLoading && !error && model && bands.length === 0 && (
         <div className="py-1 text-center text-sm text-text-primary/60">
           No substat line on this build would score higher as another stat or roll.
         </div>
       )}
 
-      {!isLoading && !error && model && model.ways.length > 0 && (
-        <>
-          <div className={`${ECHO_GRID} text-sm`}>
-            {buildDetail.buildState.echoPanels.map((_, echoIndex) => {
-              const ways = model.ways.filter((way) => way.echo === echoIndex);
-              return (
-                <div key={echoIndex} className="min-w-0 space-y-3">
-                  {ways.length > 0 ? ways.map(wayBlock) : (
-                    <div className={`${PANEL} border-dashed border-border/55 px-3 py-6 text-center text-text-primary/55`}>
-                      Nothing to gain
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex items-center justify-center gap-1.5 text-xs text-text-primary/55">
-            Score gained, then the chance a roll and the transducers it takes on average
-            {infoNote}
-          </div>
-        </>
+      {!isLoading && !error && model && bands.length > 0 && (
+        <div className={FRAME}>
+          <table className="w-full border-separate border-spacing-0 text-sm">
+            {/* The target column takes the slack, so every arrow sits right after its line */}
+            <colgroup>
+              <col className="w-52" />
+              <col className="w-px" />
+              <col />
+              <col className="w-32" />
+              <col className="w-28" />
+              <col className="w-24" />
+              <col className="w-36" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col" className={`${HEAD} text-left`}>Echo</th>
+                <th scope="col" className={`${HEAD} text-left`}>Line now</th>
+                <th scope="col" className={`${HEAD} text-left`}>Could become</th>
+                <th scope="col" className={`${HEAD} text-right`}>Score gain</th>
+                <th scope="col" className={`${HEAD} text-right`}>Rank</th>
+                <th scope="col" className={`${HEAD} text-right`}>Chance</th>
+                <th scope="col" className={`${HEAD} text-right`}>Avg. transducers</th>
+              </tr>
+            </thead>
+            {bands.map(([echoIndex, ways]) => (
+              <tbody key={echoIndex} data-reroll-echo={echoIndex} className="transition-colors duration-150 hover:bg-white/3">
+                {ways.map((way, wayIndex) => way.targets.map((target, targetIndex) => {
+                  const divider = targetIndex > 0 ? '' : wayIndex === 0 ? ECHO_DIVIDER : WAY_DIVIDER;
+                  return (
+                    <tr key={target.key} className={ROW}>
+                      {wayIndex === 0 && targetIndex === 0 && (
+                        <th
+                          scope="rowgroup"
+                          rowSpan={ways.reduce((sum, entry) => sum + entry.targets.length, 0)}
+                          className={`${CELL} ${ECHO_DIVIDER} text-left align-top font-normal`}
+                        >
+                          {echoRail(echoIndex)}
+                        </th>
+                      )}
+                      {targetIndex === 0 && (
+                        <td rowSpan={way.targets.length} className={`${CELL} ${divider} align-top`}>
+                          {lineCell(way)}
+                        </td>
+                      )}
+                      {targetCells(way, target, divider)}
+                    </tr>
+                  );
+                }))}
+              </tbody>
+            ))}
+          </table>
+        </div>
       )}
     </section>
   );

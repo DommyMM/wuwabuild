@@ -18,7 +18,11 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'improved',
-                text: 'Substat upgrades now show transducer rerolls: what each echo line can really land on, the odds, the cost and the rank you would reach',
+                text: 'Substat upgrades now based on transducer rerolls and are more powerful',
+            },
+            {
+                kind: 'fixed',
+                text: 'Import with UID hiding now more clear and shows profile',
             },
         ],
     },
