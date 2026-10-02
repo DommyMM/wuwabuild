@@ -1772,15 +1772,17 @@ function parseSubmitBuildResult(raw: unknown): LBSubmitBuildResult {
     throw new Error('LB submit response is malformed.');
   }
 
+  // The submit response carries no owner block, the masked UID rides on the returned build state
   // Hiding is account-wide, so a build can come back hidden from a box this submission never ticked
-  const owner = isRecord(raw.owner) ? raw.owner : {};
+  const state = isRecord(raw.buildState) ? raw.buildState : {};
+  const watermark = isRecord(state.watermark) ? state.watermark : {};
 
   return {
     id: typeof raw._id === 'string' ? raw._id : '',
     requestId: typeof raw.requestId === 'string' ? raw.requestId : undefined,
     action: typeof raw.action === 'string' ? raw.action : 'updated',
     damageComputed: Boolean(raw.damageComputed),
-    ownerUid: typeof owner.uid === 'string' ? owner.uid : '',
+    ownerUid: typeof watermark.uid === 'string' ? watermark.uid : '',
     warnings: Array.isArray(raw.warnings)
       ? raw.warnings.filter((warning): warning is string => typeof warning === 'string' && warning.length > 0)
       : [],

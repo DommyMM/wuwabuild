@@ -162,13 +162,11 @@ export function statusRampColor(ratio: number): string {
 export const LB_EXPANDED_SHELL = 'mx-auto w-full px-4 md:max-w-330 md:px-12';
 
 /**
- * Opaque stand-in for the expanded-row surface, for the frozen rail the upgrade table's columns scroll under
+ * Opaque stand-in for the expanded-row surface, for a floating label that must hide what it sits over
  *
  * Matches what the row's translucent stack resolves to, between --color-background and --color-background-secondary
  */
 export const LB_EXPANDED_OPAQUE_SURFACE = 'bg-[#191919]';
-/** Same colour as a gradient origin for the scroll-edge fade, spelled out separately because Tailwind scans whole class names */
-export const LB_EXPANDED_OPAQUE_SURFACE_FROM = 'from-[#191919]';
 
 /**
  * Track widths for "# | Owner | Character | Sets | [CV+Stats+Damage]", all fixed for a hard 1350px footprint

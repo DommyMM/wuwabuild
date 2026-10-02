@@ -1,125 +1,154 @@
 import { LBRerollLine, LBRerolls, LBSubstatLadder } from '@/lib/lb';
 
 /**
- * Share of Score one roll must average for a line to be worth a column group
+ * Share of Score one roll must average for a line to count as a way to roll
  *
  * On a top Hiyuki build the real candidates average 0.05% to 0.27% a roll and the next line down 0.016%
  */
 const LINE_THRESHOLD = 0.0002;
-/** Lines shown when none clears the threshold, so a near-finished build still sees its best options */
+/** Lines kept when none clears the threshold, so a near-finished build still sees its best options */
 const LINE_FALLBACK_COUNT = 3;
-/** Most lines shown, since the reader acts on the first few and re-uploads */
-const LINE_LIMIT = 6;
-/** Share of Score a stat's best roll must gain to get a column, so a result worth a hundredth of a percent is not one */
+/** Share of Score a stat's best roll must gain to be listed, so a result worth a hundredth of a percent is not one */
 const STAT_FLOOR = 0.002;
 
-/** How lucky a roll the table assumes: the lowest roll that gains, the typical gaining roll, or the highest */
-export type RollTier = 'min' | 'mid' | 'max';
-
-interface RerollResult {
-  /** Roll value the line lands on */
-  value: number;
-  /** Gain as a share of the current Score */
-  gain: number;
-  score: number;
-  /** Projected rank, 0 when unranked */
+/** One stat a way can land, across every roll of it that gains */
+export interface RerollTarget {
+  key: string;
+  ladder: LBSubstatLadder;
+  /** Lowest roll that gains */
+  minValue: number;
+  /** True when a lower roll of the stat exists and does not gain */
+  hasFloor: boolean;
+  /** Gain at the lowest gaining roll and at the top roll, as shares of the current Score */
+  minGain: number;
+  maxGain: number;
+  /** Best rank the stat reaches, 0 when no roll beats the current rank */
   rank: number;
-  /** Chance one reroll of the line lands this stat at this roll or better */
+  /** Lowest roll that reaches `rank` */
+  rankValue: number;
+  /** Chance one roll lands the stat at a roll that gains */
   chance: number;
 }
 
-/** One stat a line can become */
-interface RerollColumn {
-  key: string;
-  ladder: LBSubstatLadder;
-  results: Record<RollTier, RerollResult>;
-}
-
-/** One line of one echo with the stats worth rerolling it into, best first */
-interface RerollGroup {
-  key: string;
-  echo: number;
-  /** Null for a slot that holds no stat yet */
+/** A line a way redraws, with a null ladder for a slot that holds no stat yet */
+export interface RerollLineRef {
   ladder: LBSubstatLadder | null;
   value: number;
-  columns: RerollColumn[];
 }
 
-interface RerollModel {
+/** Why a line is worth rolling: it adds next to nothing now, or its own stat gains at a higher roll */
+export type RerollReason = 'unused' | 'low-roll' | null;
+
+/** One choice of lines to redraw on an echo, with what it can land */
+export interface RerollWay {
+  key: string;
+  /** 0-based echo slot in the build state */
+  echo: number;
+  lines: RerollLineRef[];
+  reason: RerollReason;
+  /** Transducers one roll spends */
+  cost: number;
+  /** Mean share of Score gained per transducer, every worse result declined */
+  expected: number;
+  /** Largest share of the way's mean gain first */
+  targets: RerollTarget[];
+}
+
+export interface RerollModel {
   score: number;
   currentRank: number;
-  /** Lines worth rerolling, best first */
-  groups: RerollGroup[];
+  /** Most gain per transducer first */
+  ways: RerollWay[];
 }
 
-type Candidate = RerollColumn & { expected: number; maxGain: number };
+type Candidate = RerollTarget & { expected: number };
 
-function buildCandidate(line: LBRerollLine, ladder: LBSubstatLadder, scores: number[], ranks: number[], score: number): Candidate | null {
-  const gaining: RerollResult[] = [];
+function buildTarget(
+  line: LBRerollLine,
+  ladder: LBSubstatLadder,
+  scores: number[],
+  ranks: number[],
+  score: number,
+  currentRank: number,
+): Candidate | null {
+  const gaining: Array<{ value: number; gain: number; rank: number; chance: number }> = [];
   ladder.values.forEach((value, index) => {
     const rollScore = scores[index] ?? score;
     if (rollScore <= score) return;
     gaining.push({
       value,
       gain: rollScore / score - 1,
-      score: rollScore,
       rank: ranks[index] ?? 0,
       chance: line.pool > 0 ? (ladder.odds[index] ?? 0) / line.pool : 0,
     });
   });
   if (gaining.length === 0) return null;
 
-  // More of a stat never scores lower, so "this roll or better" is every gaining roll from it upward
-  const atLeast = gaining.map((_, from) => gaining.slice(from).reduce((sum, roll) => sum + roll.chance, 0));
-  // Typical gaining roll: the one where half the gaining odds sit at or below it
-  const mid = Math.max(0, gaining.findIndex((_, index) => atLeast[0] - (atLeast[index + 1] ?? 0) >= atLeast[0] / 2));
-  const top = gaining.length - 1;
-  // A tier reports the lowest roll that reaches its Score, because a stat that only has to clear a threshold
-  // (Energy Regen under its target) scores the same at every roll and must not read as needing a high one
-  const result = (index: number): RerollResult => {
-    const lowest = gaining.findIndex((roll) => roll.score >= gaining[index].score);
-    return { ...gaining[lowest], chance: atLeast[lowest] };
-  };
+  // More of a stat never scores lower, so the top roll holds the best gain and the best rank
+  const top = gaining[gaining.length - 1];
+  const improves = top.rank > 0 && (currentRank <= 0 || top.rank < currentRank);
   return {
     key: `${line.echo}-${line.line}-${ladder.stat}`,
     ladder,
-    results: { min: result(0), mid: result(mid), max: result(top) },
+    minValue: gaining[0].value,
+    hasFloor: gaining[0].value !== ladder.values[0],
+    minGain: gaining[0].gain,
+    maxGain: top.gain,
+    rank: improves ? top.rank : 0,
+    rankValue: improves ? (gaining.find((roll) => roll.rank === top.rank) ?? top).value : 0,
+    chance: gaining.reduce((sum, roll) => sum + roll.chance, 0),
     expected: gaining.reduce((sum, roll) => sum + roll.chance * roll.gain, 0),
-    maxGain: gaining[top].gain,
   };
 }
 
-/** Picks the lines worth rerolling and, for each, the stats worth a column */
+function buildWay(line: LBRerollLine, data: LBRerolls, ladderByStat: Map<string, LBSubstatLadder>): RerollWay {
+  const candidates = line.stats
+    .map((stat) => {
+      const ladder = ladderByStat.get(stat.stat);
+      return ladder ? buildTarget(line, ladder, stat.scores, stat.ranks, data.score, data.currentRank) : null;
+    })
+    .filter((candidate): candidate is Candidate => candidate !== null)
+    .sort((a, b) => b.expected - a.expected);
+  const listed = candidates.filter((candidate) => candidate.maxGain >= STAT_FLOOR);
+  // A line whose every gain sits under the floor still lists its best stat, or the way would be empty
+  const targets = listed.length > 0 ? listed : candidates.slice(0, 1);
+  const cost = Math.max(1, data.rollCost);
+  // A line worth less than a listed result reads as unused, the same cut the targets take
+  const unused = line.stat === '' || 1 - line.scoreWithout / data.score < STAT_FLOOR;
+  return {
+    key: `${line.echo}-${line.line}`,
+    echo: line.echo,
+    lines: [{ ladder: ladderByStat.get(line.stat) ?? null, value: line.value }],
+    reason: unused ? 'unused' : targets.some((target) => target.ladder.stat === line.stat) ? 'low-roll' : null,
+    cost,
+    expected: line.expectedGain / data.score / cost,
+    targets,
+  };
+}
+
+/** Picks the lines worth rerolling, as ways to roll with the stats each can land */
 export function buildRerollModel(data: LBRerolls): RerollModel {
   const ladderByStat = new Map(data.ladders.map((ladder) => [ladder.stat, ladder]));
 
-  const ranked = data.lines
-    .map((line) => ({ line, expected: line.expectedGain / data.score }))
-    .filter((entry) => entry.expected > 0)
-    .sort((a, b) => b.expected - a.expected || a.line.echo - b.line.echo || a.line.line - b.line.line);
-  const worthRolling = ranked.filter((entry) => entry.expected >= LINE_THRESHOLD);
-  const shown = (worthRolling.length > 0 ? worthRolling : ranked.slice(0, LINE_FALLBACK_COUNT)).slice(0, LINE_LIMIT);
+  const gaining = data.lines
+    .filter((line) => line.expectedGain > 0)
+    .sort((a, b) => b.expectedGain - a.expectedGain || a.echo - b.echo || a.line - b.line);
+  const worthRolling = gaining.filter((line) => line.expectedGain / data.score >= LINE_THRESHOLD);
+  const kept = worthRolling.length > 0 ? worthRolling : gaining.slice(0, LINE_FALLBACK_COUNT);
 
-  const groups = shown.map(({ line }): RerollGroup => {
-    const candidates = line.stats
-      .map((stat) => {
-        const ladder = ladderByStat.get(stat.stat);
-        return ladder ? buildCandidate(line, ladder, stat.scores, stat.ranks, data.score) : null;
-      })
-      .filter((candidate): candidate is Candidate => candidate !== null)
-      .sort((a, b) => b.expected - a.expected);
-    const columns = candidates.filter((candidate) => candidate.maxGain >= STAT_FLOOR);
-    return {
-      key: `${line.echo}-${line.line}`,
-      echo: line.echo,
-      ladder: ladderByStat.get(line.stat) ?? null,
-      value: line.value,
-      // A line whose every gain sits under the floor still shows its best stat, or the group would be empty
-      columns: columns.length > 0 ? columns : candidates.slice(0, 1),
-    };
-  }).filter((group) => group.columns.length > 0);
+  const ways = kept
+    .map((line) => buildWay(line, data, ladderByStat))
+    .filter((way) => way.targets.length > 0)
+    .sort((a, b) => b.expected - a.expected);
 
-  return { score: data.score, currentRank: data.currentRank, groups };
+  return { score: data.score, currentRank: data.currentRank, ways };
+}
+
+/** "+0.69–1.38%" for the span of a target's gain, one figure when both ends print alike */
+export function formatGainRange(min: number, max: number): string {
+  const low = formatGain(min);
+  const high = formatGain(max);
+  return low === high ? high : `${low.slice(0, -1)}–${high.slice(1)}`;
 }
 
 /** "+1.25%" for a share of Score, with a third decimal under 0.1% so a small gain never prints as zero */
@@ -130,10 +159,9 @@ export function formatGain(gain: number): string {
   return `${percent < 0 ? '−' : '+'}${magnitude.toFixed(digits)}%`;
 }
 
-/** "1 in 9" for a chance, or a percentage once it is likelier than 1 in 3 */
-export function formatOdds(chance: number): string {
+/** "11.1%" for a chance, with a second decimal under 1% so a long shot never prints as zero */
+export function formatChance(chance: number): string {
   if (!(chance > 0)) return '—';
-  if (chance >= 1 / 3) return `${Math.round(chance * 100)}%`;
-  const oneIn = 1 / chance;
-  return `1 in ${oneIn < 20 ? Number(oneIn.toFixed(1)) : Math.round(oneIn).toLocaleString()}`;
+  const percent = chance * 100;
+  return `${percent.toFixed(percent < 0.95 ? 2 : 1)}%`;
 }
