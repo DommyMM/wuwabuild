@@ -12,6 +12,13 @@ const ON_PAGE_SEARCH_SELECTOR: Record<string, string> = {
     '/profiles': '#profiles-page-search input',
 };
 
+const OPEN_PROFILE_LOOKUP_EVENT = 'wuwabuilds:open-profile-lookup';
+
+/** Opens the navbar profile lookup from elsewhere on the page */
+export function openProfileLookup(): void {
+    window.dispatchEvent(new Event(OPEN_PROFILE_LOOKUP_EVENT));
+}
+
 export function Navigation() {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
@@ -83,6 +90,12 @@ export function Navigation() {
         document.addEventListener('keydown', onKey);
         return () => document.removeEventListener('keydown', onKey);
     }, [pathname, focusOnPageSearch]);
+
+    useEffect(() => {
+        const onOpen = () => setIsLookupOpen(true);
+        window.addEventListener(OPEN_PROFILE_LOOKUP_EVENT, onOpen);
+        return () => window.removeEventListener(OPEN_PROFILE_LOOKUP_EVENT, onOpen);
+    }, []);
 
     // Mobile drawer behaves as a modal: focus contained, page inert, scroll preserved, menu button refocused on close
     useEffect(() => {

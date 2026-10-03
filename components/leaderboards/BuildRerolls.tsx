@@ -103,21 +103,43 @@ export const BuildRerolls: React.FC<BuildRerollsProps> = ({ isLoading, error, on
     );
   };
 
-  const lineCell = (way: RerollWay): React.ReactNode => (
-    <div className={`${FIRST_ROW} gap-2.5`}>
-      {way.lines.map((line, index) => (line.ladder ? (
-        <span key={index} className="inline-flex items-center gap-2">
-          {statIcon(line.ladder)}
-          <span className={STAT_TEXT}>
-            <span className="text-text-primary/78">{statLabel(line.ladder)}</span>
-            <span className="text-text-primary/60">{rollLabel(line.ladder, line.value)}</span>
-          </span>
-        </span>
-      ) : (
-        <span key={index} className="text-text-primary/78">Empty line</span>
-      )))}
-    </div>
-  );
+  const lineCell = (way: RerollWay): React.ReactNode => {
+    const [only] = way.lines;
+    if (way.lines.length === 1) {
+      return (
+        <div className={`${FIRST_ROW} gap-2`}>
+          {only.ladder ? (
+            <>
+              {statIcon(only.ladder)}
+              <span className={STAT_TEXT}>
+                <span className="text-text-primary/78">{statLabel(only.ladder)}</span>
+                <span className="text-text-primary/60">{rollLabel(only.ladder, only.value)}</span>
+              </span>
+            </>
+          ) : (
+            <span className="text-text-primary/78">Empty line</span>
+          )}
+        </div>
+      );
+    }
+    // Lines redrawn together read as the tile does, icon and roll, because three names would push the figures off the table
+    return (
+      <div className={`${FIRST_ROW} gap-2`}>
+        {way.lines.map((line, index) => (
+          <React.Fragment key={index}>
+            {index > 0 && <span aria-hidden className="text-text-primary/45">+</span>}
+            {line.ladder && (
+              <span className="inline-flex items-center gap-1.5" title={statLabel(line.ladder)}>
+                {statIcon(line.ladder)}
+                <span className="sr-only">{statLabel(line.ladder)}</span>
+                <span className="tabular-nums text-text-primary/78">{rollLabel(line.ladder, line.value)}</span>
+              </span>
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  };
 
   /** Every roll the stat can land on, tinted like the tile's roll bar, with its own share of the chance */
   const stepTable = (target: RerollTarget): React.ReactNode => (

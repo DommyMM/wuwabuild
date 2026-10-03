@@ -466,7 +466,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
           hasOpenCard ? PROFILE_RESULTS_EXPANDED_MAX_WIDTH_CLASS : PROFILE_RESULTS_COLLAPSED_MAX_WIDTH_CLASS
         }`}
       >
-        <ProfileSwitcher currentUid={uid} />
+        <ProfileSwitcher currentUid={uid} currentUsername={profileUsername} currentHead={featuredHead} />
         <section className="relative overflow-visible rounded-b-xl rounded-t-lg border border-border bg-background-secondary">
           <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_top_left,rgba(166,150,98,0.10),transparent_55%)]" />
           <div className="relative overflow-hidden rounded-[inherit]">

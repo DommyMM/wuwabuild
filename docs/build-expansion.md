@@ -211,6 +211,10 @@ Score gain, % gain, Rank and Avg. transducers. Chance is not a column, since tra
 chance and says the same thing, so it lives in the hover card.
 
 - An echo appears once, with its icon and name spanning its rows. An echo with no way is left out
+- An echo with two or more dead lines (each worth under 0.2% of Score) redraws them together, locking the
+  rest: 2 transducers a roll for two lines, 1 for three or four, and a stat lands on any of them. The group
+  and the single lines it covers are rival ways to roll the same lines, so only the better per transducer
+  shows. Its lines print as the tile does, icon and roll joined by a plus, since three names overflow
 - Bands run by their best way's mean gain per transducer, and an echo's ways the same. That figure compares
   ways of different cost and is never printed, since a share like 0.088% reads as nothing. The caption says
   what the order is, because a wide gain range under a smaller single figure otherwise looks unsorted
@@ -231,7 +235,7 @@ chance and says the same thing, so it lives in the hover card.
 - Rank prints the rank the build would hold. An improved one is green, with the roll it needs when the
   lowest gaining roll does not reach it, and an unchanged one prints the current rank quietly, since a blank
   read as a broken cell
-- Avg. transducers is cost over chance
+- Avg. transducers is cost over chance, the cost being the way's own
 - The cost of a roll is not printed. It is the same for every single-line roll, and Avg. transducers
   already carries it
 - Rows are a fixed height and spanning cells hold their content to the first row, so a band keeps one rhythm

@@ -58,10 +58,12 @@ after input, has to hold its space from the start:
   moment a row or tile opens, so the card fills it instead of pushing the page down when the detail lands
 - Skeleton tables take `min(pageSize, buildCount)` rows when the count is known, so a two-build profile does
   not shrink by ten rows when the data arrives
-- State that only exists in `localStorage` (the pinned-profile tray, the editor draft) is reserved by an
-  inline script that runs at parse time, before the element it sizes is first painted, and released once the
-  component has rendered. Rendering that state during hydration would mismatch the server HTML, and
-  rendering it in an effect is the shift being avoided.
+- State that only exists in `localStorage` (the editor draft) is reserved by an inline script that runs at
+  parse time, before the element it sizes is first painted, and released once the component has rendered.
+  Rendering that state during hydration would mismatch the server HTML, and rendering it in an effect is the
+  shift being avoided.
+- The profile tab strip needs no reserve because the current profile always has a tab: the server renders the
+  strip at full height and history only adds tabs beside it
 
 Measure with `scripts/layout_shift_probe.mjs` (headless Chrome, `PerformanceObserver` on `layout-shift`)
 against prod and a local build, not Lighthouse alone, since the profile shifts only happen on client

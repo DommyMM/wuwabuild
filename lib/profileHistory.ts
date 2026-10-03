@@ -8,7 +8,10 @@ export interface StoredProfile {
   username: string;
   /** Featured character portrait as it stood at save time */
   head?: string | null;
+  /** Last visit for recents, pin time for pins */
   savedAt: number;
+  /** When the profile entered recents, so the switcher keeps its tab in place on revisit. Absent means savedAt. */
+  openedAt?: number;
 }
 
 export const RECENTS_KEY = 'wuwabuilds_recent_profiles';
@@ -36,7 +39,8 @@ function parseProfiles(raw: string | null, cap: number): StoredProfile[] {
         typeof (entry as StoredProfile).uid === 'string' && (entry as StoredProfile).uid.length > 0 &&
         typeof (entry as StoredProfile).username === 'string' &&
         typeof (entry as StoredProfile).savedAt === 'number' &&
-        Number.isFinite((entry as StoredProfile).savedAt)
+        Number.isFinite((entry as StoredProfile).savedAt) &&
+        ((entry as StoredProfile).openedAt === undefined || Number.isFinite((entry as StoredProfile).openedAt))
       ))
       .sort((a, b) => b.savedAt - a.savedAt)
       .slice(0, cap);
@@ -83,10 +87,23 @@ export function getPinnedProfiles(): StoredProfile[] {
   return readProfiles(PINNED_KEY, MAX_PROFILES);
 }
 
+/**
+ * Moves the profile to the front of recents and refreshes its name and portrait
+ *
+ * Keeps openedAt of an existing entry, so its switcher tab does not move, while the cap still drops the least recent visit
+ */
 export function recordProfileVisit(profile: { uid: string; username: string; head?: string | null }): void {
   if (!profile.uid) return;
   const recents = getRecentProfiles();
-  const nextEntry = { uid: profile.uid, username: profile.username, head: profile.head ?? null, savedAt: Date.now() };
+  const now = Date.now();
+  const existing = recents.find((entry) => entry.uid === profile.uid);
+  const nextEntry: StoredProfile = {
+    uid: profile.uid,
+    username: profile.username,
+    head: profile.head ?? null,
+    savedAt: now,
+    openedAt: existing ? existing.openedAt ?? existing.savedAt : now,
+  };
   writeProfiles(RECENTS_KEY, [
     nextEntry,
     ...recents.filter((entry) => entry.uid !== profile.uid),

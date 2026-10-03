@@ -428,7 +428,7 @@ export interface LBSubstatLadder {
 }
 
 /** One stat a rerolled line can land on with at least one roll that beats the build's Score */
-interface LBRerollStat {
+export interface LBRerollStat {
   stat: string;
   /** Board Score at each roll of the stat's ladder */
   scores: number[];
@@ -453,6 +453,23 @@ export interface LBRerollLine {
   stats: LBRerollStat[];
 }
 
+/** One echo's dead lines redrawn together while its other lines stay locked */
+export interface LBRerollGroup {
+  echo: number;
+  /** 0-based substat positions redrawn, at least two */
+  lines: number[];
+  /** Transducers one roll spends */
+  cost: number;
+  scoreWithout: number;
+  /** Stats a redrawn slot can land on. Each slot draws a different one, so a stat lands on some slot `lines.length` in `pool` */
+  pool: number;
+  improveChance: number;
+  /** Mean Score gained per roll with every worse result declined, counting one good stat a roll */
+  expectedGain: number;
+  /** Scores when the stat lands on one redrawn line and the others land nothing */
+  stats: LBRerollStat[];
+}
+
 export interface LBRerolls {
   score: number;
   currentRank: number;
@@ -460,6 +477,7 @@ export interface LBRerolls {
   rollCost: number;
   ladders: LBSubstatLadder[];
   lines: LBRerollLine[];
+  groups: LBRerollGroup[];
 }
 
 export interface LBListBuildsResponseRaw {
@@ -611,6 +629,11 @@ function parseRerollsPayload(payload: unknown): LBRerolls | null {
       values: parseNumberList(ladder.values),
       odds: parseNumberList(ladder.odds),
     }));
+  const parseStats = (stats: unknown): LBRerollStat[] => (Array.isArray(stats) ? stats : []).filter(isRecord).map((stat) => ({
+    stat: parseStringValue(stat.stat),
+    scores: parseNumberList(stat.scores),
+    ranks: parseNumberList(stat.ranks),
+  }));
   const lines: LBRerollLine[] = payload.lines.filter(isRecord).map((line) => ({
     echo: toFiniteNumber(line.echo),
     line: toFiniteNumber(line.line),
@@ -620,11 +643,18 @@ function parseRerollsPayload(payload: unknown): LBRerolls | null {
     pool: toFiniteNumber(line.pool),
     improveChance: toFiniteNumber(line.improveChance),
     expectedGain: toFiniteNumber(line.expectedGain),
-    stats: (Array.isArray(line.stats) ? line.stats : []).filter(isRecord).map((stat) => ({
-      stat: parseStringValue(stat.stat),
-      scores: parseNumberList(stat.scores),
-      ranks: parseNumberList(stat.ranks),
-    })),
+    stats: parseStats(line.stats),
+  }));
+  // A cached response from before groups existed has none, which reads as every echo rolling one line at a time
+  const groups: LBRerollGroup[] = (Array.isArray(payload.groups) ? payload.groups : []).filter(isRecord).map((group) => ({
+    echo: toFiniteNumber(group.echo),
+    lines: parseNumberList(group.lines),
+    cost: toFiniteNumber(group.cost),
+    scoreWithout: toFiniteNumber(group.scoreWithout),
+    pool: toFiniteNumber(group.pool),
+    improveChance: toFiniteNumber(group.improveChance),
+    expectedGain: toFiniteNumber(group.expectedGain),
+    stats: parseStats(group.stats),
   }));
   const score = toFiniteNumber(payload.score);
   if (lines.length === 0 || score <= 0) return null;
@@ -634,6 +664,7 @@ function parseRerollsPayload(payload: unknown): LBRerolls | null {
     rollCost: toFiniteNumber(payload.rollCost),
     ladders,
     lines,
+    groups,
   };
 }
 
