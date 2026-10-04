@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-10-03',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Hiyuki and Lucilla use full SuiSui team which removed ER reqs too',
+            },
+            {
+                kind: 'improved',
+                text: 'Supports now provide full sequence buffs in s6 boards so damage went up for Changli, Lupa, Galbrena, Denia, Jingran, Jinhsi, Augusta, Rebecca, Jiyan, Carthe, Sigrika, Lucy, and Camellya',
+            }
+        ],
+    },
+    {
         date: '2026-10-02',
         changes: [
             {
