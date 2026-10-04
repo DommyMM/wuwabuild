@@ -206,11 +206,19 @@ One framed table the full width of the row, a band per echo. The build row above
 and rank, so the panel shows changes only.
 
 The left side reads as a sentence: the echo, the line as it is now, an arrow, what it could become. The
-target column takes the table's slack, so every arrow sits right after its line. Four figure columns follow:
-Score gain, % gain, Rank and Avg. transducers. Chance is not a column, since transducers is cost over
-chance and says the same thing, so it lives in the hover card.
+line column holds to its content, so every arrow sits right after its line. Three figure columns follow:
+Score gain, % gain and Rank. Odds and cost live in the hover card: reading down the table is about Score, the
+order already prices cost, and an Avg. transducers column printed one figure down most of its rows.
+Spare width goes to the echo name first, since it alone can wrap, and what is left spreads across the other
+columns rather than opening one gap before the figures.
 
 - An echo appears once, with its icon and name spanning its rows. An echo with no way is left out
+- The name holds one line between 144 and 360px and ends in an ellipsis where the table lacks room, with the
+  full name on hover. A scrolling name showed a fragment at rest, one that scrolled only on hover hid the name
+  until then, and a two-line name sat against the top of a row built for one
+- The frame scrolls rather than clips, so long translations never hide a column. While it scrolls the echo
+  column pins, the far edge fades while more sits past it, and the pinned edge casts a shadow once columns
+  pass under it
 - An echo with two or more dead lines (each worth under 0.2% of Score) redraws them together, locking the
   rest: 2 transducers a roll for two lines, 1 for three or four, and a stat lands on any of them. The group
   and the single lines it covers are rival ways to roll the same lines, so only the better per transducer
@@ -225,18 +233,21 @@ chance and says the same thing, so it lives in the hover card.
   A chip on the line plus a name and an "unused" tag beside it read as three things saying one
 - A target's rolls print as the span from its lowest gaining roll to the top roll, so the Score gain beside
   it reads as covering that span. Energy Regen under its target spans every roll with one gain
-- Score gain and % gain run from the lowest gaining roll to the top roll
+- Score gain and % gain run from the lowest gaining roll to the top roll, the same gain as Score and as a share
+  of it. Both sit on the green ramp, the share a step back, so colour keeps one meaning across the two
 - Every target carries a dotted underline on its span and a hover card listing every roll of the stat, even
-  where all score alike, so the card always shows the whole ladder. A row is the roll with the tile roll
-  bar's tier colour, its own chance, the chance of it or higher, the Score gain and the rank, and a roll
-  that does not gain stays listed, dimmed
-- The card is where a rank that needs ATK 50 or higher at 4.5% a roll is spelled out, since splitting the
-  table row by threshold stacked overlapping rows that read as separate outcomes
-- Rank prints the rank the build would hold. An improved one is green, with the roll it needs when the
-  lowest gaining roll does not reach it, and an unchanged one prints the current rank quietly, since a blank
-  read as a broken cell
-- Avg. transducers is cost over chance, the cost being the way's own
-- The cost of a roll is not printed. It is the same for every single-line roll, and Avg. transducers
+  where all score alike, so the card always shows the whole ladder. Its title is the stat's icon and full name,
+  and its subtitle the line it replaces and on which echo, so a card opened from the rank cell still says what
+  it rolls. It opens with the way's own lock and cost and the rolls and transducers a gain takes on average
+  (a single line locks the other four at 3 a roll), so a group card states its own cheaper lock. Then a row per
+  roll: the roll beside its tile tier swatch, its own
+  chance, the chance of it or higher, the Score gain with its share, and the rank. A roll that does not gain
+  stays listed, dimmed
+- Rank prints the rank the build would hold as one figure. An improved one is green, and when only the higher
+  rolls reach it, it carries the dotted underline and opens the same card, since a roll suffix in the cell
+  broke the column's right edge. An unchanged one prints the current rank quietly, since a blank read as a
+  broken cell
+- The cost of a roll is not printed. It is the same for every single-line roll, and the card's average
   already carries it
 - Rows are a fixed height and spanning cells hold their content to the first row, so a band keeps one rhythm
   whether a line has one target or three
@@ -253,8 +264,8 @@ Forms tried and dropped, so do not bring them back:
 ### Colour
 
 Everything is neutral except the gain, on the green ramp (`statusRampColor`) scaled to the strongest target
-on the build, and an improved rank at the ramp's top. Roll-tier colours are not used here, since the echo
-tiles above already carry them.
+on the build, and an improved rank at the ramp's top. Roll-tier colours appear only as the swatch beside each
+roll in the card, since the low tiers' browns read as muddy text when they coloured the figure.
 
 Once loaded, the payload's Score is the figure the other panels print (`scoreBaseDamage`), because the
 endpoint recomputes it rather than reading the stored row.

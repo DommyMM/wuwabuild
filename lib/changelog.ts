@@ -23,6 +23,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'improved',
                 text: 'Supports now provide full sequence buffs in s6 boards so damage went up for Changli, Lupa, Galbrena, Denia, Jingran, Jinhsi, Augusta, Rebecca, Jiyan, Carthe, Sigrika, Lucy, and Camellya',
+            },
+            {
+                kind: 'improved',
+                text: 'Substat upgrades better formatted and presented',
             }
         ],
     },
