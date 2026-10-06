@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import fs from 'fs';
 import path from 'path';
 import { CHANGELOG } from '@/lib/changelog';
+import { getRoverGender } from '@/lib/character';
 import { prefetchLeaderboardOverview } from '@/lib/lbServer';
 import { PRIVACY_UPDATED, TOS_UPDATED } from '@/lib/legalDates';
 import { SITE_URL } from '@/lib/metadata';
@@ -72,7 +73,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
                 .filter((char): char is { id: string | number } => (
                     Boolean(char) && typeof char === 'object' && (char as { id?: unknown }).id != null
                 ));
-            const charRoutes = chars.map((char) => ({
+            // Female Rover dossiers canonicalize to the male id of the same element, so only the canonical one is listed
+            const charRoutes = chars.filter((char) => getRoverGender(String(char.id)) !== 'F').map((char) => ({
                 url: `${SITE_URL}/characters/${char.id}`,
                 changeFrequency: 'weekly' as const,
                 priority: 0.6,

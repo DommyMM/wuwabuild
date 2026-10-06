@@ -1,7 +1,7 @@
 import 'server-only';
 import fs from 'fs';
 import path from 'path';
-import { type CDNCharacter, adaptCDNCharacter, formatCharacterDisplayName, isRover } from '@/lib/character';
+import { type CDNCharacter, adaptCDNCharacter, formatCharacterDisplayName, getRoverGender, isRover } from '@/lib/character';
 import type { LBBoardDisplay, LBCharacterDisplay } from '@/lib/lb';
 import { UNKNOWN_SET_ACTIVATION_THRESHOLD, adaptCDNEcho, validateCDNEcho } from '@/lib/echo';
 import { adaptCDNWeapon, validateCDNWeapon } from '@/lib/weapon';
@@ -64,6 +64,18 @@ export function loadCharacterRaw(id: string): CDNCharacter | null {
     (e) => e && typeof e === 'object' && 'id' in e && (e as { id?: string | number }).id?.toString() === id,
   );
   return (match as CDNCharacter | undefined) ?? null;
+}
+
+/** Male Rover id of the same element for a female Rover id, else the id unchanged, since both genders share one kit */
+export function canonicalCharacterId(id: string): string {
+  if (getRoverGender(id) !== 'F') return id;
+  const elementId = loadCharacterRaw(id)?.element?.id;
+  const rawData = readJson('Characters.json');
+  if (elementId == null || !rawData || typeof rawData !== 'object') return id;
+
+  const entries = (Array.isArray(rawData) ? rawData : Object.values(rawData as GenericRecord)) as CDNCharacter[];
+  const male = entries.find((e) => getRoverGender(String(e?.id)) === 'M' && e.element?.id === elementId);
+  return male ? String(male.id) : id;
 }
 
 export function loadCharacterSummary(id: string) {

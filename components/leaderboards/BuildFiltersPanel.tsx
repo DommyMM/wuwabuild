@@ -178,17 +178,14 @@ const getTypeTagLabel = (type: VisibleFilterItem['type']): string => (
   type === 'main' ? 'stats' : type
 );
 
-const ROVER_FILTER_ELEMENTS = new Set<string>([Element.Aero, Element.Spectro, Element.Havoc]);
-
 const isRoverFilterCharacter = (character: Character): boolean => (
   character.element === Element.Rover || character.name.startsWith('Rover')
 );
 
-const getRoverFilterElement = (character: Character): Element | null => {
-  if (!isRoverFilterCharacter(character)) return null;
-  const roverElement = character.roverElementName;
-  return roverElement && ROVER_FILTER_ELEMENTS.has(roverElement) ? roverElement : null;
-};
+// Every Rover element groups both genders into one option, since the M and F kits are identical
+const getRoverFilterElement = (character: Character): Element | null => (
+  isRoverFilterCharacter(character) ? character.roverElementName ?? null : null
+);
 
 const getRoverFilterLabel = (element: Element): string => `Rover: ${element}`;
 

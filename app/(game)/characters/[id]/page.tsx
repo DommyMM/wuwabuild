@@ -7,7 +7,7 @@ import { notFound } from 'next/navigation';
 import { adaptCDNCharacter } from '@/lib/character';
 import { prefetchLeaderboardOverview } from '@/lib/lbServer';
 import { socialMetadata } from '@/lib/metadata';
-import { loadCharacterRaw } from '@/lib/server/gameData';
+import { canonicalCharacterId, loadCharacterRaw } from '@/lib/server/gameData';
 import { getLeaderboardInsight, formatInsightProse } from '@/lib/server/leaderboardInsight';
 import { CharacterReferenceSections, ReferenceChain, ReferenceMove } from './CharacterReferenceSections';
 
@@ -98,7 +98,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
         title,
         description,
         ...socialMetadata({ title, description, path: `/characters/${id}`, image: `https://wuwa.build/api/og/character?id=${encodeURIComponent(id)}` }),
-        alternates: { canonical: `/characters/${id}` },
+        alternates: { canonical: `/characters/${canonicalCharacterId(id)}` },
     };
 }
 

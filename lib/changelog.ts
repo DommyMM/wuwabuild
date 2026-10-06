@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-10-05',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Rover grouped by element now in browsing of builds',
+            },
+        ],
+    },
+    {
         date: '2026-10-03',
         changes: [
             {
