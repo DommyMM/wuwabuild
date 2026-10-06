@@ -1484,7 +1484,7 @@ def _extract_team_debuff_buffs(text: str) -> list[dict]:
 
 # An adverb can sit between wielder and gains, as in Unspoken Rue's "the wielder additionally gains"
 _SELF_SCOPE_RE = re.compile(
-    r"\b(?:to|for)\s+the\s+wielder\b|\bwielder'?s\b|\bwielder\s+(?:\w+ly\s+)?gains?\b", re.I,
+    r"\b(?:to|for)\s+the\s+wielder\b|\bwielder'?s\b|\bwielder\s+(?:\w+ly\s+)?gains?\b|^the\s+(?:caster|wearer)\b", re.I,
 )
 
 
@@ -1496,7 +1496,8 @@ def _self_scoped_clause_buffs(sentence: str) -> list[dict]:
     """
     excluded: list[dict] = []
     # A colon opens a named effect's payload, so Unspoken Rue's "…from all Resonators in the team and gain the Yearning Mind effect: the wielder…" splits there
-    for clause in re.split(r",\s+(?:and\s+)?|;\s*|:\s+", sentence):
+    # Flaming Clawprint's "grants all Resonators in the team 15% Fusion DMG Bonus and the caster 20% …" joins the two without a comma
+    for clause in re.split(r",\s+(?:and\s+)?|;\s*|:\s+|\s+and\s+(?=the\s+(?:caster|wearer)\b)", sentence):
         lower = clause.lower()
         if not _SELF_SCOPE_RE.search(clause):
             continue
