@@ -40,10 +40,10 @@ const PINNED_HEAD = `sticky left-0 z-10 ${LB_EXPANDED_OPAQUE_SURFACE} bg-[linear
 /** Shadow on the pinned column's edge once columns have scrolled under it */
 const PINNED_EDGE = 'shadow-[8px_0_8px_-8px_rgb(0_0_0/0.7)]';
 /** Fixed row height, so a band keeps one rhythm whether its line has one target or three */
-const ROW = 'h-11';
+const ROW = 'h-12';
 const CELL = 'px-2.5 py-0 whitespace-nowrap';
 /** Holds a spanning cell's content to its first row, a pixel short of it because the cell also carries the divider */
-const FIRST_ROW = 'flex h-[43px] items-center';
+const FIRST_ROW = 'flex h-[47px] items-center';
 const ECHO_DIVIDER = 'border-t border-border/55';
 const WAY_DIVIDER = 'border-t border-border/35';
 /** A stat's name and roll in one face on one baseline, told apart by colour, because a second face beside the name sat off its baseline */
@@ -137,7 +137,7 @@ export const BuildRerolls: React.FC<BuildRerollsProps> = ({ isLoading, error, on
     const echo = panel?.id ? getEcho(panel.id) : null;
     return (
       <div className={`${FIRST_ROW} gap-3`}>
-        {echo && <img src={getEchoPaths(echo, panel?.phantom)} alt="" className="h-9 w-9 shrink-0 object-cover" />}
+        {echo && <img src={getEchoPaths(echo, panel?.phantom)} alt="" className="h-8 w-8 shrink-0 object-contain" />}
         {/* One line between 144 and 360px, cut with an ellipsis where the table lacks room for all of it
             The hidden wrapping copy sizes the column, and the shown copy has no width of its own so it never forces one */}
         <span className="max-w-90 min-w-36 font-semibold text-text-primary" title={echoName(echoIndex)}>
@@ -335,7 +335,7 @@ export const BuildRerolls: React.FC<BuildRerollsProps> = ({ isLoading, error, on
         <div className={`${FRAME} animate-pulse divide-y divide-border/45`}>
           {Array.from({ length: 4 }).map((_, index) => (
             <div key={`reroll-skeleton-${index}`} className={`${ROW} flex items-center gap-4 px-2.5`}>
-              <div className="h-9 w-9 shrink-0 bg-white/10" />
+              <div className="h-8 w-8 shrink-0 bg-white/10" />
               <div className="h-4 w-40 rounded bg-white/10" />
               <div className="h-4 flex-1 rounded bg-white/8" />
             </div>
