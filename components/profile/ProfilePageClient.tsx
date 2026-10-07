@@ -7,7 +7,7 @@ import { getPinnedProfilesSnapshot, getProfilesServerSnapshot, recordProfileVisi
 import { ProfileSwitcher } from './ProfileSwitcher';
 import { useGameData } from '@/contexts/GameDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { LBBuildRowEntry, LBEchoMainFilter, LBEchoSetFilter, LBProfileStandingEntry, LBSortDirection, LBSortKey, LBStatThreshold, listProfileBuilds } from '@/lib/lb';
+import { LBBuildRowEntry, LBListBuildsResponse, LBEchoMainFilter, LBEchoSetFilter, LBProfileStandingEntry, LBSortDirection, LBSortKey, LBStatThreshold, listProfileBuilds } from '@/lib/lb';
 import { computeTopPercent } from '@/lib/calculations/rankTier';
 import { toMainStatLabel } from '@/lib/mainStatFilters';
 import { clampItemsPerPage, DEFAULT_PAGE, MAX_ITEMS_PER_PAGE, normalizeSequences } from '@/components/leaderboards/constants';
@@ -29,6 +29,7 @@ import { ProfileBuildExpanded } from './ProfileBuildExpanded';
 import { FeaturedBuildSelection, ProfileFeaturedBuild } from './ProfileFeaturedBuild';
 import { ProfileShowcase } from './ProfileShowcase';
 import { ProfileEchoes } from './ProfileEchoes';
+import { ProfileBuildsViewSwitch } from './ProfileBuildsViewSwitch';
 
 /** Columns are # | Name | Weapon | Seq | Sets | stats, with no Owner column so Name takes the freed space */
 export const PROFILE_TABLE_GRID = 'grid-cols-[48px_220px_72px_80px_112px_minmax(0,1fr)]';
@@ -53,6 +54,13 @@ const subscribeNever = () => () => {};
 const getClientNow = () => (clientNow ??= Date.now());
 // Null so the fact is absent from the HTML instead of crossing a day boundary before hydration
 const getServerNow = () => null;
+
+/** Both view sizes from a profile builds response, null when the response predates them */
+const toViewCounts = (response: LBListBuildsResponse): { best: number; all: number } | null => (
+  response.bestTotal !== undefined && response.allTotal !== undefined
+    ? { best: response.bestTotal, all: response.allTotal }
+    : null
+);
 
 const DAY_MS = 86_400_000;
 const formatUpdatedAgo = (iso: string | null | undefined, now: number | null, locale: string): string | null => {
@@ -105,6 +113,9 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   const [sequences, setSequences] = useState<number[]>(() => initialQuery.sequences);
   const [statFilters, setStatFilters] = useState<LBStatThreshold[]>(() => initialQuery.statFilters);
   const [filterQuery, setFilterQuery] = useState('');
+  // Best builds is the default, so only the every-build view is written to the URL
+  const [showAllBuilds, setShowAllBuilds] = useState(() => searchParams.get('builds') === 'all');
+  const [viewCounts, setViewCounts] = useState<{ best: number; all: number } | null>(null);
 
   const [builds, setBuilds] = useState<LBBuildRowEntry[]>([]);
   const buildsRef = useRef<LBBuildRowEntry[]>([]);
@@ -200,7 +211,12 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     statFilters,
   }), [characterIds, direction, echoMains, echoSets, page, pageSize, regionPrefixes, sequences, sort, statFilters, uid, weaponIds]);
 
-  const currentQueryKey = useMemo(() => serializeQuery(querySnapshot), [querySnapshot]);
+  // The view is part of the key so the cache and the settle check never mix the two lists
+  const currentQueryKey = useMemo(() => {
+    const params = new URLSearchParams(serializeQuery(querySnapshot));
+    if (showAllBuilds) params.set('builds', 'all');
+    return params.toString();
+  }, [querySnapshot, showAllBuilds]);
   const isPendingQuery = settledQueryKey !== currentQueryKey;
 
   const trackedFilters = useMemo(() => ({
@@ -214,7 +230,8 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     sort,
     direction,
     pageSize,
-  }), [characterIds, weaponIds, regionPrefixes, echoSets, echoMains, sequences, statFilters, sort, direction, pageSize]);
+    buildsView: showAllBuilds ? 'all' : 'best',
+  }), [characterIds, weaponIds, regionPrefixes, echoSets, echoMains, sequences, statFilters, sort, direction, pageSize, showAllBuilds]);
 
   useEffect(() => {
     if (!settledQueryKey || settledQueryKey !== currentQueryKey) return;
@@ -237,10 +254,12 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       sort,
       direction,
       page_size: pageSize,
+      builds_view: showAllBuilds ? 'all' : 'best',
     });
-  }, [characterIds.length, currentQueryKey, direction, echoMains.length, echoSets.length, pageSize, regionPrefixes.length, sequences.length, settledQueryKey, sort, statFilters.length, trackedFilters, weaponIds.length]);
+  }, [characterIds.length, currentQueryKey, direction, echoMains.length, echoSets.length, pageSize, regionPrefixes.length, sequences.length, settledQueryKey, showAllBuilds, sort, statFilters.length, trackedFilters, weaponIds.length]);
   const isLoading = isPendingQuery && builds.length === 0;
-  // Unfiltered first page holds min(pageSize, build count) rows, so the skeleton takes that height and the echoes below never jump
+  // Unfiltered first page holds at most min(pageSize, build count) rows, so the skeleton takes that height and the echoes below never jump
+  // Best builds can come back shorter on a small profile, the one case where the list still shrinks
   const skeletonRowCount = !hasActiveFilters && profileSummary && profileSummary.buildCount > 0
     ? Math.min(pageSize, profileSummary.buildCount)
     : pageSize;
@@ -251,6 +270,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(serializeQuery({ ...querySnapshot, uid: '' }));
+    if (showAllBuilds) params.set('builds', 'all');
     // Featured build is shareable state, so it stays in the URL while open
     if (activeFeatured) {
       params.set('buildId', activeFeatured.buildId);
@@ -260,7 +280,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
     const currentSearch = window.location.search.replace(/^\?/, '');
     if (currentSearch === withoutUid) return;
     window.history.replaceState(null, '', withoutUid ? `/profile/${uid}?${withoutUid}` : `/profile/${uid}`);
-  }, [activeFeatured, querySnapshot, uid]);
+  }, [activeFeatured, querySnapshot, showAllBuilds, uid]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -272,6 +292,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       if (!active) return;
       resetBuildDetailRequestState();
       if (cachedResponse) {
+        setViewCounts(toViewCounts(cachedResponse));
         buildListSigRef.current = createRowsSignature(cachedResponse.builds, cachedResponse.total);
         setBuilds(cachedResponse.builds);
         setTotal(cachedResponse.total);
@@ -290,10 +311,12 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       echoMains: querySnapshot.echoMains,
       sequences: querySnapshot.sequences,
       statFilters: querySnapshot.statFilters,
+      bestOnly: !showAllBuilds,
     }, controller.signal)
       .then((response) => {
         if (!active) return;
         setFetchError((current) => current?.queryKey === currentQueryKey ? null : current);
+        setViewCounts(toViewCounts(response));
         const nextPageCount = Math.max(1, Math.ceil(response.total / querySnapshot.pageSize));
         if (querySnapshot.page > nextPageCount) setPage(nextPageCount);
         const nextSig = createRowsSignature(response.builds, response.total);
@@ -320,7 +343,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
       active = false;
       controller.abort();
     };
-  }, [currentQueryKey, querySnapshot, requestRevision, resetBuildDetailRequestState, uid]);
+  }, [currentQueryKey, querySnapshot, requestRevision, resetBuildDetailRequestState, showAllBuilds, uid]);
 
   const retryCurrentQuery = useCallback(() => {
     setFetchError(null);
@@ -575,6 +598,13 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                   maxPageSize={MAX_ITEMS_PER_PAGE}
                   activeSortLabel={getSortLabel(sort)}
                   showSortControls={false}
+                  headerControls={(
+                    <ProfileBuildsViewSwitch
+                      showAll={showAllBuilds}
+                      counts={viewCounts}
+                      onChange={(next) => { setShowAllBuilds(next); setPage(DEFAULT_PAGE); }}
+                    />
+                  )}
                   hasActiveFilters={hasActiveFilters}
                   filterQuery={filterQuery}
                   characters={characters}
@@ -683,6 +713,9 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
                     showTableGate={false}
                     hideHorizontalScrollbar={!isExpandedLayoutSettled && hasOpenCard}
                     skeletonRowCount={skeletonRowCount}
+                    footerNote={showAllBuilds
+                      ? 'Showing every upload, older and lower builds included.'
+                      : "Showing each character's best build, the same one as its ranking above."}
                   />
                 </div>
               </div>

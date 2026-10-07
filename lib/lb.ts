@@ -483,6 +483,8 @@ export interface LBRerolls {
 export interface LBListBuildsResponseRaw {
   builds?: unknown[];
   total?: number;
+  bestTotal?: number;
+  allTotal?: number;
   page?: number;
   pageSize?: number;
 }
@@ -492,6 +494,8 @@ export interface LBListBuildsResponse {
   total: number;
   page: number;
   pageSize: number;
+  bestTotal?: number; // profile only, both view sizes under the same filters
+  allTotal?: number;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -751,6 +755,8 @@ export function parseBuildListResponsePayload(
     total: toFiniteNumber(payload.total, 0),
     page: toFiniteNumber(payload.page, fallbackPage),
     pageSize: toFiniteNumber(payload.pageSize, fallbackPageSize),
+    ...(payload.bestTotal !== undefined ? { bestTotal: toFiniteNumber(payload.bestTotal, 0) } : {}),
+    ...(payload.allTotal !== undefined ? { allTotal: toFiniteNumber(payload.allTotal, 0) } : {}),
   };
 }
 
@@ -769,9 +775,13 @@ export async function listBuilds(
   return parseBuildListResponsePayload(payload, query.page ?? 1, pageSize);
 }
 
+/**
+ * Pages a profile's builds
+ * - `bestOnly` lists one build per character, the one its rankings tile shows
+ */
 export async function listProfileBuilds(
   uid: string,
-  query: Omit<LBListBuildsQuery, 'uid' | 'username'> = {},
+  query: Omit<LBListBuildsQuery, 'uid' | 'username'> & { bestOnly?: boolean } = {},
   signal?: AbortSignal,
 ): Promise<LBListBuildsResponse> {
   const trimmedUid = uid.trim();
@@ -780,6 +790,7 @@ export async function listProfileBuilds(
   }
 
   const params = buildBuildListSearchParams(query, false);
+  if (query.bestOnly) params.set('dedup', '1');
   const pageSize = clampPageSize(query.pageSize);
   const payload = await lbGetJSON<LBListBuildsResponseRaw>(
     `/profile/${encodeURIComponent(trimmedUid)}/builds?${params.toString()}`,

@@ -17,24 +17,20 @@ export const CHANGELOG: ChangelogEntry[] = [
         date: '2026-10-06',
         changes: [
             {
-                kind: 'improved',
-                text: 'Rotations updated to current wuwalab loops for Jinhsi, Xuanling, Camellya, Zani, Danjin, Changli and Lupa, and team buffs now only count on the moves they actually cover',
+                kind: 'new',
+                text: 'Profile page shows best only by default now with toggle',
             },
             {
                 kind: 'improved',
-                text: 'ER requirements re-derived from rotations: removed for Chisa, Cartethyia, Denia, Camellya and Zani, lowered for Xuanling, Luuk, Aemeath, Hsin, Qingxiao and Lupa, raised for Jinhsi',
-            },
-            {
-                kind: 'fixed',
-                text: "Mornye's Interfered Marker only applies when her team inflicts Interfered or from her S1, which lowers most S0 Mornye boards",
-            },
-            {
-                kind: 'fixed',
-                text: "Lupa's Pack Hunt ATK and Flaming Clawprint's team buff were overcounted",
+                text: 'Rotations updated for Jinhsi, Xuanling, Camellya, Zani, Danjin, Changli and Lupa, and team buffs tightened',
             },
             {
                 kind: 'improved',
-                text: 'Removed Carlotta S1, Lupa S1, Qingxiao S1, Camellya S2, Changli S2 Solo and Danjin Solo boards since they ranked builds the same as their base boards',
+                text: 'ER requirements removed for Chisa, Cartethyia, Denia, Camellya and Zani, lowered for Xuanling, Luuk, Aemeath, Hsin, Qingxiao and Lupa, raised for Jinhsi',
+            },
+            {
+                kind: 'improved',
+                text: 'Removed Carlotta S1, Lupa S1, Qingxiao S1, Camellya S2, Changli S2 Solo and Danjin Solo boards since there was no real difference',
             },
         ],
     },

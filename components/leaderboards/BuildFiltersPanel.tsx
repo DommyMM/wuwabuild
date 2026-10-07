@@ -95,6 +95,7 @@ interface BuildFiltersPanelProps {
   maxPageSize?: number;
   activeSortLabel: string;
   showSortControls?: boolean;
+  headerControls?: React.ReactNode; // placed first in the header row
   hasActiveFilters: boolean;
   filterQuery: string;
   characters: Character[];
@@ -242,6 +243,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
   maxPageSize = MAX_ITEMS_PER_PAGE,
   activeSortLabel,
   showSortControls = true,
+  headerControls,
   hasActiveFilters,
   filterQuery,
   characters,
@@ -680,6 +682,7 @@ export const BuildFiltersPanel: React.FC<BuildFiltersPanelProps> = ({
           Filters
         </div>
         <div className="relative z-20 flex flex-wrap items-center gap-2">
+          {headerControls}
           {showSortControls && (
             <>
               <select

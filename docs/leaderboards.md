@@ -180,6 +180,10 @@ leaderboard sees the number they clicked.
 - The tile's `S{n} BOARD` chip uses the sequence ramp at low alpha (bg /15, border /35 to /45, text /85,
   no shadow), because on a shelf where most tiles share one sequence the chip must not outshout the
   percentile or the tier edge. The table's `S6` chip keeps the full-strength ramp.
+- The builds table opens on Best builds, one row per character holding the build its rankings tile shows
+  (rule in `lb/docs/profiles.md`, Best builds), so the table and the shelf never disagree. The switch sits
+  first in the filters header with both counts under the current filters, so the hidden share shows before a
+  click. Clear All leaves it alone because it picks a view, not a filter, and only `?builds=all` reaches the URL.
 
 ## Shared row primitives
 

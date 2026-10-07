@@ -49,6 +49,7 @@ interface GlobalBoardResultsPanelProps {
   hideHorizontalScrollbar?: boolean;
   /** Rows the first-load skeleton draws when the caller knows the result size, defaults to pageSize */
   skeletonRowCount?: number;
+  footerNote?: string;
 }
 
 interface BuildTableGateOverlayProps {
@@ -135,6 +136,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
   showTableGate = true,
   hideHorizontalScrollbar = false,
   skeletonRowCount,
+  footerNote,
 }) => {
   const { characters, fetters, statIcons, weaponList } = useGameData();
   const [statColumns, setStatColumns] = useState<StatSortKey[]>([...DEFAULT_STAT_COLUMNS]);
@@ -434,7 +436,7 @@ export const GlobalBoardResultsPanel: React.FC<GlobalBoardResultsPanelProps> = (
         )}
       </div>
 
-      <BuildPagination page={page} pageCount={pageCount} statusText={statusText} onPageChange={onPageChange} />
+      <BuildPagination page={page} pageCount={pageCount} statusText={statusText} leftText={footerNote} onPageChange={onPageChange} />
     </section>
   );
 };
