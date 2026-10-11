@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-10-11',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Added echo casts based on equipped first slot echoes',
+            },
+        ],
+    },
+    {
         date: '2026-10-08',
         changes: [
             {
