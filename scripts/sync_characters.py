@@ -249,6 +249,24 @@ SKIP_IDS = {9990, 9991}
 # Hardcoded until the game has enough cases to justify a data-driven source
 ENERGYLESS_CHARACTER_IDS = {1608, 1109}  # Phrolova, Lucilla
 
+# Engine-measured attack-type bonuses per boarded character, written by lb's cmd/preferredbonuses
+ENGINE_BONUSES_PATH = Path(__file__).resolve().parent.parent.parent / "lb" / "internal" / "calc" / "data" / "preferred_bonuses.json"
+_engine_bonuses_cache: dict[int, list[str]] | None = None
+
+
+def load_engine_bonuses() -> dict[int, list[str]]:
+    """Return each boarded character's engine-measured attack-type bonuses, best first, {} without the lb checkout."""
+    global _engine_bonuses_cache
+    if _engine_bonuses_cache is None:
+        _engine_bonuses_cache = {}
+        if ENGINE_BONUSES_PATH.exists():
+            with open(ENGINE_BONUSES_PATH, encoding="utf-8") as f:
+                characters = json.load(f).get("characters") or {}
+            _engine_bonuses_cache = {int(cid): list(entry.get("bonuses") or []) for cid, entry in characters.items()}
+        else:
+            print(f"Warning: {ENGINE_BONUSES_PATH} not found, boarded characters fall back to tag-derived bonuses")
+    return _engine_bonuses_cache
+
 # Per-field extraction rule for character files
 #   True           keep the field as-is
 #   ["k1", "k2"]   keep only these keys, recursing into dicts-of-dicts and lists-of-dicts
@@ -969,7 +987,8 @@ def get_preferred_substats(
 
     Every character gets Crit Rate and Crit DMG, healers and supports included
     Scaling stats come from the forte nodes ("HP+", "ATK+", "DEF+")
-    A priority-2 tag adds its damage-type bonus, and Energy Regen follows unless the character has no energy
+    Attack-type bonuses come from lb's preferred_bonuses.json for boarded characters, else the priority-2 tag or kit text
+    Energy Regen follows unless the character has no energy
     Only substat-eligible stats come back, so no Elemental DMG or Healing Bonus
     skill_trees is the raw CDN dict, before simplify_skill_trees flattens it
     """
@@ -991,14 +1010,22 @@ def get_preferred_substats(
         if stat not in stats:
             stats.append(stat)
     
-    damage_type_stat = DAMAGE_TYPE_TEXT_TO_SUBSTAT.get(damage_type or "")
-    if damage_type_stat and damage_type_stat not in stats:
-        stats.append(damage_type_stat)
-    
     try:
         normalized_character_id = int(character_id) if character_id is not None else None
     except (TypeError, ValueError):
         normalized_character_id = None
+
+    # A boarded character takes the bonuses its board actually rewards, which may be none or two
+    # The tag and kit text misread kits like Lingyang's, whose only "considered as" line is a follow-up hit
+    engine_bonuses = load_engine_bonuses()
+    if normalized_character_id in engine_bonuses:
+        bonus_stats = engine_bonuses[normalized_character_id]
+    else:
+        damage_type_stat = DAMAGE_TYPE_TEXT_TO_SUBSTAT.get(damage_type or "")
+        bonus_stats = [damage_type_stat] if damage_type_stat else []
+    for stat in bonus_stats:
+        if stat not in stats:
+            stats.append(stat)
 
     if normalized_character_id not in ENERGYLESS_CHARACTER_IDS and "Energy Regen" not in stats:
         stats.append("Energy Regen")

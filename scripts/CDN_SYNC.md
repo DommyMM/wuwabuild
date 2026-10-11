@@ -217,15 +217,22 @@ text, so no character needs hand curation. The rules:
 
 - Crit Rate and Crit DMG for everyone, healers and supports included.
 - The scaling stat comes from the forte node names (`HP+`, `ATK+`, `DEF+`).
-- The damage-type bonus comes from the priority-2 tag: 4 basic, 5 heavy, 6 skill, 7 liberation. With
-  no priority-2 damage tag it falls back to explicit English kit text like "considered Heavy Attack
-  DMG". For support and healer kits, sequence text can name the nuke action instead, such as
-  Mornye's `Resonance Liberation - Critical Protocol`.
+- A character with an s0 or s6 damage board takes its attack-type bonuses from lb's
+  `internal/calc/data/preferred_bonuses.json` (`make preferred-bonuses`), zero to two of them. The
+  engine prices one median roll of each bonus against the board's best scaling-stat roll on the
+  stored reference build, averaged over the first weapon's s0 and s6 boards. The best bonus needs
+  0.10 of that roll, a second needs 0.15, so Sigrika gets none and a real secondary lane like
+  Cartethyia's Liberation nuke shows. The tag and kit text below misread a kit whose only "considered
+  as" line is a follow-up hit, such as Lingyang's Diligent Practice.
+- Everyone else takes the damage-type bonus from the priority-2 tag: 4 basic, 5 heavy, 6 skill, 7
+  liberation. With no priority-2 damage tag it falls back to explicit English kit text like
+  "considered Heavy Attack DMG". For support and healer kits, sequence text can name the nuke action
+  instead, such as Mornye's `Resonance Liberation - Critical Protocol`.
 - Energy Regen for everyone outside `ENERGYLESS_CHARACTER_IDS`, which is the characters the game
   gives no energy system.
 
-The list is substat-only by construction: the only stats that can enter are crits, HP/ATK/DEF, one
-damage-type bonus and Energy Regen, so main-stat-only stats like elemental DMG and Healing Bonus
+The list is substat-only by construction: the only stats that can enter are crits, HP/ATK/DEF, at most
+two attack-type bonuses and Energy Regen, so main-stat-only stats like elemental DMG and Healing Bonus
 never appear.
 
 ### Stat scaling
