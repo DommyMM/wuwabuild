@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-10-13',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Cross-checked kits and weapons, sets, against CN text to fix setups. Carthe, Hsin, Phoebe lower damage, while Denia, Danjin, Jiyan, Augusta, and a few weapons buffed'
+            }
+        ]
+    }
+    {
         date: '2026-10-11',
         changes: [
             {
