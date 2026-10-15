@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-10-15',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Build rows show upload date now',
+            },
+        ],
+    },
+    {
         date: '2026-10-13',
         changes: [
             {

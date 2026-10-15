@@ -3,6 +3,14 @@
 The panel that opens under a build row on `/builds`, `/profile/[uid]` and `/leaderboards/[characterId]`.
 Data flow and row state are in `leaderboards.md`.
 
+## Header
+
+`BuildExpandedEchoPanels` renders one line over the echo tiles: the character and level at the left, the forte
+levels in the middle on `/builds` only, and at the right the upload date, a hairline, then owner, UID and region.
+The date leads the right cluster because the middle is taken on `/builds`, so a centred date would sit in a
+different place on each route. It uses the profile card's treatment (Ropa, uppercase, dim label, brighter
+`<time>`) and stays inline, since a second line or row would change the expansion's height.
+
 ## Simulation row
 
 `BuildSimulationSection` renders one horizontal row of equal-width controls under the card, capped to

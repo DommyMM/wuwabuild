@@ -17,7 +17,7 @@ import { FetterHoverCard } from '@/components/echo/FetterHoverCard';
 import { EchoCVBar, formatStatRoll, StatHoverRow, SubstatRollBar } from '@/components/echo/StatTierBars';
 import { HoverCard } from '@/components/ui/HoverCard';
 import { RegionBadge } from '@/lib/regionBadge';
-import { normalizeSubstatKey } from './formatters';
+import { formatDateLabel, normalizeSubstatKey } from './formatters';
 
 interface BuildExpandedEchoPanelsProps {
   detail: LBBuildDetailEntry;
@@ -60,6 +60,7 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
   showForte = true,
 }) => {
   const { fettersByElement, getSubstatValues, getMainStatsByCost, statTranslations } = useGameData();
+  const uploadedLabel = formatDateLabel(detail.timestamp);
 
   return (
     <>
@@ -94,6 +95,20 @@ export const BuildExpandedEchoPanels: React.FC<BuildExpandedEchoPanelsProps> = (
           )}
 
           <div className="flex items-center gap-1 text-sm text-text-primary/70">
+            {uploadedLabel && (
+              <>
+                <span
+                  className="font-ropa text-2xs uppercase tracking-[0.14em] text-text-primary/50"
+                  title={`First uploaded ${uploadedLabel}. Re-submitting the same build keeps this date.`}
+                >
+                  Uploaded{' '}
+                  <time dateTime={detail.timestamp} className="text-text-primary/70">
+                    {uploadedLabel}
+                  </time>
+                </span>
+                <span aria-hidden className="mx-2 h-3 w-px bg-border" />
+              </>
+            )}
             <span>{detail.owner.username || 'Anonymous'}</span>
             <span>-</span>
             <span>{detail.owner.uid || '-'}</span>
