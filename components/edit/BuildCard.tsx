@@ -167,7 +167,7 @@ export const BuildCard = forwardRef<HTMLDivElement, BuildCardProps>(({
                         activeHoverStat={activeHoverStat}
                         onHoverStatChange={setActiveHoverStat}
                       />
-                      <div className="flex flex-1 flex-col space-y-2">
+                      <div className="flex min-w-0 flex-1 flex-col space-y-2">
                         <NameGroup selected={selected} characterLevel={state.characterLevel} />
 
                         {weapon && weaponStats ? (

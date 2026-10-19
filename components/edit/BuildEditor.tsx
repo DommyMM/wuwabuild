@@ -7,7 +7,7 @@ import { FirstPaintScript } from '@/components/ui/FirstPaintScript';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'motion/react';
 import { useBuild } from '@/contexts/BuildContext';
 import { useGameData } from '@/contexts/GameDataContext';
-import { Element } from '@/lib/character';
+import { Element, hasAlternateSkin } from '@/lib/character';
 import { ROVER_ELEMENTS } from '@/lib/constants/statBonuses';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -164,11 +164,8 @@ export const BuildEditor: React.FC = () => {
   const isSplashArtActive = useMemo(() => {
     return selected ? artSourceMode === 'splash' && Boolean(customArtUrl) : false;
   }, [artSourceMode, customArtUrl, selected]);
-  const selectedSkinIds = useMemo(
-    () => selected?.character.skins?.map((skin) => skin.id) ?? [],
-    [selected?.character.skins],
-  );
-  const selectedSplashVariant: SplashArtVariant = cardOptions.useAltSkin && selectedSkinIds.length > 0 ? 'skin' : 'normal';
+  const selectedHasSkin = selected ? hasAlternateSkin(selected.character) : false;
+  const selectedSplashVariant: SplashArtVariant = cardOptions.useAltSkin && selectedHasSkin ? 'skin' : 'normal';
   const portalTarget = typeof document === 'undefined' ? null : document.getElementById('nav-toolbar-portal');
 
   const setArtTransform = useCallback((next: React.SetStateAction<CardArtTransform>) => {
@@ -183,19 +180,18 @@ export const BuildEditor: React.FC = () => {
 
   useEffect(() => {
     if (process.env.NODE_ENV === 'production') return;
-    if (!isArtEditMode || artSourceMode !== 'splash' || !state.characterId) return;
+    if (!isArtEditMode || artSourceMode !== 'splash' || !customArtUrl) return;
 
     const timer = window.setTimeout(() => {
-      logSplashArtTransform(state.characterId!, activeArtState.splashVariant, artTransform);
+      logSplashArtTransform(customArtUrl, artTransform);
     }, 200);
 
     return () => window.clearTimeout(timer);
   }, [
-    activeArtState.splashVariant,
+    customArtUrl,
     artSourceMode,
     artTransform,
     isArtEditMode,
-    state.characterId,
   ]);
 
   const clearArtState = useCallback(() => {
@@ -253,7 +249,6 @@ export const BuildEditor: React.FC = () => {
     activeArtState.sourceMode,
     activeArtState.splashVariant,
     selected,
-    selectedSkinIds,
     selectedSplashVariant,
     splashDisabledIds,
     state.characterId,
@@ -553,7 +548,8 @@ export const BuildEditor: React.FC = () => {
           <CharacterSelector className="rounded-b-none border-b-0" />
         </div>
 
-        <div ref={resonatorPanelRef} className="select-none rounded-lg rounded-tl-none border border-border bg-background-secondary p-3 md:p-4">
+        {/* The reserve script writes min-height before hydration, so the attribute mismatch is expected and React leaves it for the release effect */}
+        <div ref={resonatorPanelRef} suppressHydrationWarning className="select-none rounded-lg rounded-tl-none border border-border bg-background-secondary p-3 md:p-4">
           {selected ? (
             <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-[auto_auto_1fr] md:grid-rows-[28rem_auto] md:gap-x-6 md:gap-y-3">
                   {/* Row 1, Col 1: Portrait */}

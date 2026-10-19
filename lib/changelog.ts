@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-10-19',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Some weapons had long names and bled into stats table in card',
+            }
+        ]
+    },
+    {
         date: '2026-10-15',
         changes: [
             {

@@ -9,7 +9,7 @@ import { StatHoverKey } from '@/lib/constants/statHover';
 
 /** Design-space font sizes for the weapon name, from the card's 2xl down to base */
 const WEAPON_NAME_MAX_PX = 24;
-const WEAPON_NAME_MIN_PX = 16;
+const WEAPON_NAME_MIN_PX = 15;
 
 interface WeaponGroupProps {
   weapon: Weapon;
@@ -54,10 +54,13 @@ export const WeaponGroup: React.FC<WeaponGroupProps> = ({
       const node = weaponNameRef.current;
       if (cancelled || !node) return;
       node.style.fontSize = `${WEAPON_NAME_MAX_PX}px`;
-      const { scrollWidth, clientWidth } = node;
-      // The longest English and Latin-script names overflow the ~250px slot beside the icon at 24px
-      if (scrollWidth > clientWidth && scrollWidth > 0) {
-        node.style.fontSize = `${Math.max(WEAPON_NAME_MIN_PX, Math.floor((WEAPON_NAME_MAX_PX * clientWidth) / scrollWidth))}px`;
+      // Padding is out of the ratio because it does not scale with the font, and left in it the widest names land 1px too big
+      const padX = parseFloat(getComputedStyle(node).paddingLeft) * 2;
+      const textWidth = node.scrollWidth - padX;
+      const slotWidth = node.clientWidth - padX;
+      // Widest name in any language is ~399px at 24px against the 257px slot, so 15px is the floor that fits all of them
+      if (textWidth > slotWidth && textWidth > 0) {
+        node.style.fontSize = `${Math.max(WEAPON_NAME_MIN_PX, Math.floor((WEAPON_NAME_MAX_PX * slotWidth) / textWidth))}px`;
       }
     };
     measure();

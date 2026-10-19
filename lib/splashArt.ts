@@ -88,7 +88,7 @@ export const getSplashUrlCandidates = (
   };
 
   if (isRover) {
-    addCharacterCandidates(variant === 'skin' ? [`Rover${SKIN_SPLASH_SUFFIX}`] : ['Rover']);
+    addCharacterCandidates(variant === 'skin' ? [`Rover${SKIN_SPLASH_SUFFIX}`, 'Rover'] : ['Rover']);
   } else if (variant === 'skin') {
     addCharacterCandidates([`${characterId}${SKIN_SPLASH_SUFFIX}`]);
   }
@@ -100,16 +100,8 @@ export const getSplashUrlCandidates = (
   return Array.from(new Set(candidates));
 };
 
-const getSplashArtTransformKey = (
-  characterId: string,
-  variant: SplashArtVariant = 'normal',
-): string => (variant === 'skin' ? `${characterId}${SKIN_SPLASH_SUFFIX}` : characterId);
-
-const getSplashArtTransform = (
-  characterId: string,
-  variant: SplashArtVariant = 'normal',
-): CardArtTransform | null => (
-  SPLASH_ART_TRANSFORMS[getSplashArtTransformKey(characterId, variant)] ?? null
+const getSplashStem = (url: string): string => (
+  url.split('/').pop()?.replace(`.${SPLASH_EXTENSION}`, '') ?? ''
 );
 
 export interface BundledSplashCardArt {
@@ -126,17 +118,13 @@ export const getBundledSplashCardArt = (
 ): BundledSplashCardArt | null => {
   const usesSharedRoverSplash = isRover || BUNDLED_ROVER_CHARACTER_IDS.has(characterId);
   const candidate = getSplashUrlCandidates(characterId, legacyId, usesSharedRoverSplash, options)
-    .find((url) => {
-      const filename = url.split('/').pop();
-      const stem = filename?.replace(`.${SPLASH_EXTENSION}`, '') ?? '';
-      return BUNDLED_SPLASH_STEMS.has(stem);
-    });
+    .find((url) => BUNDLED_SPLASH_STEMS.has(getSplashStem(url)));
   if (!candidate) return null;
 
+  // Keyed by the file that resolved, so a skin request that fell back to the base splash gets the base framing
   return {
     url: candidate,
-    transform: getSplashArtTransform(characterId, options.variant ?? 'normal')
-      ?? { x: 0, y: 0, scale: 1 },
+    transform: SPLASH_ART_TRANSFORMS[getSplashStem(candidate)] ?? { x: 0, y: 0, scale: 1 },
   };
 };
 
@@ -164,25 +152,16 @@ export const warmBundledSplashArt = (
   void image.decode().catch(() => {});
 };
 
-const formatSplashArtTransformEntry = (
-  characterId: string,
-  variant: SplashArtVariant,
-  transform: CardArtTransform,
-): string => {
-  const key = getSplashArtTransformKey(characterId, variant);
-  return `  '${key}': { x: ${transform.x}, y: ${transform.y}, scale: ${transform.scale} },`;
-};
-
-/** Dev-only, logs the current transform in the form you paste into SPLASH_ART_TRANSFORMS */
+/** Dev-only, logs the current transform keyed by the splash file, in the form you paste into SPLASH_ART_TRANSFORMS */
 export const logSplashArtTransform = (
-  characterId: string,
-  variant: SplashArtVariant,
+  splashUrl: string,
   transform: CardArtTransform,
 ): void => {
   if (process.env.NODE_ENV === 'production') return;
-  const key = getSplashArtTransformKey(characterId, variant);
+  const key = getSplashStem(splashUrl);
+  const entry = `  '${key}': { x: ${transform.x}, y: ${transform.y}, scale: ${transform.scale} },`;
   console.log(`%c[splashArt] ${key}`, 'color:#55FFB5;font-weight:bold', transform);
-  console.log(`%cPaste into SPLASH_ART_TRANSFORMS:\n${formatSplashArtTransformEntry(characterId, variant, transform)}`, 'color:#E400F0');
+  console.log(`%cPaste into SPLASH_ART_TRANSFORMS:\n${entry}`, 'color:#E400F0');
 };
 
 const SPLASH_REF_HEIGHT = 600;
