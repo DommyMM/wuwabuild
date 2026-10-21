@@ -1482,7 +1482,7 @@ def _extract_team_debuff_buffs(text: str) -> list[dict]:
     return out
 
 
-# An adverb can sit between wielder and gains, as in Unspoken Rue's "the wielder additionally gains"
+# An adverb can sit between wielder and gains, as in "the wielder additionally gains"
 _SELF_SCOPE_RE = re.compile(
     r"\b(?:to|for)\s+the\s+wielder\b|\bwielder'?s\b|\bwielder\s+(?:\w+ly\s+)?gains?\b|^the\s+(?:caster|wearer)\b", re.I,
 )
@@ -1495,7 +1495,7 @@ def _self_scoped_clause_buffs(sentence: str) -> list[dict]:
     The wielder clause's stats must not land on the party
     """
     excluded: list[dict] = []
-    # A colon opens a named effect's payload, so Unspoken Rue's "…from all Resonators in the team and gain the Yearning Mind effect: the wielder…" splits there
+    # A colon opens a named effect's payload, so "…from all Resonators in the team and gain the X effect: the wielder…" splits there
     # Flaming Clawprint's "grants all Resonators in the team 15% Fusion DMG Bonus and the caster 20% …" joins the two without a comma
     for clause in re.split(r",\s+(?:and\s+)?|;\s*|:\s+|\s+and\s+(?=the\s+(?:caster|wearer)\b)", sentence):
         lower = clause.lower()
@@ -1579,11 +1579,18 @@ def _capped_party_dmg_value(text: str, match_end: int, value: float) -> float:
     return value
 
 
+# Taking a buff away from the team does not make the rest of the sentence a team grant
+# Unspoken Rue: "remove Binding Mind from all Resonators on the team and gain the Yearning Mind effect, additionally gaining 40% Electro DMG Bonus" is the wielder's own
+_RE_REMOVE_FROM_PARTY = re.compile(
+    r"\bremoves?\s+[A-Z][\w' ]*?\s+from\s+all\s+(?:nearby\s+)?Resonators\s+(?:in|on)\s+(?:the\s+)?team\b",
+)
+
+
 def _parse_party_scoped_buffs(text: str) -> list[dict]:
     out: list[dict] = []
     tokens = _party_buff_tokens(text)
     for sentence in _split_buff_sentences(text):
-        lower = sentence.lower()
+        lower = _RE_REMOVE_FROM_PARTY.sub("", sentence).lower()
         if not any(phrase in lower for phrase in _PARTY_SCOPE_PHRASES) and not _targets_party_token(
             sentence, tokens
         ):
