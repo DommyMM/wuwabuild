@@ -9,20 +9,15 @@ interface SplashUrlCandidateOptions {
 const SKIN_SPLASH_SUFFIX = '-skin';
 const SPLASH_EXTENSION = 'webp';
 
-/** Stems shipped in public/images/splash, kept in sync by hand so the browser never probes candidate URLs */
-const BUNDLED_SPLASH_STEMS = new Set([
-  '1102-skin', '1105', '1107', '1107-skin', '1108', '1109', '1110',
-  '1203', '1205', '1205-skin', '1206', '1207', '1208', '1209',
-  '1209-skin', '1210', '1211', '1212', '1302', '1304', '1304-skin',
-  '1305', '1306', '1308', '1311', '1312', '1404', '1407', '1409', '1410', '1411',
-  '1412', '1413', '1503', '1504', '1505', '1506', '1507',
-  '1507-skin', '1508', '1508-skin', '1509', '1509-skin', '1510',
-  '1511', '1603', '1606', '1607', '1608', '1610', 'Rover',
-]);
 const BUNDLED_ROVER_CHARACTER_IDS = new Set([
   '1309', '1310', '1406', '1408', '1501', '1502', '1604', '1605',
 ]);
 
+/**
+ * Card framing per file in public/images/splash, keyed by file stem
+ * - One entry per shipped file, so the keys double as the bundled list and the browser never probes candidate URLs
+ * - scripts/check_splash_art.mjs fails lint when files and keys drift, scripts/splash_framing.py suggests x for new files
+ */
 const SPLASH_ART_TRANSFORMS: Record<string, CardArtTransform> = {
   '1102-skin': { x: 36, y: 0, scale: 1 },
   '1105': { x: -40, y: 0, scale: 1.1 },
@@ -72,8 +67,11 @@ const SPLASH_ART_TRANSFORMS: Record<string, CardArtTransform> = {
   '1603': { x: 10, y: 0, scale: 1.05 },
   '1606': { x: -110, y: 0, scale: 1.1 },
   '1607': { x: -144, y: 0, scale: 1.1 },
+  '1608': { x: 10, y: 0, scale: 1 },
   '1610': { x: -90, y: 0, scale: 1 },
+  'Rover': { x: 35, y: 0, scale: 1 },
 };
+const BUNDLED_SPLASH_STEMS = new Set(Object.keys(SPLASH_ART_TRANSFORMS));
 
 export const getSplashUrlCandidates = (
   characterId: string,
@@ -124,7 +122,7 @@ export const getBundledSplashCardArt = (
   // Keyed by the file that resolved, so a skin request that fell back to the base splash gets the base framing
   return {
     url: candidate,
-    transform: SPLASH_ART_TRANSFORMS[getSplashStem(candidate)] ?? { x: 0, y: 0, scale: 1 },
+    transform: SPLASH_ART_TRANSFORMS[getSplashStem(candidate)],
   };
 };
 

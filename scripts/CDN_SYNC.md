@@ -249,7 +249,7 @@ The CDN ships complete image URLs, so no path is constructed from element or sta
 |---|---|
 | Character face (circle) | `icon.iconRound` |
 | Character card or banner | `icon.banner` |
-| Alt skin banner | the entry chosen from `skins[].icon.banner` (default duplicates pruned) |
+| Alt skin banner | the entry chosen from `skins[].icon.banner` (default duplicates pruned, icon paths compared case-insensitively since the dump spells `Pile_jingran` and `Pile_Jingran`) |
 | Element icon (round / shine) | `element.icon["1"]` / `element.icon["7"]` |
 | Forte stat node icon | `skillTrees[n].icon` |
 | Chain icon | `chains[n].icon` |

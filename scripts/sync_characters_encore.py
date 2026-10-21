@@ -435,7 +435,7 @@ def transform_skins(en: dict) -> list[dict]:
             continue
         icon_round_url = asset_url(skin.get("RoleHeadIconLarge") or skin.get("RoleHeadIcon") or "")
         banner_url = asset_url(skin.get("FormationRoleCard") or skin.get("Card") or "")
-        if banner_url == base_banner_url:
+        if banner_url.casefold() == base_banner_url.casefold():
             continue
         skins.append({
             "id": skin.get("Id"),

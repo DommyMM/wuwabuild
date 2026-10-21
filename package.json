@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "npm run lint && next build",
     "start": "next start",
-    "lint": "eslint . && tsc --noEmit",
+    "lint": "eslint . && tsc --noEmit && node scripts/check_splash_art.mjs",
     "knip": "knip"
   },
   "dependencies": {

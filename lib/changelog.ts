@@ -19,7 +19,11 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: 'Some weapons had long names and bled into stats table in card',
-            }
+            },
+            {
+                kind: 'fixed',
+                text: 'Fixed splash arts for Jingran, Galbrena and Qingxiao, and Rover now shows splash with the skin on',
+            },
         ]
     },
     {

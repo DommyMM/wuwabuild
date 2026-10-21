@@ -374,9 +374,11 @@ def _is_redundant_default_skin(skin: Any, base_icon: Any) -> bool:
     if not isinstance(skin_icon, dict):
         return False
 
-    same_round = skin_icon.get("iconRound") == base_icon.get("iconRound")
-    same_banner = skin_icon.get("banner") == base_icon.get("banner")
-    return same_round and same_banner and not _has_non_null_skin_color(skin.get("color"))
+    # Case-folded because the dump spells the default banner both Pile_jingran and Pile_Jingran
+    def same(key: str) -> bool:
+        return str(skin_icon.get(key) or "").casefold() == str(base_icon.get(key) or "").casefold()
+
+    return same("iconRound") and same("banner") and not _has_non_null_skin_color(skin.get("color"))
 
 
 def prune_default_skins(skins: Any, base_icon: Any) -> list[dict]:
@@ -1349,6 +1351,8 @@ def main():
         preferred_updates = 0
         for char in characters:
             _resanitize_existing_character_text_fields(char)
+            if "skins" in char:
+                char["skins"] = prune_default_skins(char["skins"], char.get("icon"))
             for chain in char.get("chains") or []:
                 desc = chain.get("description")
                 en_desc = desc.get("en", "") if isinstance(desc, dict) else str(desc or "")
