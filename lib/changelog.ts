@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-10-21',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Hiyuki chafe fine-tuned (a bit lower now) and law of harmony logic',
+            },
+            {
+                kind: 'new',
+                text: 'Suoming with weapon and leaderboards out'
+            }
+        ]
+    },
+    {
         date: '2026-10-19',
         changes: [
             {
