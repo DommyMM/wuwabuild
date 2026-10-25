@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-10-25',
+        changes: [
+            {
+                kind: 'improved',
+                text: "Hsin board uses 5 Lib Unison rotation and has no ER req",
+            },
+            {
+                kind: 'improved',
+                text: 'Suoming board is now Hypercarry with Lynae and Mornye',
+            },
+        ],
+    },
+    {
         date: '2026-10-21',
         changes: [
             {
