@@ -1,13 +1,13 @@
-import { LBRerollLine, LBRerollStat, LBRerolls, LBSubstatLadder } from '@/lib/lb';
+import { LBRerollShape, LBRerolls, LBSubstatLadder } from '@/lib/lb';
 
 /**
- * Share of Score one roll must average for a line to count as a way to roll
+ * Most transducers a way may average per 1% of Score and still be listed
  *
- * On a top Hiyuki build the real candidates average 0.05% to 0.27% a roll and the next line down 0.016%
+ * On a top Hiyuki build the real lock-4 candidates run 11 to 60 and the next line down about 190
  */
-const LINE_THRESHOLD = 0.0002;
-/** Lines kept when none clears the threshold, so a near-finished build still sees its best options */
-const LINE_FALLBACK_COUNT = 3;
+const PRICE_LIMIT = 150;
+/** Ways kept when none is under the limit, so a near-finished build still sees its best options */
+const WAY_FALLBACK_COUNT = 3;
 /** Share of Score a stat's best roll must gain to be listed, so a result worth a hundredth of a percent is not one */
 const STAT_FLOOR = 0.002;
 
@@ -45,6 +45,7 @@ export interface RerollTarget {
 
 /** A line a way redraws, with a null ladder for a slot that holds no stat yet */
 export interface RerollLineRef {
+  line: number; // 0-based substat position in the build state
   ladder: LBSubstatLadder | null;
   value: number;
 }
@@ -72,29 +73,19 @@ export interface RerollModel {
 
 type Candidate = RerollTarget & { expected: number };
 
-/** What one roll redraws: a single line, or an echo's dead lines together */
-interface RollSource {
-  key: string;
-  echo: number;
-  lines: RerollLineRef[];
-  cost: number;
-  /** Stats a redrawn slot can land on */
-  pool: number;
-  /** Slots redrawn, each drawing a different stat, so a stat lands on one of them `draws` in `pool` */
-  draws: number;
-  expectedGain: number;
-  stats: LBRerollStat[];
-}
+const shapeKey = (shape: LBRerollShape): string => `${shape.echo}-${shape.lines.map((line) => line.line).join('+')}`;
 
 function buildTarget(
-  source: RollSource,
+  shape: LBRerollShape,
   ladder: LBSubstatLadder,
   scores: number[],
   ranks: number[],
   score: number,
   currentRank: number,
 ): Candidate | null {
-  const odds = ladder.values.map((_, index) => (source.pool > 0 ? (source.draws * (ladder.odds[index] ?? 0)) / source.pool : 0));
+  // Each redrawn slot draws a different stat, so a stat lands on one of them `lines` in `pool`
+  const draws = shape.lines.length;
+  const odds = ladder.values.map((_, index) => (shape.pool > 0 ? (draws * (ladder.odds[index] ?? 0)) / shape.pool : 0));
   const gaining: Array<{ value: number; gain: number; rank: number; chance: number }> = [];
   ladder.values.forEach((value, index) => {
     const rollScore = scores[index] ?? score;
@@ -118,7 +109,7 @@ function buildTarget(
     };
   });
   return {
-    key: `${source.key}-${ladder.stat}`,
+    key: `${shapeKey(shape)}-${ladder.stat}`,
     ladder,
     minValue: gaining[0].value,
     minGain: gaining[0].gain,
@@ -131,83 +122,47 @@ function buildTarget(
   };
 }
 
-function buildWay(source: RollSource, data: LBRerolls, ladderByStat: Map<string, LBSubstatLadder>): RerollWay {
-  const candidates = source.stats
+function buildWay(shape: LBRerollShape, data: LBRerolls, ladderByStat: Map<string, LBSubstatLadder>): RerollWay {
+  const candidates = shape.stats
     .map((stat) => {
       const ladder = ladderByStat.get(stat.stat);
-      return ladder ? buildTarget(source, ladder, stat.scores, stat.ranks, data.score, data.currentRank) : null;
+      return ladder ? buildTarget(shape, ladder, stat.scores, stat.ranks, data.score, data.currentRank) : null;
     })
     .filter((candidate): candidate is Candidate => candidate !== null)
     .sort((a, b) => b.expected - a.expected);
   const listed = candidates.filter((candidate) => candidate.maxGain >= STAT_FLOOR);
   return {
-    key: source.key,
-    echo: source.echo,
-    lines: source.lines,
-    cost: source.cost,
-    expected: source.expectedGain / data.score / source.cost,
+    key: shapeKey(shape),
+    echo: shape.echo,
+    lines: shape.lines.map((line) => ({ line: line.line, ladder: ladderByStat.get(line.stat) ?? null, value: line.value })),
+    cost: Math.max(1, shape.cost),
+    expected: shape.expectedGain / data.score / Math.max(1, shape.cost),
     // A way whose every gain sits under the floor still lists its best stat, or it would be empty
     targets: listed.length > 0 ? listed : candidates.slice(0, 1),
   };
 }
 
-/** Picks the lines worth rerolling, as ways to roll with the stats each can land */
+/** Picks the ways worth rolling on each echo, with the stats each can land */
 export function buildRerollModel(data: LBRerolls): RerollModel {
   const ladderByStat = new Map(data.ladders.map((ladder) => [ladder.stat, ladder]));
-  const lineCost = Math.max(1, data.rollCost);
-  const lineRef = (line: LBRerollLine): RerollLineRef => ({ ladder: ladderByStat.get(line.stat) ?? null, value: line.value });
-  const lineAt = new Map(data.lines.map((line) => [`${line.echo}-${line.line}`, line]));
+  const ways = data.shapes
+    .filter((shape) => shape.expectedGain > 0)
+    .map((shape) => buildWay(shape, data, ladderByStat))
+    .sort((a, b) => b.expected - a.expected || a.echo - b.echo || a.key.localeCompare(b.key));
 
-  const sources: RollSource[] = [
-    ...data.lines.map((line): RollSource => ({
-      key: `${line.echo}-${line.line}`,
-      echo: line.echo,
-      lines: [lineRef(line)],
-      cost: lineCost,
-      pool: line.pool,
-      draws: 1,
-      expectedGain: line.expectedGain,
-      stats: line.stats,
-    })),
-    ...data.groups.map((group): RollSource => ({
-      key: `${group.echo}-${group.lines.join('+')}`,
-      echo: group.echo,
-      lines: group.lines.map((position) => {
-        const line = lineAt.get(`${group.echo}-${position}`);
-        return line ? lineRef(line) : { ladder: null, value: 0 };
-      }),
-      cost: Math.max(1, group.cost),
-      pool: group.pool,
-      draws: group.lines.length,
-      expectedGain: group.expectedGain,
-      stats: group.stats,
-    })),
-  ];
-
-  // A group and the single lines it redraws are rival ways to roll the same lines, so only the better per transducer stays
-  const perTransducer = (source: RollSource): number => source.expectedGain / source.cost;
-  const rivals = new Set<string>();
-  data.groups.forEach((group) => {
-    const groupKey = `${group.echo}-${group.lines.join('+')}`;
-    const singleKeys = group.lines.map((position) => `${group.echo}-${position}`);
-    const groupSource = sources.find((source) => source.key === groupKey);
-    const best = Math.max(0, ...sources.filter((source) => singleKeys.includes(source.key)).map(perTransducer));
-    if (groupSource && perTransducer(groupSource) >= best) singleKeys.forEach((key) => rivals.add(key));
-    else rivals.add(groupKey);
+  // Ways on one echo that share a line are rival ways to roll it, so each line stays only in its best way
+  const taken = new Set<string>();
+  const distinct = ways.filter((way) => {
+    const keys = way.lines.map((line) => `${way.echo}-${line.line}`);
+    if (keys.some((key) => taken.has(key))) return false;
+    keys.forEach((key) => taken.add(key));
+    return true;
   });
+  const worthRolling = distinct.filter((way) => way.expected * 100 * PRICE_LIMIT >= 1);
+  const kept = (worthRolling.length > 0 ? worthRolling : distinct.slice(0, WAY_FALLBACK_COUNT))
+    .filter((way) => way.targets.length > 0);
 
-  const gaining = sources
-    .filter((source) => source.expectedGain > 0 && !rivals.has(source.key))
-    .sort((a, b) => b.expectedGain - a.expectedGain || a.echo - b.echo || a.key.localeCompare(b.key));
-  const worthRolling = gaining.filter((source) => source.expectedGain / data.score >= LINE_THRESHOLD);
-  const kept = worthRolling.length > 0 ? worthRolling : gaining.slice(0, LINE_FALLBACK_COUNT);
-
-  const ways = kept
-    .map((source) => buildWay(source, data, ladderByStat))
-    .filter((way) => way.targets.length > 0)
-    .sort((a, b) => b.expected - a.expected);
-
-  return { score: data.score, currentRank: data.currentRank, ways };
+  return { score: data.score, currentRank: data.currentRank, ways: kept };
 }
 
 /** "+0.69–1.38%" for the span of a target's gain, one figure when both ends print alike */

@@ -193,17 +193,19 @@ already holds on another line never appears.
 
 ### Model
 
-A way to roll is the lines redrawn on one echo and so the cost of a roll, and it holds the targets it can
-land. The endpoint scores single lines only, so every way redraws one line, and a way that redraws several
-slots in as more entries in its `lines`.
+A way to roll is one of the endpoint's shapes: the lines redrawn together on one echo, the rest locked, and so
+the cost of a roll. It holds the targets it can land. Ways on one echo that share a line are rival ways to
+roll it, so each line stays only in its best way by mean gain per transducer.
 
 A target is one stat across every roll of it that gains: the gain at the lowest gaining roll and at the top
-roll, the chance one roll lands any of them, and the best rank it reaches with the roll that reaches it.
+roll, the chance one roll lands any of them, and the best rank it reaches with the roll that reaches it. On a
+way of several lines a target's gains are the stat landing with the other lines landing nothing, so they are a
+floor, while the way's order counts what every line lands.
 
 Only what gains is kept:
 
-- A line is a way when a roll averages at least 0.02% of Score (`LINE_THRESHOLD`). When none on the build
-  clears it the best three are kept
+- A way is listed when it averages at most 150 transducers per 1% of Score (`PRICE_LIMIT`). When none on the
+  build is under it the best three are kept
 - A stat is a target when its best roll gains at least 0.2% of Score (`STAT_FLOOR`), so a result worth a
   hundredth of a percent is not one. A line whose every gain is under that still lists its best stat
 - With nothing to show the panel says no line would score higher
@@ -227,10 +229,9 @@ columns rather than opening one gap before the figures.
 - The frame scrolls rather than clips, so long translations never hide a column. While it scrolls the echo
   column pins, the far edge fades while more sits past it, and the pinned edge casts a shadow once columns
   pass under it
-- An echo with two or more dead lines (each worth under 0.2% of Score) redraws them together, locking the
-  rest: 2 transducers a roll for two lines, 1 for three or four, and a stat lands on any of them. The group
-  and the single lines it covers are rival ways to roll the same lines, so only the better per transducer
-  shows. Its lines print as the tile does, icon and roll joined by a plus, since three names overflow
+- A way redraws one to four lines and locks the rest: 3 transducers a roll for one line, 2 for two, 1 for
+  three or four, and a stat lands on any of them. A way of several lines prints them as the tile does, icon
+  and roll joined by a plus, since three names overflow
 - Bands run by their best way's mean gain per transducer, and an echo's ways the same. That figure compares
   ways of different cost and is never printed, since a share like 0.088% reads as nothing. The caption says
   what the order is, because a wide gain range under a smaller single figure otherwise looks unsorted
@@ -247,10 +248,9 @@ columns rather than opening one gap before the figures.
   where all score alike, so the card always shows the whole ladder. Its title is the stat's icon and full name,
   and its subtitle the line it replaces and on which echo, so a card opened from the rank cell still says what
   it rolls. It opens with the way's own lock and cost and the rolls and transducers a gain takes on average
-  (a single line locks the other four at 3 a roll), so a group card states its own cheaper lock. Then a row per
-  roll: the roll beside its tile tier swatch, its own
-  chance, the chance of it or higher, the Score gain with its share, and the rank. A roll that does not gain
-  stays listed, dimmed
+  (a single line locks the other four at 3 a roll), so a card of several lines states its own cheaper lock.
+  Then a row per roll: the roll beside its tile tier swatch, its own chance, the chance of it or higher, the
+  Score gain with its share, and the rank. A roll that does not gain stays listed, dimmed
 - Rank prints the rank the build would hold as one figure. An improved one is green, and when only the higher
   rolls reach it, it carries the dotted underline and opens the same card, since a roll suffix in the cell
   broke the column's right edge. An unchanged one prints the current rank quietly, since a blank read as a
