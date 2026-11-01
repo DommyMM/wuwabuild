@@ -184,9 +184,9 @@ against Liberation under deuteranopia.
 
 ## Substat upgrades
 
-`BuildRerolls.tsx` with the model in `lib/rerolls.ts`. The lines worth a transducer reroll and the stats each
-could land, one band per echo. `lb/docs/rerolls.md` is canonical for the transducer rule and the response
-shape.
+`BuildRerolls.tsx` with the model in `lib/rerolls.ts`. Which echoes are worth a transducer reroll, which lines
+to redraw on each, and which stats to keep, one band per echo. `lb/docs/rerolls.md` is canonical for the
+transducer rule and the response shape.
 
 A result replaces the line it lands on, so each gain is net of what that line was worth, and a stat the echo
 already holds on another line never appears.
@@ -194,35 +194,42 @@ already holds on another line never appears.
 ### Model
 
 A way to roll is one of the endpoint's shapes: the lines redrawn together on one echo, the rest locked, and so
-the cost of a roll. It holds the targets it can land. Ways on one echo that share a line are rival ways to
-roll it, so each line stays only in its best way by mean gain per transducer.
+the cost of a roll. An echo's band takes its way with the most mean gain per transducer, counting every line
+the roll redraws, and keeps the echo's other ways for the hover card.
 
-A target is one stat across every roll of it that gains: the gain at the lowest gaining roll and at the top
-roll, the chance one roll lands any of them, and the best rank it reaches with the roll that reaches it. On a
-way of several lines a target's gains are the stat landing with the other lines landing nothing, so they are a
-floor, while the way's order counts what every line lands.
+A target is one stat the way can land, from its lowest gaining roll to the top roll: the gain and the rank at
+each end, and the transducers spent on average until a roll lands it at a gaining roll, its cost a roll over
+the chance. On a way of several lines a target's gains and ranks are the stat landing with the other lines
+landing nothing, so they are a floor.
 
-Only what gains is kept:
+Only what is worth a transducer is kept:
 
-- A way is listed when it averages at most 150 transducers per 1% of Score (`PRICE_LIMIT`). When none on the
-  build is under it the best three are kept
-- A stat is a target when its best roll gains at least 0.2% of Score (`STAT_FLOOR`), so a result worth a
-  hundredth of a percent is not one. A line whose every gain is under that still lists its best stat
-- With nothing to show the panel says no line would score higher
+- A target averages at most 100 transducers (`TRANSDUCER_LIMIT`), the line past which a reroll is not
+  recommended, and its best roll gains at least 0.2% of Score (`STAT_FLOOR`)
+- An echo averages at least 1% of Score per 100 transducers. When its best way lists no target the next way is
+  tried, since a way can average well on results too rare to list
+- An echo short of five lines fills its next one by tuning, which spends no transducer and cannot be
+  cancelled, so it costs 0 and skips both limits
+- With nothing to show the panel says no upgrade averages under 100 transducers
 
 ### Layout
 
 One framed table the full width of the row, a band per echo. The build row above prints the current Score
 and rank, so the panel shows changes only.
 
-The left side reads as a sentence: the echo, the line as it is now, an arrow, what it could become. The
-line column holds to its content, so every arrow sits right after its line. Three figure columns follow:
-Score gain, % gain and Rank. Odds and cost live in the hover card: reading down the table is about Score, the
-order already prices cost, and an Avg. transducers column printed one figure down most of its rows.
-Spare width goes to the echo name first, since it alone can wrap, and what is left spreads across the other
-columns rather than opening one gap before the figures.
+The left side follows the game's modification screen: the echo, the lines to reroll, an arrow, the stats to
+keep. The game asks "Keep these new stats?" after every roll, and a target is the answer, so Confirm when one
+lands at its roll or higher. Three figure columns follow: % gain, Rank and Avg. transducers. The reroll
+column holds to its content, so every arrow sits right after its lines. Spare width goes to the echo name
+first, since it alone can wrap, and what is left spreads across the other columns rather than opening one gap
+before the figures.
 
-- An echo appears once, with its icon and name spanning its rows. An echo with no way is left out
+- Bands with an empty line to tune come first, then the rest by mean gain per transducer. That figure prints
+  under the echo name as a share of Score, so the order explains itself without a column
+- Gains print as shares of Score. Top Scores run from 23k on healing boards to 12M, so one Score gain reads as
+  nothing on one board and everything on another
+- Avg. transducers is the table's cost, since it counts both the chance and the 1 to 3 transducers a roll.
+  Chance beside it said the same thing twice, so a roll's own chance lives in the card
 - The name holds one line between 144 and 360px and ends in an ellipsis where the table lacks room, with the
   full name on hover. A scrolling name showed a fragment at rest, one that scrolled only on hover hid the name
   until then, and a two-line name sat against the top of a row built for one
@@ -230,35 +237,27 @@ columns rather than opening one gap before the figures.
   column pins, the far edge fades while more sits past it, and the pinned edge casts a shadow once columns
   pass under it
 - A way redraws one to four lines and locks the rest: 3 transducers a roll for one line, 2 for two, 1 for
-  three or four, and a stat lands on any of them. A way of several lines prints them as the tile does, icon
-  and roll joined by a plus, since three names overflow
-- Bands run by their best way's mean gain per transducer, and an echo's ways the same. That figure compares
-  ways of different cost and is never printed, since a share like 0.088% reads as nothing. The caption says
-  what the order is, because a wide gain range under a smaller single figure otherwise looks unsorted
+  three or four. A way of several lines prints them as the tile does, icon and roll joined by a plus, since
+  three names overflow
+- Keep names single stats from their lowest gaining roll, "8.6%+". A stat that gains alone is enough to
+  confirm and whatever lands beside it only adds, and on the listed ways nearly every result that gains holds
+  one. Later targets take "or" in the arrow's slot, since they land from the same roll
+- Rank runs from the rank at the lowest gaining roll to the rank at the top roll, "#5–#2", so a rank only the
+  higher rolls reach shows without a roll suffix. A climb is green and an unchanged rank prints quietly
 - Hovering a band outlines its echo tile, through `data-reroll-echo` on the band and `group/expanded` on the
   shell both sit in, so no state is shared
 - The line and the target share one grammar, icon, name and roll, so the left side reads as one sentence.
   Name and roll are one face on one baseline and differ only in colour
-  A chip on the line plus a name and an "unused" tag beside it read as three things saying one
-- A target's rolls print as the span from its lowest gaining roll to the top roll, so the Score gain beside
-  it reads as covering that span. Energy Regen under its target spans every roll with one gain
-- Score gain and % gain run from the lowest gaining roll to the top roll, the same gain as Score and as a share
-  of it. Both sit on the green ramp, the share a step back, so colour keeps one meaning across the two
-- Every target carries a dotted underline on its span and a hover card listing every roll of the stat, even
-  where all score alike, so the card always shows the whole ladder. Its title is the stat's icon and full name,
-  and its subtitle the line it replaces and on which echo, so a card opened from the rank cell still says what
-  it rolls. It opens with the way's own lock and cost and the rolls and transducers a gain takes on average
-  (a single line locks the other four at 3 a roll), so a card of several lines states its own cheaper lock.
-  Then a row per roll: the roll beside its tile tier swatch, its own chance, the chance of it or higher, the
-  Score gain with its share, and the rank. A roll that does not gain stays listed, dimmed
-- Rank prints the rank the build would hold as one figure. An improved one is green, and when only the higher
-  rolls reach it, it carries the dotted underline and opens the same card, since a roll suffix in the cell
-  broke the column's right edge. An unchanged one prints the current rank quietly, since a blank read as a
-  broken cell
-- The cost of a roll is not printed. It is the same for every single-line roll, and the card's average
-  already carries it
+- The reroll cell opens a card on why these lines: the lock in the game's words, the cost of a roll and the
+  mean gain per transducer, then the echo's other ways with theirs
+- Every target opens a card listing every roll of the stat, even where all score alike. Its subtitle names the
+  lines and the echo. It opens with the lock and the cost of a roll, and a way of several lines adds that the
+  gains count the other lines landing nothing. Then a row per roll: the roll beside its tile tier swatch, its
+  own chance, the transducers until it or higher lands, the Score gain with its share, and the rank. A roll that
+  does not gain stays listed, dimmed, and an average past the limit prints quietly
+- Keep and Avg. transducers carry their definitions in header tooltips
 - Rows are a fixed height and spanning cells hold their content to the first row, so a band keeps one rhythm
-  whether a line has one target or three
+  whether it has one target or three
 
 Forms tried and dropped, so do not bring them back:
 
@@ -268,6 +267,7 @@ Forms tried and dropped, so do not bring them back:
 - Five columns under the echo tiles: 230px truncated the names, forced two lines per target, repeated an
   echo with two lines, and position alone never said which echo a panel was about
 - A ranked list opening into one cell per roll: four figures in each of 32 cells in six roll-tier colours
+- A Cost per 1% column: 1% is an arbitrary upgrade, so the price named no result a player could aim for
 
 ### Colour
 
