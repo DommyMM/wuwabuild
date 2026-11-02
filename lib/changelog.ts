@@ -14,6 +14,27 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-11-02',
+        changes: [
+            {
+                kind: 'improved',
+                text: 'Hiyuki S6 board runs 5 Iai instead of 6 (a bit lower now)',
+            },
+            {
+                kind: 'fixed',
+                text: 'Wishes of Quiet Snowfall crit only procs from dealing Liberation DMG, so Lucilla no longer gets it',
+            },
+            {
+                kind: 'fixed',
+                text: "Phoebe's Rover runs Rejuvenating Glow + Fallacy since only Lynae swaps into her, so a bit lower",
+            },
+            {
+                kind: 'fixed',
+                text: "Carlotta's Frosty Resolve Skill DMG stacks start at her Liberation, slightly lower",
+            },
+        ],
+    },
+    {
         date: '2026-10-25',
         changes: [
             {
