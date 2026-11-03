@@ -35,6 +35,17 @@ npm run knip       # unused files, exports and dependencies
 
 There is no test script in this package.
 
+## Production logs
+
+```bash
+vercel logs --project wuwabuild --environment production --since 1h --source serverless --json
+vercel usage --json
+```
+
+- The repo is not `vercel link`ed, so pass `--project`
+- Each `vercel logs` call returns the newest 50 rows of its window whatever `--limit` says, so page with `--until`. Most rows are static cache hits, which `--source serverless` drops
+- `vercel metrics` needs Observability Plus, which is off
+
 ## Environment
 
 Set these in a local `.env`, which is not committed. Both URLs point at the Cloudflare Worker

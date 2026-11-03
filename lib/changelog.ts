@@ -18,7 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'improved',
-                text: 'Hiyuki S6 board runs 5 Iai instead of 6 (a bit lower now)',
+                text: 'Hiyuki use 4-Iai for S0 and 5-Iai for S6 based on latest 5lib1 rotations',
             },
             {
                 kind: 'fixed',
@@ -34,11 +34,11 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'fixed',
-                text: 'Weapon and set effects proc from the button pressed, or from the DMG type dealt when the text says so. Phrolova, Camellya, Cartethyia, Jiyan and Aemeath a bit higher',
+                text: 'Weapon and set effects trigger better. Phrolova, Camellya, Cartethyia, Jiyan and Aemeath a bit higher',
             },
             {
                 kind: 'improved',
-                text: "Luuk, Lucy and Phrolova supports use their reference rotation's gear, so Lucy is lower and Phrolova a bit higher",
+                text: "Luuk, Lucy and Phrolova supports use more accurate support echoes, Lucy lower and Phrolova a bit higher",
             },
         ],
     },

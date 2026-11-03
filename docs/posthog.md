@@ -81,4 +81,9 @@ Every capture in the app is one grep, from `wuwabuilds/`:
 rg -n "capture\('" app components hooks lib contexts
 ```
 
-That is also how to get an event's current property list. Event volumes come from `posthog-cli api call execute-sql` against the `events` table.
+That is also how to get an event's current property list. Event volumes come from `posthog-cli api`: read `posthog-cli api --agent-help` once per session first, and confirm event names with `read-data-schema` before querying. Git Bash passes single-quoted JSON intact:
+
+```bash
+posthog-cli api call --json read-data-schema '{"query":{"kind":"events"}}'
+posthog-cli api call --json execute-sql '{"query":"SELECT ..."}'
+```
