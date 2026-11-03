@@ -22,15 +22,23 @@ export const CHANGELOG: ChangelogEntry[] = [
             },
             {
                 kind: 'fixed',
-                text: 'Wishes of Quiet Snowfall crit only procs from dealing Liberation DMG, so Lucilla no longer gets it',
+                text: 'Fixed Lucilla getting CR bonus from Wishes of Quiet Snowfall',
             },
             {
                 kind: 'fixed',
-                text: "Phoebe's Rover runs Rejuvenating Glow + Fallacy since only Lynae swaps into her, so a bit lower",
+                text: "Phoebe's Rover runs Rejuvenating Glow + Fallacy since only Lynae outros into her",
             },
             {
                 kind: 'fixed',
-                text: "Carlotta's Frosty Resolve Skill DMG stacks start at her Liberation, slightly lower",
+                text: "Carlotta's Frosty Resolve stacks start at her liberation now",
+            },
+            {
+                kind: 'fixed',
+                text: 'Weapon and set effects proc from the button pressed, or from the DMG type dealt when the text says so. Phrolova, Camellya, Cartethyia, Jiyan and Aemeath a bit higher',
+            },
+            {
+                kind: 'improved',
+                text: "Luuk, Lucy and Phrolova supports use their reference rotation's gear, so Lucy is lower and Phrolova a bit higher",
             },
         ],
     },
