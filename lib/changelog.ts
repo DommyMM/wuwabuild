@@ -40,6 +40,10 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'improved',
                 text: "Luuk, Lucy and Phrolova supports use more accurate support echoes, Lucy lower and Phrolova a bit higher",
             },
+            {
+                kind: 'fixed',
+                text: 'Score calculation now forces max forte everywhere'
+            }
         ],
     },
     {
