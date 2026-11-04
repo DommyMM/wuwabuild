@@ -14,7 +14,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
-        date: '2026-11-02',
+        date: '2026-11-03',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Weapon and set effects trigger better. Phrolova, Camellya, Cartethyia, Jiyan and Aemeath a bit higher',
+            },
+            {
+                kind: 'improved',
+                text: "Luuk, Lucy and Phrolova supports use more accurate support echoes, Lucy lower and Phrolova a bit higher",
+            },
+            {
+                kind: 'fixed',
+                text: 'Score calculation now forces max forte everywhere',
+            },
+        ],
+    },
+    {
+        date: '2026-11-01',
         changes: [
             {
                 kind: 'improved',
@@ -32,18 +49,6 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'fixed',
                 text: "Carlotta's Frosty Resolve stacks start at her liberation now",
             },
-            {
-                kind: 'fixed',
-                text: 'Weapon and set effects trigger better. Phrolova, Camellya, Cartethyia, Jiyan and Aemeath a bit higher',
-            },
-            {
-                kind: 'improved',
-                text: "Luuk, Lucy and Phrolova supports use more accurate support echoes, Lucy lower and Phrolova a bit higher",
-            },
-            {
-                kind: 'fixed',
-                text: 'Score calculation now forces max forte everywhere'
-            }
         ],
     },
     {
