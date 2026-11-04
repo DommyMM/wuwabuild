@@ -28,6 +28,26 @@ export const CHANGELOG: ChangelogEntry[] = [
                 kind: 'fixed',
                 text: 'Score calculation now forces max forte everywhere',
             },
+            {
+                kind: 'improved',
+                text: 'Brought back Qingxiao and Carlotta S1 which disappeared for some reason'
+            },
+            {
+                kind: 'new',
+                text: 'Brant leaderboards are live with Lupa and Denia',
+            },
+            {
+                kind: 'new',
+                text: 'Qiuyuan hypercarry leaderboards are live with Iuno and Shorekeeper',
+            },
+            {
+                kind: 'fixed',
+                text: "Tidebreaking Courage's 30% DMG Bonus now counts for builds at 250% Energy Regen or higher",
+            },
+            {
+                kind: 'fixed',
+                text: 'Reminiscence: Fenrico now deals its hit as a main echo',
+            },
         ],
     },
     {
