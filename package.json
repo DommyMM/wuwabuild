@@ -29,7 +29,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^15.5.29",
+    "eslint-config-next": "^16.4.6",
     "knip": "^6.26.0",
     "postcss": "^8.5.19",
     "sharp": "^0.35.3",
@@ -37,7 +37,10 @@
     "typescript": "^6.0.3"
   },
   "overrides": {
-    "postcss": "$postcss"
+    "postcss": "$postcss",
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.5"
+    }
   },
   "browserslist": [
     "last 2 Chrome versions",
