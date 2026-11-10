@@ -122,7 +122,7 @@ const Popover: React.FC<PopoverProps> = ({
         <div className="flex shrink-0 flex-col items-end gap-0.5">
           <span
             className="font-gowun text-xs leading-none tabular-nums"
-            style={{ color: tier.color, textShadow: tier.glow ? `0 0 8px ${tier.glow}` : undefined }}
+            style={{ color: tier.textColor, textShadow: tier.glow ? `0 0 8px ${tier.glow}` : undefined }}
           >
             TOP {formatPct(b.topPercent)}%
           </span>

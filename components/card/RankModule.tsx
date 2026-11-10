@@ -113,7 +113,7 @@ const SupportAvatar: React.FC<{ member: RankTeamMember }> = ({ member }) => (
 export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loading = false, boardHref = null }) => {
   const { getWeapon } = useGameData();
   const tierStyle = board ? getRankTier(board.topPercent) : null;
-  const rankColor = tierStyle?.color ?? 'rgba(224,224,224,0.4)';
+  const rankColor = tierStyle?.textColor ?? 'rgba(224,224,224,0.4)';
   const rankGlow = tierStyle?.glow;
   // The card itself already names the lead, so this strip stays on board and supports
   const supports = team.filter((member) => !member.isLead);
@@ -154,9 +154,10 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
         const zones = (
           <>
       {/* Zone 1, the grade: tier-colored percentile above the absolute rank */}
-      <div className="relative flex w-20 shrink-0 flex-col justify-center">
+      {/* min-w, not w, so four-digit ranks widen the column instead of wrapping the total under the rank */}
+      <div className="relative flex min-w-20 shrink-0 flex-col justify-center">
         {empty ? (
-          <span className="font-gowun text-[18px] font-bold text-text-primary/30">Not ranked</span>
+          <span className="font-gowun text-[18px] font-bold whitespace-nowrap text-text-primary/30">Not ranked</span>
         ) : (
           <>
             <div className="mb-1 font-ropa text-[9px] leading-none tracking-[0.2em] text-text-primary/40 uppercase">
@@ -176,8 +177,8 @@ export const RankModule: React.FC<RankModuleProps> = ({ board, team = [], loadin
               )}
             </div>
             {!loading && board && (
-              <div className="mt-1.5 flex items-baseline gap-1 font-gowun tabular-nums">
-                <span className="text-sm leading-none font-bold text-text-primary/90 transition-colors group-hover/board:text-accent">
+              <div className="mt-1.5 flex items-baseline gap-1 font-gowun whitespace-nowrap tabular-nums">
+                <span className="text-sm leading-none font-bold text-text-primary/70 transition-colors group-hover/board:text-accent">
                   #{formatNumber(board.rank)}
                 </span>
                 <span className="text-3xs text-text-primary/40">/ {formatTotal(board.total)}</span>

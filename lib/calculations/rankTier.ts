@@ -2,16 +2,21 @@ export type RankTier = 'S' | 'A' | 'B' | 'C' | 'D';
 
 export interface RankTierStyle {
   letter: RankTier;
+  /** Accent for edges and bars, where the neutral tiers fade so they sit behind the metals */
   color: string;
+  /** Colour for the percentile as text, never faded, because a dim number reads as disabled */
+  textColor: string;
   glow?: string;
 }
 
+const NEUTRAL_TEXT = 'rgba(224,224,224,0.9)';
+
 const RANK_TIERS: RankTierStyle[] = [
-  { letter: 'S', color: '#BFAD7D', glow: 'rgba(166,150,98,0.5)' },
-  { letter: 'A', color: '#C4C7CB' },
-  { letter: 'B', color: '#B7895C' },
-  { letter: 'C', color: 'rgba(224,224,224,0.65)' },
-  { letter: 'D', color: 'rgba(224,224,224,0.40)' },
+  { letter: 'S', color: '#BFAD7D', textColor: '#BFAD7D', glow: 'rgba(166,150,98,0.5)' },
+  { letter: 'A', color: '#C4C7CB', textColor: '#C4C7CB' },
+  { letter: 'B', color: '#B7895C', textColor: '#B7895C' },
+  { letter: 'C', color: 'rgba(224,224,224,0.65)', textColor: NEUTRAL_TEXT },
+  { letter: 'D', color: 'rgba(224,224,224,0.40)', textColor: NEUTRAL_TEXT },
 ];
 
 /** Percentile cuts are a first guess, to revisit once board distributions land */
