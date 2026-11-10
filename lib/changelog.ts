@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-11-09',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Build cards with Shattered Dreams and two other sets no longer squish the echoes, and ranks on big boards stay on one line',
+            },
+        ],
+    },
+    {
         date: '2026-11-03',
         changes: [
             {
