@@ -928,7 +928,6 @@ export interface LBEchoUsage {
   weaponId: string;
   cv: number;
   sequence: number;
-  saved: boolean;
   /** Echo main stats across the whole build, so CV grades on the right scale */
   mainStats: Array<{ cost: number; statType: string }>;
 }
@@ -944,7 +943,6 @@ function parseEchoUsage(raw: unknown): LBEchoUsage | null {
     weaponId: typeof raw.weaponId === 'string' ? raw.weaponId : '',
     cv: toFiniteNumber(raw.cv, 0),
     sequence: toFiniteNumber(raw.sequence, 0),
-    saved: raw.saved === true,
     mainStats: Array.isArray(raw.mainStats)
       ? raw.mainStats
         .filter(isRecord)
