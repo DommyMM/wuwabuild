@@ -434,7 +434,11 @@ def transform_skins(en: dict) -> list[dict]:
     for skin in en.get("Skins") or []:
         if not isinstance(skin, dict):
             continue
-        icon_round_url = asset_url(skin.get("RoleHeadIconLarge") or skin.get("RoleHeadIcon") or "")
+        icon_large_url = asset_url(skin.get("RoleHeadIconLarge") or skin.get("RoleHeadIcon") or "")
+        # Encore gives skins only the square Head256 portrait, the round one iconRound means sits beside it
+        icon_round_url = icon_large_url.replace(
+            "/IconRoleHead256/T_IconRoleHead256_", "/IconRoleHeadCircle256/T_IconRoleHeadCircle256_"
+        )
         banner_url = asset_url(skin.get("FormationRoleCard") or skin.get("Card") or "")
         if banner_url.casefold() == base_banner_url.casefold():
             continue
