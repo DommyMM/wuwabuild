@@ -46,7 +46,7 @@ from sync_weapons import (  # noqa: E402
     dedupe_semantic_weapon_aliases,
     extract_unconditional_passive_bonuses,
 )
-from sync_echoes import extract_main_slot_bonuses  # noqa: E402
+from sync_echoes import _sanitize_skill_params, extract_main_slot_bonuses  # noqa: E402
 from sync_fetters import fetch_and_build as build_wuthery_fetters  # noqa: E402
 
 DATA_DIR = SCRIPTS_DIR.parent / "public" / "Data"
@@ -476,7 +476,7 @@ def _transform_echo(locales: dict[str, dict]) -> dict | None:
         "icon": icon,
         "skill": {
             "description": description,
-            "params": skill.get("LevelDescStrArray", []),
+            "params": _sanitize_skill_params(skill.get("LevelDescStrArray", [])),
         },
         "legacyId": _extract_legacy_echo_id(icon) or str(en.get("ItemId") or ""),
     }
