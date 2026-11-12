@@ -19,8 +19,12 @@ export const CHANGELOG: ChangelogEntry[] = [
         changes: [
             {
                 kind: 'new',
-                text: 'Lily and weapon out',
+                text: 'Lily and weapon out and leaderboards',
             },
+            {
+                kind: 'improved',
+                text: 'Leaderboards adjusted to use Lily',
+            }
         ],
     },
     {

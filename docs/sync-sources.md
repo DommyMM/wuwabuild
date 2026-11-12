@@ -128,7 +128,10 @@ Where Encore falls short on characters:
   inconsistent between characters and the nodes carry no positional metadata, so `transform_skill_trees`
   sorts the 8 nodes by `Id`: the four lowest are coordinate 1 / branches `[1,2,3,6]`, the four highest
   coordinate 2 / branches `[9,10,11,12]`. That reproduces Wuthery's values for every character.
-  `skillTrees[].value[].Id` is aligned to Wuthery's stat ids through `STAT_ID_BY_NODE_NAME`.
+  `skillTrees[].value[].id` is aligned to Wuthery's stat ids through `STAT_ID_BY_NODE_NAME`.
+- Stats and forte-node values go through the Wuthery writer's own `extract_stats` and
+  `_normalize_node_values`, so both paths ship one camelCase shape. `validateCDNCharacter` silently
+  drops a record without `stats.life`, `atk` and `def`, which hid Lily from the whole site.
 - `valueText` is not returned. Wuthery gives `["1.20%"]` directly, Encore buries the number inside
   `PropertyNodeDescribe` ("Crit. Rate increased by 1.20%."), so it is extracted by regex.
 - Chain bonuses parse from inline values. Wuthery keeps `{0}` placeholders with the value in `param[]`,

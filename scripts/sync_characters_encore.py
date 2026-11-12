@@ -23,8 +23,10 @@ from cdn_config import encore_request_json
 from game_text import normalize_encore_markup
 
 from sync_characters import (
+    _normalize_node_values,
     _normalize_param_value,
     _sanitize_i18n_value,
+    extract_stats,
     get_preferred_substats,
     parse_chain_bonus,
     parse_inherent_bonuses,
@@ -142,7 +144,7 @@ STAT_NAME_MAP = {
 }
 
 # (stat_id, is_ratio, divisor) per forte node name
-# Stat ids match Wuthery's canonical forte value ids, so skillTrees[].value[].Id lines up across sources
+# Stat ids match Wuthery's canonical forte value ids, so skillTrees[].value[].id lines up across sources
 # A ratio stat (HP, ATK, DEF) stores a fraction while the rest store value*100
 STAT_ID_BY_NODE_NAME = {
     "Crit. Rate+": (8, False, 100),
@@ -262,7 +264,8 @@ def transform_stats(en: dict) -> dict[str, float | int]:
         if target in {"Crit", "CritDamage"}:
             value = value / 100
         stats[target] = int(value) if isinstance(value, float) and value.is_integer() else value
-    return stats
+    # Wuthery's writer pins the keys, and validateCDNCharacter drops a record without stats.life
+    return extract_stats(stats)
 
 
 def transform_tags(locales: dict[str, dict]) -> list[dict]:
@@ -292,8 +295,9 @@ def node_value_from_description(name: str, description: str) -> tuple[list[dict]
     value_text = f"{match.group(1)}%"
     stat_id, is_ratio, divisor = STAT_ID_BY_NODE_NAME.get(name, (0, False, 100))
     numeric_value = float(match.group(1))
-    value = numeric_value / 100 if is_ratio else int(round(numeric_value * divisor))
-    return ([{"Id": stat_id, "Value": value, "IsRatio": is_ratio}], [value_text])
+    # Rounded so 1.8 / 100 writes 0.018 like Wuthery, not 0.018000000000000002
+    value = round(numeric_value / 100, 6) if is_ratio else int(round(numeric_value * divisor))
+    return (_normalize_node_values([{"id": stat_id, "value": value, "isRatio": is_ratio}]), [value_text])
 
 
 def transform_skill_trees(en: dict) -> list[dict]:

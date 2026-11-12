@@ -199,7 +199,7 @@ icon, so nothing downstream has to guess that a character has Crit Rate plus ATK
 
 - `coordinate` 1 is the middle node, 2 is the top node.
 - `parentNodes[0]` identifies the branch, decoded by `PARENT_TO_TREE` in `lib/character.ts`.
-- `value[0].IsRatio` false means base points (Crit Rate, Crit DMG), true means percent (ATK%, HP%, DEF%).
+- `value[0].isRatio` false means base points (Crit Rate, Crit DMG), true means percent (ATK%, HP%, DEF%).
 - `icon` is a complete URL, usable in the UI as-is.
 
 ### Skill icons
