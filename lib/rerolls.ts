@@ -8,7 +8,7 @@ const MIN_GAIN_PER_TRANSDUCER = 0.0001;
 const STAT_FLOOR = 0.002;
 
 /** One roll of a target's stat */
-export interface RerollStep {
+interface RerollStep {
   value: number;
   /** Gain at this roll as a share of the current Score, 0 when the roll does not beat it */
   gain: number;
@@ -39,7 +39,7 @@ export interface RerollTarget {
 }
 
 /** A line a way redraws, with a null ladder for a slot that holds no stat yet */
-export interface RerollLineRef {
+interface RerollLineRef {
   line: number; // 0-based substat position in the build state
   ladder: LBSubstatLadder | null;
   value: number;

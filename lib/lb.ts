@@ -428,7 +428,7 @@ export interface LBSubstatLadder {
 }
 
 /** One stat a redrawn line can land on with at least one roll that beats the build's Score */
-export interface LBRerollStat {
+interface LBRerollStat {
   stat: string;
   /** Board Score at each roll of the stat's ladder */
   scores: number[];
@@ -437,7 +437,7 @@ export interface LBRerollStat {
 }
 
 /** One line a shape redraws, as it reads now */
-export interface LBRerollLine {
+interface LBRerollLine {
   line: number; // 0-based substat position in the build state
   stat: string; // canonical stat key, empty for an unfilled slot
   value: number;

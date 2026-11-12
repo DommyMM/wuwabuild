@@ -14,8 +14,8 @@ export interface StoredProfile {
   openedAt?: number;
 }
 
-export const RECENTS_KEY = 'wuwabuilds_recent_profiles';
-export const PINNED_KEY = 'wuwabuilds_pinned_profiles';
+const RECENTS_KEY = 'wuwabuilds_recent_profiles';
+const PINNED_KEY = 'wuwabuilds_pinned_profiles';
 /** Caps the pinned and the recent list alike */
 const MAX_PROFILES = 8;
 

@@ -179,7 +179,7 @@ export const LB_SORTABLE_GROUP_GRID = 'grid-cols-[172px_repeat(4,121px)_minmax(1
 export const DEFAULT_LB_SORT = 'damage';
 export const DEFAULT_LB_TRACK = 's0';
 
-export type SummaryDensity = 'normal' | 'compact';
+type SummaryDensity = 'normal' | 'compact';
 export type SummaryHost = 'expansion' | 'card';
 
 /** Pill count at which a host's summary row goes compact */
@@ -190,7 +190,7 @@ const SUMMARY_COMPACT_AT: Record<SummaryHost, number> = {
   card: Number.POSITIVE_INFINITY,
 };
 
-export const getSummaryDensity = (pillCount: number, host: SummaryHost): SummaryDensity => (
+const getSummaryDensity = (pillCount: number, host: SummaryHost): SummaryDensity => (
   pillCount >= SUMMARY_COMPACT_AT[host] ? 'compact' : 'normal'
 );
 

@@ -35,7 +35,7 @@ const subscribe = (listener: () => void): (() => void) => {
 };
 
 /** Fetches once per page load, remembering a failure so a hover never retries */
-export function loadTerms(): void {
+function loadTerms(): void {
   if (index || pending || failed || typeof window === 'undefined') return;
   // Own fetch rather than GameDataContext, which blocks the page on every file it loads
   pending = fetch('/Data/Terms.json')

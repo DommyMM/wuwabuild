@@ -1,6 +1,6 @@
 export const BUILD_CARD_DESIGN_WIDTH = 1440;
 export const BUILD_CARD_DESIGN_HEIGHT = BUILD_CARD_DESIGN_WIDTH / 2.4;
-export const BUILD_CARD_EXPORT_WIDTH = 3840;
+const BUILD_CARD_EXPORT_WIDTH = 3840;
 
 const WEBP_MIME_TYPE = 'image/webp';
 const PNG_MIME_TYPE = 'image/png';

@@ -5,7 +5,7 @@ import type { CardArtTransform } from '@/lib/cardArt';
 
 type Rgb = { r: number; g: number; b: number };
 
-export interface AdaptiveCardColors {
+interface AdaptiveCardColors {
   primary: string;
   soft: string;
   faint: string;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { STATUS_NEGATIVE_COLOR, STATUS_POSITIVE_COLOR } from '../constants';
 
-export type ProfileSegment = { key: string; color: string; damage: number };
+type ProfileSegment = { key: string; color: string; damage: number };
 
 interface ProfileBarProps {
   /** Part-to-whole pieces of move damage, by scored type or by heal source */

@@ -6,7 +6,7 @@ export type RegionBadge = {
 };
 
 /** Server region by the UID's first digit */
-export const REGION_BADGES: Record<string, RegionBadge> = {
+const REGION_BADGES: Record<string, RegionBadge> = {
   '1': { label: 'CN', className: 'bg-red-500/85 text-white' },
   '5': { label: 'NA', className: 'bg-amber-400/90 text-black' },
   '6': { label: 'EU', className: 'bg-indigo-400/90 text-black' },

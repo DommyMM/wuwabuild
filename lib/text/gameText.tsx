@@ -12,7 +12,7 @@ const CLOSE_TEXT_ENTRY_PATTERN = /^<\/te>$/iu;
 const TEXT_ENTRY_ID_PATTERN = /href=(\d+)/iu;
 const TEXT_ENTRY_ID_SCAN = /<te\s+href=(\d+)/giu;
 
-export type TermMode = 'mark' | 'plain';
+type TermMode = 'mark' | 'plain';
 
 /**
  * Class for a resolved parameter, full white against the body's 82% since it is content
@@ -20,7 +20,7 @@ export type TermMode = 'mark' | 'plain';
  * - No colour, so the game's element markup and gold glossary terms stay the only coloured text
  * - No weight step, since Ropa loads at one weight and a bolder one would be synthesised
  */
-export const PARAM_HIGHLIGHT_CLASS = 'text-white';
+const PARAM_HIGHLIGHT_CLASS = 'text-white';
 
 /**
  * Folds runs of identical move-scaling terms into the game's compact notation, multiplier shown as ×
@@ -42,7 +42,7 @@ export const compactMoveValue = (value: string | null | undefined): string => {
 };
 
 /** The underline is what says "this word is defined below" */
-export const TERM_UNDERLINE_CLASS = 'underline decoration-dotted decoration-current/45 underline-offset-3';
+const TERM_UNDERLINE_CLASS = 'underline decoration-dotted decoration-current/45 underline-offset-3';
 
 /** Glossary ids referenced by a template, in the order they are first mentioned */
 export const collectTemplateTermIds = (template: string): number[] => {

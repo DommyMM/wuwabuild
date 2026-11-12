@@ -104,7 +104,7 @@ export const TierLadder: React.FC<{ currentLabel: string }> = ({ currentLabel })
 };
 
 /** A value plotted on the ladder, its text floated over the landed tier */
-export const QualityTierBar: React.FC<{ currentLabel: string; valueText: string }> = ({ currentLabel, valueText }) => {
+const QualityTierBar: React.FC<{ currentLabel: string; valueText: string }> = ({ currentLabel, valueText }) => {
   const tiers = QUALITY_TIERS.slice().reverse(); // low -> high
   const currentIndex = tiers.findIndex((tier) => tier.label === currentLabel);
   const current = currentIndex >= 0 ? tiers[currentIndex] : null;
