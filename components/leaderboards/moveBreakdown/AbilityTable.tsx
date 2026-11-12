@@ -78,24 +78,36 @@ const SublineView: React.FC<{ sub: Subline; showTag?: boolean }> = ({ sub, showT
 const CARD_BORDER = 1;
 
 /**
- * The ribbon again along an open card's foot, with this row's casts lit
+ * The ribbon's casts again across an open card, under its position line, with this row's casts lit
  *
- * Drawn on the strip's own spans, so each lit span sits directly under its segment and a row far below the strip still shows where it sits
+ * - Drawn on the strip's own spans, so each lit span sits directly under its segment
+ * - A row far below the strip still shows where it sits
+ * - Renders nothing for a row with no casts, such as status damage
  */
 const RibbonEcho: React.FC<{ ribbon: RibbonSegment[]; spans: Span[]; rowKey: string }> = ({ ribbon, spans, rowKey }) => {
   // Back-to-back casts of this row fuse into one span, because the ribbon's 2px gaps read as noise at this height
   const runs: Array<Span & { color: string }> = [];
   let previousLit = false;
+  // The track stops where the casts do, so the last move ends its line instead of sitting ahead of status damage
+  let castsEnd = 0;
   ribbon.forEach((segment, index) => {
     const span = spans[index];
-    const lit = span !== undefined && segment.rowKeys.includes(rowKey);
+    if (span === undefined || segment.group !== 'button') return;
+    castsEnd = span.x + span.w;
+    const lit = segment.rowKeys.includes(rowKey);
     const run = runs[runs.length - 1];
     if (lit && previousLit && run.color === segment.color) run.w = span.x + span.w - run.x;
     else if (lit) runs.push({ ...span, color: segment.color });
     previousLit = lit;
   });
+  if (runs.length === 0) return null;
   return (
-    <div aria-hidden className={`relative h-1.5 ${NARROW_HIDDEN}`} style={{ backgroundColor: TRACK }}>
+    // Clear of the card's border, because flush against it the echo read as part of the frame
+    <div
+      aria-hidden
+      className={`relative mt-2 h-1.5 ${NARROW_HIDDEN}`}
+      style={{ width: castsEnd - CARD_BORDER, backgroundColor: TRACK }}
+    >
       {runs.map((run) => (
         <span
           key={run.x}
@@ -285,14 +297,14 @@ const AbilityRow: React.FC<AbilityRowProps> = ({
                   </div>
                 )}
                 {inRibbon && (
-                  // The sentence is the answer, the echo along the card's foot is the picture of it
+                  // The sentence is the answer, the echo under it is the picture of it
                   // Status damage has no move number and no place in the order, it ticks while the casts land
                   <span className={NARROW_HIDDEN}>{positions ?? 'Dealt alongside the rotation'}</span>
                 )}
               </div>
             </div>
+            {inRibbon && ribbonSpans.length > 0 && <RibbonEcho ribbon={ribbon} spans={ribbonSpans} rowKey={move.key} />}
           </div>
-          {inRibbon && ribbonSpans.length > 0 && <RibbonEcho ribbon={ribbon} spans={ribbonSpans} rowKey={move.key} />}
         </div>
       </div>
     </div>
