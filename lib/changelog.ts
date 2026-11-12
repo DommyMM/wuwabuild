@@ -14,6 +14,27 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        date: '2026-11-12',
+        changes: [
+            {
+                kind: 'fixed',
+                text: 'Chisa, Luuk, Phoebe, Qiuyuan and Phrolova higher, Cartethyia and Zani S6 higher, Qingxiao and Brant S6 lower',
+            },
+            {
+                kind: 'fixed',
+                text: 'Radiance Cleaver no longer gets its Liberation bonus on Lupa and Chisa teams, and Red Spring now works on Suoming',
+            },
+            {
+                kind: 'improved',
+                text: 'Outros and off-field hits no longer keep buffs that end on swap',
+            },
+            {
+                kind: 'fixed',
+                text: "Cartethyia's solo boards a bit lower, a single Sword Shadow plunge now uses its own multiplier",
+            }
+        ],
+    },
+    {
         date: '2026-11-11',
         patch: '3.8',
         changes: [
