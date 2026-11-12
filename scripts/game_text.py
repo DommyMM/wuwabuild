@@ -152,6 +152,7 @@ _ENCORE_BR_PATTERN = re.compile(r"<br\s*/?>", re.IGNORECASE)
 _ENCORE_COLOR_VALUE_PATTERN = re.compile(r"color\s*:\s*([#\w]+)", re.IGNORECASE)
 # Section headings arrive as an oversized span where the game marks them <color=Title>
 _ENCORE_HEADING_PATTERN = re.compile(r"font-whitney|text-3xl", re.IGNORECASE)
+_ENCORE_TITLE_GAP_PATTERN = re.compile(r"(<color=Title>(?:[^\n<]|</?color(?:=\w+)?>)*?</color>)\n{2,}")
 
 
 def _encore_color_name(tag: str) -> str:
@@ -201,6 +202,10 @@ def normalize_encore_markup(value: str) -> str:
     normalized = "".join(out)
     # A truncated payload can end mid-tag, which nothing downstream recognizes, so it would render as literal text
     normalized = re.sub(r"<[^<>]*$", "", normalized)
+    # Sanitize before collapsing, because the <size=10> filler it drops sits between <br>s and hides a blank-line run
+    normalized = sanitize_game_text(normalized)
     normalized = re.sub(r"[ \t]*\n[ \t]*", "\n", normalized)
+    # The game puts a heading's body on the very next line, Encore leaves a blank line between
+    normalized = _ENCORE_TITLE_GAP_PATTERN.sub(r"\1\n", normalized)
     normalized = re.sub(r"\n{3,}", "\n\n", normalized)
-    return sanitize_game_text(normalized).strip()
+    return normalized.strip()

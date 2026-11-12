@@ -20,6 +20,7 @@ from typing import Any
 import requests
 
 from cdn_config import encore_request_json
+from game_text import normalize_encore_markup
 
 from sync_characters import (
     _normalize_param_value,
@@ -350,7 +351,7 @@ def transform_chains(locales: dict[str, dict]) -> list[dict]:
             return (data.get("ResonantChain") or [])[index].get("NodeName", "")
 
         def chain_description(data: dict) -> str:
-            return (data.get("ResonantChain") or [])[index].get("AttributesDescription", "")
+            return normalize_encore_markup((data.get("ResonantChain") or [])[index].get("AttributesDescription", ""))
 
         params = chain.get("AttributesDescriptionParams") or []
         desc = i18n(locales, chain_description)
@@ -392,7 +393,7 @@ def transform_moves(locales: dict[str, dict]) -> list[dict]:
             return (data.get("Skills") or [])[index].get("SkillName", "")
 
         def move_description(data: dict) -> str:
-            return (data.get("Skills") or [])[index].get("SkillDescribe", "")
+            return normalize_encore_markup((data.get("Skills") or [])[index].get("SkillDescribe", ""))
 
         values: list[dict] = []
         for attr_index, attr in enumerate(skill.get("SkillAttributes") or []):
@@ -400,7 +401,7 @@ def transform_moves(locales: dict[str, dict]) -> list[dict]:
                 continue
 
             def attr_name(data: dict) -> str:
-                return (
+                return normalize_encore_markup(
                     ((data.get("Skills") or [])[index].get("SkillAttributes") or [])[attr_index]
                     .get("attributeName", "")
                 )

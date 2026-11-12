@@ -31,9 +31,11 @@ Text shape is not cosmetic. Raw Encore text lands a character with zero parseabl
 sections in `lb/internal/calc/data/character_bases.json`, where Wuthery-sourced characters have 5 to
 28, because `move_types.go` splits sections on blank lines that Encore's text does not have. It also
 renders with no highlight colour, since the frontend palette only understands `<color=Name>`.
-`game_text.normalize_encore_markup` exists to close both gaps, rewriting Encore's HTML into the
-game's conventions (`<br>` to newlines, hex spans to semantic colour names, surplus closers dropped),
-which is what keeps `--encore` usable for catch-up.
+`game_text.normalize_encore_markup` closes both gaps for character move and chain text and for
+glossary bodies, rewriting Encore's HTML into the game's conventions (`<br>` to newlines, hex spans to
+semantic colour names, surplus closers dropped, a heading's body on the very next line), which is what
+keeps `--encore` usable for catch-up. Weapon spans are value wrappers that become `{i}` instead, and
+echo text carries no colour spans, so it only needs its `<br>` converted.
 
 ## Why Encore is a mode flag, not a fallback
 
@@ -145,8 +147,9 @@ Where Encore falls short on characters:
   attention: across all LB character configs only `hiyuki.go` was affected, and its three lookups now
   list both spellings. Where the multipliers themselves differ, Encore carries the rebalanced values
   and the local Wuthery cache is the stale one.
-- Skill and chain markup is HTML-ish `<span>` / `<br>` with occasional game tags. The frontend's
-  `stripGameMarkup` already handles generic HTML tags, and chain-bonus parsing strips `<[^>]+>`.
+- A character's first Encore release ships `AttributesDescriptionParams` and `SkillDetailNum` empty,
+  where older characters carry both. Its chain and move text then keeps inline values with no `{N}`,
+  so the numbers render unhighlighted until the character is re-fetched from Wuthery.
 - Nothing consumes `stats.DamageChangeNormalSkill`, the Tune Break passive name (blank in Encore) or
   `skins[].color` (`{}` in Encore), so all three are left as they come. `isAlternateSkinVariant` keys
   on icons rather than colour.
