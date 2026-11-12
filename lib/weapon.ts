@@ -1,4 +1,5 @@
 import { I18nString } from './character';
+import { CdnCheck, failedCdnChecks } from './cdnChecks';
 import { BasePercentStatName, ElementalDmgStatName, StatName } from './constants/statMappings';
 
 export enum WeaponType {
@@ -134,18 +135,19 @@ export const adaptCDNWeapon = (cdn: CDNWeapon): Weapon => ({
   mainStatI18n: cdn.stats.second.name,
 });
 
-export const validateCDNWeapon = (value: unknown): value is CDNWeapon => {
-  if (!value || typeof value !== 'object') return false;
-  const w = value as Partial<CDNWeapon>;
-  return (
-  typeof w.id === 'number' &&
-  typeof w.name?.en === 'string' &&
-  typeof w.type?.id === 'number' &&
-  typeof w.rarity?.id === 'number' &&
-  typeof w.icon?.icon === 'string' &&
-  typeof w.stats?.first?.value === 'number' &&
-  typeof w.stats?.second?.attribute === 'string' &&
-  typeof w.stats.second.value === 'number' &&
-  typeof w.stats.second.isRatio === 'boolean'
-  );
-};
+/** Fields a CDN weapon needs, named so a dropped record reports which one failed */
+export const CDN_WEAPON_CHECKS: readonly CdnCheck<CDNWeapon>[] = [
+  ['id', (w) => typeof w.id === 'number'],
+  ['name.en', (w) => typeof w.name?.en === 'string'],
+  ['type.id', (w) => typeof w.type?.id === 'number'],
+  ['rarity.id', (w) => typeof w.rarity?.id === 'number'],
+  ['icon.icon', (w) => typeof w.icon?.icon === 'string'],
+  ['stats.first.value', (w) => typeof w.stats?.first?.value === 'number'],
+  ['stats.second.attribute', (w) => typeof w.stats?.second?.attribute === 'string'],
+  ['stats.second.value', (w) => typeof w.stats?.second?.value === 'number'],
+  ['stats.second.isRatio', (w) => typeof w.stats?.second?.isRatio === 'boolean'],
+];
+
+export const validateCDNWeapon = (value: unknown): value is CDNWeapon => (
+  failedCdnChecks(value, CDN_WEAPON_CHECKS).length === 0
+);

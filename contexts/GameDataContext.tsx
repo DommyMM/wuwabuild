@@ -1,9 +1,10 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
-import { Character, adaptCDNCharacter, validateCDNCharacter } from '@/lib/character';
-import { Weapon, WeaponType, adaptCDNWeapon, validateCDNWeapon } from '@/lib/weapon';
-import { Echo, CDNFetter, COST_SECTIONS, adaptCDNEcho, validateCDNEcho, ElementType, FETTER_MAP } from '@/lib/echo';
+import { CdnCheck, failedCdnChecks } from '@/lib/cdnChecks';
+import { CDN_CHARACTER_CHECKS, Character, adaptCDNCharacter, validateCDNCharacter } from '@/lib/character';
+import { CDN_WEAPON_CHECKS, Weapon, WeaponType, adaptCDNWeapon, validateCDNWeapon } from '@/lib/weapon';
+import { CDN_ECHO_CHECKS, Echo, CDNFetter, COST_SECTIONS, adaptCDNEcho, validateCDNEcho, ElementType, FETTER_MAP } from '@/lib/echo';
 import { CharacterCurve, LevelCurves } from '@/lib/calculations/stats';
 
 interface MainStatData {
@@ -101,24 +102,35 @@ const emptyState: GameDataState = {
 let cachedGameDataState: GameDataState | null = null;
 let gameDataLoadPromise: Promise<GameDataState> | null = null;
 
-function warnDroppedRecords(label: string, all: readonly unknown[], kept: readonly unknown[]): void {
+/** Dev-only warning naming each dropped record and the fields it failed, e.g. "1512 Lily (stats.life, stats.atk)" */
+function warnDroppedRecords<T>(
+  label: string,
+  all: readonly unknown[],
+  kept: readonly unknown[],
+  checks: readonly CdnCheck<T>[],
+): void {
   if (process.env.NODE_ENV === 'production' || all.length === kept.length) return;
   const keptRecords = new Set<unknown>(kept);
-  const droppedIds = all
+  const dropped = all
     .filter((entry) => !keptRecords.has(entry))
-    .map((entry) => (entry && typeof entry === 'object' && 'id' in entry ? String((entry as { id: unknown }).id) : '<unidentifiable>'));
-  console.warn(`[GameData] dropped ${droppedIds.length} ${label} record(s) that failed validation: ${droppedIds.join(', ')}`);
+    .map((entry) => {
+      const record = (entry && typeof entry === 'object' ? entry : {}) as { id?: unknown; name?: { en?: unknown } };
+      const id = record.id === undefined ? '<unidentifiable>' : String(record.id);
+      const name = typeof record.name?.en === 'string' ? ` ${record.name.en}` : '';
+      return `${id}${name} (${failedCdnChecks(entry, checks).join(', ')})`;
+    });
+  console.warn(`[GameData] dropped ${dropped.length} ${label} record(s) that failed validation: ${dropped.join('; ')}`);
 }
 
 function processRawGameData(raw: RawGameData): GameDataState {
   const cdnCharacters: unknown[] = Array.isArray(raw.characters) ? raw.characters : [];
   const validCDNCharacters = cdnCharacters.filter(validateCDNCharacter);
-  warnDroppedRecords('character', cdnCharacters, validCDNCharacters);
+  warnDroppedRecords('character', cdnCharacters, validCDNCharacters, CDN_CHARACTER_CHECKS);
   const validCharacters: Character[] = validCDNCharacters.map(adaptCDNCharacter);
 
   const cdnEchoes: unknown[] = Array.isArray(raw.echoes) ? raw.echoes : [];
   const validCDNEchoes = cdnEchoes.filter(validateCDNEcho);
-  warnDroppedRecords('echo', cdnEchoes, validCDNEchoes);
+  warnDroppedRecords('echo', cdnEchoes, validCDNEchoes, CDN_ECHO_CHECKS);
   const echoes: Echo[] = validCDNEchoes.map(adaptCDNEcho);
   const echoesByCost: Record<number, Echo[]> = Object.fromEntries(
     COST_SECTIONS.map((cost) => [cost, [] as Echo[]]),
@@ -134,7 +146,7 @@ function processRawGameData(raw: RawGameData): GameDataState {
   const weaponList: Weapon[] = [];
   const cdnWeapons: unknown[] = Array.isArray(raw.weapons) ? raw.weapons : [];
   const validCDNWeapons = cdnWeapons.filter(validateCDNWeapon);
-  warnDroppedRecords('weapon', cdnWeapons, validCDNWeapons);
+  warnDroppedRecords('weapon', cdnWeapons, validCDNWeapons, CDN_WEAPON_CHECKS);
   for (const w of validCDNWeapons) {
     const weapon = adaptCDNWeapon(w);
     weaponList.push(weapon);

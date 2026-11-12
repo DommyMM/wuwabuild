@@ -1,3 +1,5 @@
+import { CdnCheck, failedCdnChecks } from './cdnChecks';
+
 export enum Element {
   Aero = "Aero",
   Glacio = "Glacio",
@@ -391,21 +393,22 @@ export const adaptCDNCharacter = (cdn: CDNCharacter): Character => {
   };
 };
 
-export const validateCDNCharacter = (value: unknown): value is CDNCharacter => {
-  if (!value || typeof value !== 'object') return false;
-  const char = value as Partial<CDNCharacter>;
-  return (
-    typeof char.id === 'number' &&
-    typeof char.name?.en === 'string' &&
-    typeof char.rarity?.id === 'number' &&
-    typeof char.weapon?.id === 'number' &&
-    typeof char.element?.id === 'number' &&
-    typeof char.icon?.iconRound === 'string' &&
-    typeof char.icon?.banner === 'string' &&
-    Array.isArray(char.skins) &&
-    Array.isArray(char.tags) &&
-    typeof char.stats?.life === 'number' &&
-    typeof char.stats?.atk === 'number' &&
-    typeof char.stats?.def === 'number'
-  );
-};
+/** Fields a CDN character needs, named so a dropped record reports which one failed */
+export const CDN_CHARACTER_CHECKS: readonly CdnCheck<CDNCharacter>[] = [
+  ['id', (c) => typeof c.id === 'number'],
+  ['name.en', (c) => typeof c.name?.en === 'string'],
+  ['rarity.id', (c) => typeof c.rarity?.id === 'number'],
+  ['weapon.id', (c) => typeof c.weapon?.id === 'number'],
+  ['element.id', (c) => typeof c.element?.id === 'number'],
+  ['icon.iconRound', (c) => typeof c.icon?.iconRound === 'string'],
+  ['icon.banner', (c) => typeof c.icon?.banner === 'string'],
+  ['skins', (c) => Array.isArray(c.skins)],
+  ['tags', (c) => Array.isArray(c.tags)],
+  ['stats.life', (c) => typeof c.stats?.life === 'number'],
+  ['stats.atk', (c) => typeof c.stats?.atk === 'number'],
+  ['stats.def', (c) => typeof c.stats?.def === 'number'],
+];
+
+export const validateCDNCharacter = (value: unknown): value is CDNCharacter => (
+  failedCdnChecks(value, CDN_CHARACTER_CHECKS).length === 0
+);

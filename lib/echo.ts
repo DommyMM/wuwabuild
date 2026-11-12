@@ -1,4 +1,5 @@
 import { I18nString } from './character';
+import { CdnCheck, failedCdnChecks } from './cdnChecks';
 import { StatName } from './constants/statMappings';
 import { CDN_BASE } from './constants/cdn';
 
@@ -231,15 +232,15 @@ export const adaptCDNEcho = (cdn: CDNEcho): Echo => ({
     : undefined,
 });
 
-export const validateCDNEcho = (value: unknown): value is CDNEcho => {
-  if (!value || typeof value !== 'object') return false;
-  const echo = value as Partial<CDNEcho>;
-  return (
-    typeof echo.id === 'number' &&
-    typeof echo.name?.en === 'string' &&
-    typeof echo.cost === 'number' &&
-    Array.isArray(echo.fetter) &&
-    echo.fetter.every((id) => typeof id === 'number') &&
-    typeof echo.icon === 'string'
-  );
-};
+/** Fields a CDN echo needs, named so a dropped record reports which one failed */
+export const CDN_ECHO_CHECKS: readonly CdnCheck<CDNEcho>[] = [
+  ['id', (e) => typeof e.id === 'number'],
+  ['name.en', (e) => typeof e.name?.en === 'string'],
+  ['cost', (e) => typeof e.cost === 'number'],
+  ['fetter', (e) => Array.isArray(e.fetter) && e.fetter.every((id) => typeof id === 'number')],
+  ['icon', (e) => typeof e.icon === 'string'],
+];
+
+export const validateCDNEcho = (value: unknown): value is CDNEcho => (
+  failedCdnChecks(value, CDN_ECHO_CHECKS).length === 0
+);

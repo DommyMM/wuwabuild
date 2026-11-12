@@ -248,6 +248,10 @@ py scripts\sync_lb.py
 `sync_terms.py` is in the list because a new character's kit links glossary ids that `Terms.json` only
 carries once it rescans the shipped JSON. A kind `/new` lists nothing for is skipped, not re-fetched.
 
+Before pushing, load `/import` on the dev server with the console open and caching disabled. The site
+silently drops a record that fails `validateCDNCharacter` (or the weapon and echo checks), and in dev
+`[GameData] dropped …` names each one with its failing fields.
+
 The same path takes explicit ids when `/new` is not the right set:
 
 ```powershell
