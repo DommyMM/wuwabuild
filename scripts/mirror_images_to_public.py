@@ -49,6 +49,8 @@ ASSETS_DIR = FRONTEND_DIR / "public" / "assets"
 PUBLIC_PATH_PREFIX = "/assets"
 
 ENCORE_RESOURCE_BASE = "https://api.encore.moe/resource/Data"
+# api-v2 detail payloads carry absolute URLs on their own host, same tree as the legacy host
+ENCORE_RESOURCE_BASES = (ENCORE_RESOURCE_BASE, "https://api-v2.encore.moe/resource/Data")
 WEBP_QUALITY = 90
 
 TARGET_FILES = ["Characters.json", "Weapons.json", "Echoes.json", "Fetters.json", "Stats.json"]
@@ -72,7 +74,7 @@ EXTRA_ASSETS = [
 
 # Only strings shaped like an image reference on a known host match, so descriptions and names are never touched
 _ABSOLUTE_HOST_RE = re.compile(
-    r"^https?://(?:files\.wuthery\.com|api\.encore\.moe)/.+\.(?:png|webp|jpe?g)$",
+    r"^https?://(?:files\.wuthery\.com|api(?:-v2)?\.encore\.moe)/.+\.(?:png|webp|jpe?g)$",
     re.IGNORECASE,
 )
 _RELATIVE_WUTHERY_RE = re.compile(r"^/d/.+\.(?:png|webp|jpe?g)$", re.IGNORECASE)
@@ -133,8 +135,8 @@ def compute_key(absolute_url: str) -> str:
                 path = path[len(prefix):]
                 break
         marker = "GameData/"
-    elif absolute_url.startswith(ENCORE_RESOURCE_BASE):
-        path = absolute_url[len(ENCORE_RESOURCE_BASE):].lstrip("/")
+    elif encore_base := next((b for b in ENCORE_RESOURCE_BASES if absolute_url.startswith(b)), None):
+        path = absolute_url[len(encore_base):].lstrip("/")
         marker = "Game/Aki/UI/"
     else:
         raise ValueError(f"Unrecognized CDN host: {absolute_url!r}")

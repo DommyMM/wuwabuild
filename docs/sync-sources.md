@@ -81,7 +81,8 @@ Routes (all require {lang}):
   /{lang}/term               glossary, all rows localized
   /{lang}/new                {GameVer, ResVer, Changelist, character[], weapon[], echo[], info[], item[]}
 Languages: en, zh-Hans, zh-Hant, ja, ko, de, es, fr, id, pt, ru, th, vi   (13, no uk)
-Images:    detail fields are often absolute https://api.encore.moe/resource/Data/... URLs.
+Images:    detail fields are often absolute https://api.encore.moe/resource/Data/... URLs,
+           or https://api-v2.encore.moe/resource/Data/... from api-v2. Same tree, the mirror maps both.
            A raw /Game/Aki/... path resolves as https://api.encore.moe/resource/Data<path>.
            Preserve the .webp suffix, because rewriting it to .png returns 404.
 ```
