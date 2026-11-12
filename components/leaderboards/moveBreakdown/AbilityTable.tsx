@@ -4,7 +4,7 @@ import { typeMeta, ProcessedMove } from '@/lib/moveBreakdown';
 import { LB_SECTION_HEADING } from '../constants';
 import { formatDamage } from '../formatters';
 import { SkillTabDisc } from './SkillTabDisc';
-import { HEAL_COLOR, HOVER_RING, Highlight, RibbonSegment, RotationModel, RotationSlot, Span, Subline, describeRow, foldedKeys, formatBaseMV, formatHealFormula, formatShare, rotationPositionsText, rowDomId } from './model';
+import { HEAL_COLOR, HOVER_RING, Highlight, RibbonSegment, RotationModel, RotationSlot, Subline, describeRow, foldedKeys, formatBaseMV, formatHealFormula, formatShare, rotationPositionsText, rowDomId } from './model';
 
 /**
  * Icon | name | casts | bar | share | damage | chevron
@@ -74,48 +74,31 @@ const SublineView: React.FC<{ sub: Subline; showTag?: boolean }> = ({ sub, showT
   );
 };
 
-/** Open card's border, which the echo sits inside while the strip's ribbon starts at the card's outer edge */
-const CARD_BORDER = 1;
-
 /**
- * The ribbon's casts again across an open card, under its position line, with this row's casts lit
+ * The rotation's casts as one track in an open card, with this row's casts lit
  *
- * - Drawn on the strip's own spans, so each lit span sits directly under its segment
- * - A row far below the strip still shows where it sits
- * - Renders nothing for a row with no casts, such as status damage
+ * Renders nothing for a row with no casts, such as status damage
  */
-const RibbonEcho: React.FC<{ ribbon: RibbonSegment[]; spans: Span[]; rowKey: string }> = ({ ribbon, spans, rowKey }) => {
-  // Back-to-back casts of this row fuse into one span, because the ribbon's 2px gaps read as noise at this height
-  const runs: Array<Span & { color: string }> = [];
-  let previousLit = false;
-  // The track stops where the casts do, so the last move ends its line instead of sitting ahead of status damage
-  let castsEnd = 0;
-  ribbon.forEach((segment, index) => {
-    const span = spans[index];
-    if (span === undefined || segment.group !== 'button') return;
-    castsEnd = span.x + span.w;
-    const lit = segment.rowKeys.includes(rowKey);
-    const run = runs[runs.length - 1];
-    if (lit && previousLit && run.color === segment.color) run.w = span.x + span.w - run.x;
-    else if (lit) runs.push({ ...span, color: segment.color });
-    previousLit = lit;
-  });
-  if (runs.length === 0) return null;
+const CastTrack: React.FC<{ ribbon: RibbonSegment[]; rowKey: string }> = ({ ribbon, rowKey }) => {
+  // Casts only, so the last move ends the line instead of sitting ahead of status damage
+  const casts = ribbon.filter((segment) => segment.group === 'button');
+  if (!casts.some((segment) => segment.rowKeys.includes(rowKey))) return null;
   return (
-    // Clear of the card's border, because flush against it the echo read as part of the frame
-    <div
-      aria-hidden
-      className={`relative mt-2 h-1.5 ${NARROW_HIDDEN}`}
-      style={{ width: castsEnd - CARD_BORDER, backgroundColor: TRACK }}
-    >
-      {runs.map((run) => (
+    // No gaps, so unlit casts fuse into one grey line and back-to-back casts of this row read as one span
+    // Right margin is the chevron column plus its gap, so the track ends on the damage figures' edge
+    <span aria-hidden className="mr-7.5 flex h-1.5 items-stretch overflow-hidden rounded-full">
+      {casts.map((segment) => (
         <span
-          key={run.x}
-          className="absolute inset-y-0"
-          style={{ left: run.x - CARD_BORDER, width: run.w, backgroundColor: run.color }}
+          key={segment.id}
+          className="block min-w-px"
+          style={{
+            flexGrow: Math.max(0, segment.damage),
+            flexBasis: 0,
+            backgroundColor: segment.rowKeys.includes(rowKey) ? segment.color : TRACK,
+          }}
         />
       ))}
-    </div>
+    </span>
   );
 };
 
@@ -126,7 +109,6 @@ interface AbilityRowProps {
   maxDamage: number;
   rotation: RotationModel;
   ribbon: RibbonSegment[];
-  ribbonSpans: Span[];
   mainScaleStat: string;
   highlight: Highlight;
   isOpen: boolean;
@@ -153,7 +135,6 @@ const AbilityRow: React.FC<AbilityRowProps> = ({
   maxDamage,
   rotation,
   ribbon,
-  ribbonSpans,
   mainScaleStat,
   highlight,
   isOpen,
@@ -297,13 +278,15 @@ const AbilityRow: React.FC<AbilityRowProps> = ({
                   </div>
                 )}
                 {inRibbon && (
-                  // The sentence is the answer, the echo under it is the picture of it
+                  // The sentence is the answer, the track under it is the picture of it
                   // Status damage has no move number and no place in the order, it ticks while the casts land
-                  <span className={NARROW_HIDDEN}>{positions ?? 'Dealt alongside the rotation'}</span>
+                  <div className={`flex flex-col gap-2 ${NARROW_HIDDEN}`}>
+                    <span>{positions ?? 'Dealt alongside the rotation'}</span>
+                    <CastTrack ribbon={ribbon} rowKey={move.key} />
+                  </div>
                 )}
               </div>
             </div>
-            {inRibbon && ribbonSpans.length > 0 && <RibbonEcho ribbon={ribbon} spans={ribbonSpans} rowKey={move.key} />}
           </div>
         </div>
       </div>
@@ -316,7 +299,6 @@ interface AbilityTableProps {
   rawDamage: number;
   rotation: RotationModel;
   ribbon: RibbonSegment[];
-  ribbonSpans: Span[];
   mainScaleStat: string;
   highlight: Highlight;
   expanded: Set<string>;
@@ -334,7 +316,6 @@ export const AbilityTable: React.FC<AbilityTableProps> = ({
   rawDamage,
   rotation,
   ribbon,
-  ribbonSpans,
   mainScaleStat,
   highlight,
   expanded,
@@ -365,7 +346,6 @@ export const AbilityTable: React.FC<AbilityTableProps> = ({
       maxDamage={maxDamage}
       rotation={rotation}
       ribbon={ribbon}
-      ribbonSpans={ribbonSpans}
       mainScaleStat={mainScaleStat}
       highlight={highlight}
       isOpen={expanded.has(move.key)}

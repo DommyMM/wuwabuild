@@ -11,7 +11,7 @@ import { formatDamage } from './formatters';
 import { AbilityTable, CastList, EYEBROW, HealSource, HealSourceTable } from './moveBreakdown/AbilityTable';
 import { ProfileBar } from './moveBreakdown/ProfileBar';
 import { RotationStrip } from './moveBreakdown/RotationStrip';
-import { EMPTY_ROTATION, HEAL_COLOR, Highlight, LABEL_MIN_COLUMN, RotationSlot, buildRibbon, buildRotation, castRangeLabel, describeRow, dominantScaleStat, foldedKeys, formatShare, formatSigned, layoutColumns, layoutRibbon, mergeSmallSlots, rowDomId } from './moveBreakdown/model';
+import { EMPTY_ROTATION, HEAL_COLOR, Highlight, LABEL_MIN_COLUMN, RotationSlot, buildRibbon, buildRotation, castRangeLabel, describeRow, dominantScaleStat, foldedKeys, formatShare, formatSigned, layoutColumns, mergeSmallSlots, rowDomId } from './moveBreakdown/model';
 import { scrollElementIntoViewBelowNav } from './scrollToElementBelowNav';
 
 type TooltipState = {
@@ -216,8 +216,6 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   const hasEnergyRegen = modifiers.some((modifier) => modifier.info?.kind === 'energy-regen');
   const hasStrip = !isHealing && rotation.buttonSlots.length + rotation.statusSlots.length > 0;
   const ribbon = useMemo(() => buildRibbon(stripSlots, rotation.statusSlots, bonuses), [bonuses, rotation.statusSlots, stripSlots]);
-  // Laid out once for the strip and for every open row's echo, so a lit span sits exactly under its segment
-  const ribbonLayout = useMemo(() => layoutRibbon(ribbon, width, lostDamage), [lostDamage, ribbon, width]);
   const healSegments = useMemo(
     () => healSources.map((source) => ({ key: source.key, color: HEAL_COLOR, damage: source.damage })),
     [healSources],
@@ -414,7 +412,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                 buttonSlots={stripSlots}
                 statusSlots={rotation.statusSlots}
                 ribbon={ribbon}
-                ribbonLayout={ribbonLayout}
+                lostDamage={lostDamage}
                 highlight={highlight}
                 playing={playing}
                 stepMs={stepMs}
@@ -527,7 +525,6 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                 rawDamage={rawDamage}
                 rotation={rotation}
                 ribbon={ribbon}
-                ribbonSpans={ribbonLayout.spans}
                 mainScaleStat={mainScaleStat}
                 highlight={highlight}
                 expanded={expanded}

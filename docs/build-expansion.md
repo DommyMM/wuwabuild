@@ -157,12 +157,13 @@ their own, and a hit row and its piece light together. A row without children sh
 9-10, 14-16 of 18", or "Dealt alongside the rotation" for status rows, which have no move numbers and no
 place in the order.
 
-Under that line the ribbon's casts run again across the card with this row's casts lit. It is drawn on the
-strip's own spans, laid out once in `BuildMoveBreakdown`, so each lit span sits directly under its segment
-and several open cards share one axis. The track stops at the status break, because with status damage on
-it "Move 23 of 23" sat mid-track, and a status row has no track since it is not in the cast order. An echo
-at its own scale put the same block at a different x in every card, and one flush against the card's
-bottom border read as part of the frame.
+Under that line the rotation's casts run as one track with this row's casts lit, in the card's text column
+and ending on the damage figures' edge. It has no gaps, so unlit casts fuse into one grey line and
+back-to-back casts of the row read as one span. The track holds casts only, because with status damage on
+it "Move 23 of 23" sat mid-track, and a status row has no track since it is not in the cast order. It keeps
+the card's own inset and scale rather than the strip's coordinates: pinned under the ribbon's segments it
+bled off the card's left edge and stopped short on the right, and flush against the bottom border it read
+as part of the frame.
 
 ### Emphasis, motion and layout
 

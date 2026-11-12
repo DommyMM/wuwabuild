@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { STATUS_NEGATIVE_COLOR } from '../constants';
-import { HOVER_RING, Highlight, LABEL_MIN_COLUMN, LeaderInput, RIBBON_HEIGHT, RibbonLayout, RibbonSegment, RotationSlot, Span, layoutColumns, layoutLeaders, leaderTreePath, rowDomId } from './model';
+import { HOVER_RING, Highlight, LABEL_MIN_COLUMN, LeaderInput, RIBBON_HEIGHT, RibbonSegment, RotationSlot, Span, layoutColumns, layoutLeaders, layoutRibbon, leaderTreePath, rowDomId } from './model';
 import { SkillTabDisc } from './SkillTabDisc';
 
 /** Caption line plus its margin under the discs, when captions show */
@@ -25,7 +25,8 @@ interface RotationStripProps {
   statusSlots: RotationSlot[];
   /** The ribbon's segments in order: casts, status damage, score bonuses */
   ribbon: RibbonSegment[];
-  ribbonLayout: RibbonLayout;
+  /** Score removed by penalties (Energy Regen), hatched over the ribbon's end */
+  lostDamage: number;
   highlight: Highlight;
   playing: boolean;
   stepMs: number;
@@ -50,7 +51,7 @@ export const RotationStrip: React.FC<RotationStripProps> = ({
   buttonSlots,
   statusSlots,
   ribbon,
-  ribbonLayout,
+  lostDamage,
   highlight,
   playing,
   stepMs,
@@ -95,7 +96,7 @@ export const RotationStrip: React.FC<RotationStripProps> = ({
 
   if (width <= 0) return <div style={{ height }} />;
 
-  const { spans, lostWidth } = ribbonLayout;
+  const { spans, lostWidth } = layoutRibbon(ribbon, width, lostDamage);
   // Each slot's segments on the ribbon, in cast order, for its leader
   const slotSpans = new Map<string, Span[]>();
   ribbon.forEach((segment, index) => {
