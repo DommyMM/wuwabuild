@@ -84,7 +84,8 @@ ring with the same arc, while echo, set, weapon and mixed get neutral glyphs.
 Under the captions runs one 12px ribbon in the same order, one segment per cast sized by its damage
 (`buildRibbon` and `layoutRibbon`: 2px gaps, a 2px floor so no cast disappears, edges snapped to whole
 pixels so every segment renders the same height), then status damage, then score bonuses, with penalties
-hatched over the end.
+hatched over the end. Status damage starts after a 6px break, the ribbon's version of the strip's divider,
+because it is dealt alongside the casts and a cast gap would place it after the last move.
 
 The strip and the ribbon are two axes on purpose: equal columns keep every cast legible, proportional
 segments keep the weights honest, and the hover link joins them.
@@ -94,14 +95,18 @@ segments keep the weights honest, and the hover link joins them.
 Hovering a slot, a segment or a table row puts the same 1px white ring on the disc and on every segment of
 every run of that ability, gives the row the ring too (inset on a closed row, the frame of an open card)
 and shows a readout in the hover card's shell: Damage, Share, Per move, Moves {range} of {n}. A move is
-one button press in the rotation, and status damage has no move number.
+one button press in the rotation, and status damage has no move number. The readout renders on
+`document.body`, because the profile card stage keeps a transform and a clip-path (`globals.css`) that
+anchor and crop any fixed box inside it.
 
-One hairline leader per run drops from just under its caption, each caption measured since one runs a
-single line and another two, along a rail above the ribbon onto the centre of each of its segments, so a
-×3 slot shows three teeth and two "Iai" slots each point at their own casts. `layoutLeaders` fixes the
-stems on segment centres and moves only the drops: onto a stem within 10px, and away from any other
-leader's vertical closer than 8px, because a few pixels of jog read as a kink or as the wrong link. All
-leaders sit in one SVG group with the opacity on the group, so shared rails never paint twice.
+Every lit run joins one hairline tree. A drop leaves from just under each caption, each caption measured
+since one runs a single line and another two, onto one rail above the ribbon, and a stem leaves the rail
+onto the centre of each lit segment, so a ×3 slot shows three teeth. The rail spans the leftmost vertical
+to the rightmost, because a rail per run on one height fused wherever two runs overlapped and left a hole
+wherever one ended beside the next. Slot and segment pair by order, since both axes run in cast order.
+`layoutLeaders` fixes the stems on segment centres and moves only the drops: onto a stem within 10px, and
+away from any other run's vertical closer than 8px, because a few pixels of jog read as a kink or as the
+wrong link.
 
 Clicking a slot opens its row, and the fold if the row lives there, then scrolls the minimum distance to
 show the card under the sticky nav, nothing if it is already in view. Open only, never toggle, so a double
@@ -149,8 +154,12 @@ The whole row is the `aria-expanded` toggle. Open, a row lifts out as a card and
 instead of by type. The hit rows beneath carry name ×count, per-event MV, share and damage and no bar of
 their own, and a hit row and its piece light together. A row without children shows "{MV} MV". "Scales with
 {stat}" appears only when it differs from the stat carrying most of the damage. The last line is "Moves
-9-10, 14-16 of 18" beside a full-width miniature of the ribbon with this row's moves lit, or "Position in
-the rotation" for status rows, which have no move numbers.
+9-10, 14-16 of 18", or "Dealt alongside the rotation" for status rows, which have no move numbers and no
+place in the order.
+
+Along an open card's foot the ribbon runs again with this row's casts lit. It is drawn on the strip's own
+spans, laid out once in `BuildMoveBreakdown`, so each lit span sits directly under its segment and several
+open cards share one axis. An echo at its own scale put the same block at a different x in every card.
 
 ### Emphasis, motion and layout
 

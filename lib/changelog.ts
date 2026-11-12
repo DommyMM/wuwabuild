@@ -24,6 +24,10 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'improved',
                 text: 'Leaderboards adjusted to use Lily',
+            },
+            {
+                kind: 'improved',
+                text: 'Move breakdown slight UI improvements and hover tree logic',
             }
         ],
     },

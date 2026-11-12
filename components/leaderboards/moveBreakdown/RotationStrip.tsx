@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { STATUS_NEGATIVE_COLOR } from '../constants';
-import { HOVER_RING, Highlight, LABEL_MIN_COLUMN, LeaderInput, RIBBON_HEIGHT, RibbonSegment, RotationSlot, Span, layoutColumns, layoutLeaders, layoutRibbon, leaderPath, rowDomId } from './model';
+import { HOVER_RING, Highlight, LABEL_MIN_COLUMN, LeaderInput, RIBBON_HEIGHT, RibbonLayout, RibbonSegment, RotationSlot, Span, layoutColumns, layoutLeaders, leaderTreePath, rowDomId } from './model';
 import { SkillTabDisc } from './SkillTabDisc';
 
 /** Caption line plus its margin under the discs, when captions show */
@@ -25,8 +25,7 @@ interface RotationStripProps {
   statusSlots: RotationSlot[];
   /** The ribbon's segments in order: casts, status damage, score bonuses */
   ribbon: RibbonSegment[];
-  /** Score removed by penalties (Energy Regen), hatched over the ribbon's end */
-  lostDamage: number;
+  ribbonLayout: RibbonLayout;
   highlight: Highlight;
   playing: boolean;
   stepMs: number;
@@ -51,7 +50,7 @@ export const RotationStrip: React.FC<RotationStripProps> = ({
   buttonSlots,
   statusSlots,
   ribbon,
-  lostDamage,
+  ribbonLayout,
   highlight,
   playing,
   stepMs,
@@ -96,7 +95,7 @@ export const RotationStrip: React.FC<RotationStripProps> = ({
 
   if (width <= 0) return <div style={{ height }} />;
 
-  const { spans, lostWidth } = layoutRibbon(ribbon, width, lostDamage);
+  const { spans, lostWidth } = ribbonLayout;
   // Each slot's segments on the ribbon, in cast order, for its leader
   const slotSpans = new Map<string, Span[]>();
   ribbon.forEach((segment, index) => {
@@ -109,13 +108,14 @@ export const RotationStrip: React.FC<RotationStripProps> = ({
   const leaders = layoutLeaders(slots.flatMap((slot, index): LeaderInput[] => {
     const segments = slotSpans.get(slot.id);
     if (!segments || !highlight.hovered(slot.rowKeys)) return [];
-    return [{ id: slot.id, dropX: columns[index].x + (columns[index].w / 2), segments }];
+    return [{ dropX: columns[index].x + (columns[index].w / 2), topY: dropTop(slot), segments }];
   }));
+  const leaderTree = leaderTreePath(leaders, ribbonTop - RAIL_RISE, ribbonTop);
 
   // Never pinned, a slot click opens its row below and scrolls only as far as needed
   return (
     <div className="relative select-none" style={{ height }} onPointerLeave={onSlotLeave}>
-      {leaders.length > 0 && (
+      {leaderTree && (
         // Mounted only while lit, so the fade plays on first hover and not as the pointer walks between targets
         <svg
           aria-hidden
@@ -124,9 +124,9 @@ export const RotationStrip: React.FC<RotationStripProps> = ({
           height={height}
           viewBox={`0 0 ${width} ${height}`}
         >
-          {/* One hairline leader per run, opacity on the group, so shared rails never read whiter */}
-          <g
+          <path
             className="mb-fade"
+            d={leaderTree}
             opacity={0.42}
             fill="none"
             stroke="#E0E0E0"
@@ -134,13 +134,7 @@ export const RotationStrip: React.FC<RotationStripProps> = ({
             strokeLinecap="butt"
             strokeLinejoin="miter"
             shapeRendering="crispEdges"
-          >
-            {leaders.map((leader) => {
-              const slot = slotById.get(leader.id);
-              if (!slot) return null;
-              return <path key={leader.id} d={leaderPath(leader.dropX, dropTop(slot), ribbonTop - RAIL_RISE, leader.stems, ribbonTop)} />;
-            })}
-          </g>
+          />
         </svg>
       )}
 

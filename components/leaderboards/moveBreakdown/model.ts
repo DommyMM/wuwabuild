@@ -8,7 +8,7 @@ const MERGED_COLOR = '#6f737b';
 /** Share of move damage under which a row or cast counts as small */
 const SMALL_SHARE = 0.01;
 /** Row count at which sub-1% abilities fold into one summary row */
-export const DENSE_ROW_COUNT = 12;
+const DENSE_ROW_COUNT = 12;
 
 export type RotationSlot = {
   id: string;
@@ -51,7 +51,7 @@ export type Highlight = {
 
 export const EMPTY_ROTATION: RotationModel = { buttonSlots: [], statusSlots: [], buttonCastCount: 0, castPosition: new Map() };
 
-export const isStatusTab = (tab: string) => tab === 'status';
+const isStatusTab = (tab: string) => tab === 'status';
 
 /**
  * Rebuilds rotation order from every row's casts
@@ -161,7 +161,7 @@ export function mergeSmallSlots(slots: RotationSlot[], rawDamage: number): Rotat
   return out;
 }
 
-export const isSmallShare = (damage: number, rawDamage: number) => rawDamage > 0 && damage / rawDamage < SMALL_SHARE;
+const isSmallShare = (damage: number, rawDamage: number) => rawDamage > 0 && damage / rawDamage < SMALL_SHARE;
 
 /** Keys of the sub-1% rows that fold into one summary row, empty when nothing folds */
 export function foldedKeys(moves: Pick<ProcessedMove, 'key' | 'damage'>[], rawDamage: number): Set<string> {
@@ -199,6 +199,8 @@ export const RIBBON_HEIGHT = 12;
 /** The one hover mark, the same inset ring on a disc, a ribbon segment and a bar piece */
 export const HOVER_RING = 'inset 0 0 0 1px rgba(255,255,255,0.75)';
 const SEGMENT_GAP = 2;
+/** Break before status damage, the ribbon's version of the strip's divider */
+const STATUS_GAP = 6;
 /** A cast never disappears: the smallest segment is still a visible sliver */
 const MIN_SEGMENT = 2;
 
@@ -235,10 +237,15 @@ export function buildRibbon(
 
 export type RibbonLayout = { spans: Span[]; lostWidth: number };
 
-/** Proportional widths with a 2px surface gap, one unbroken line from the first cast to the last bonus */
+/** Proportional widths from the first cast to the last bonus, 2px apart, with one wider break before status damage */
 export function layoutRibbon(segments: RibbonSegment[], width: number, lostDamage: number): RibbonLayout {
   if (segments.length === 0 || width <= 0) return { spans: [], lostWidth: 0 };
-  const usable = Math.max(0, width - ((segments.length - 1) * SEGMENT_GAP));
+  // Status damage is dealt alongside the casts, so a cast gap there would read as "after the last move"
+  const gaps = segments.map((segment, index): number => {
+    if (index === 0) return 0;
+    return segment.group === 'status' && segments[index - 1].group === 'button' ? STATUS_GAP : SEGMENT_GAP;
+  });
+  const usable = Math.max(0, width - gaps.reduce((sum, gap) => sum + gap, 0));
   const total = segments.reduce((sum, segment) => sum + Math.max(0, segment.damage), 0);
   const raw = segments.map((segment) => (total > 0 ? (Math.max(0, segment.damage) / total) * usable : 0));
   // Sub-pixel casts floor to a sliver and the rest shrink to pay for it, so the bar still ends exactly at the width
@@ -248,7 +255,7 @@ export function layoutRibbon(segments: RibbonSegment[], width: number, lostDamag
   const spans: Span[] = [];
   let cursor = 0;
   raw.forEach((w, index) => {
-    if (index > 0) cursor += SEGMENT_GAP;
+    cursor += gaps[index];
     const finalWidth = w < MIN_SEGMENT ? MIN_SEGMENT : w * scale;
     // Edges snap to whole pixels so every segment renders crisp at the same height
     const x0 = Math.round(cursor);
@@ -267,23 +274,24 @@ const DROP_SLACK = 10;
 /** Segments narrower than this get one stem for the slot instead of a tooth each */
 const MIN_TOOTH = 6;
 
-export type LeaderInput = { id: string; dropX: number; segments: Span[] };
-export type Leader = { id: string; dropX: number; stems: number[] };
+/** One lit run: its slot's column centre, where its caption ends, and its segments on the ribbon */
+export type LeaderInput = { dropX: number; topY: number; segments: Span[] };
+export type Leader = { dropX: number; topY: number; stems: number[] };
 
 /**
- * Where each leader's verticals stand
+ * Where each run's verticals stand
  *
- * Only the drop moves: onto a stem within DROP_SLACK, away from another leader's vertical within LEADER_CLEARANCE
+ * Only the drop moves: onto a stem within DROP_SLACK, away from another run's vertical within LEADER_CLEARANCE
  */
 export function layoutLeaders(items: LeaderInput[]): Leader[] {
   const leaders = items.map((item) => {
-    // One stem per segment centre, so a ×3 slot gets three teeth off one rail and the count reads at a glance
+    // One stem per segment centre, so a ×3 slot gets three teeth off the rail and the count reads at a glance
     const centres = item.segments.map((span) => span.x + (span.w / 2));
     // Segments too narrow for teeth to separate get one stem, on the middle segment's centre
     const teeth = centres.length > 0 && item.segments.every((span) => span.w >= MIN_TOOTH);
     const middle = Math.floor((centres.length - 1) / 2);
     const stems = teeth ? centres : centres.slice(middle, middle + 1);
-    return { id: item.id, home: item.dropX, dropX: item.dropX, stems };
+    return { home: item.dropX, dropX: item.dropX, topY: item.topY, stems };
   });
   for (const leader of leaders) {
     if (leader.stems.length === 0) continue;
@@ -303,22 +311,34 @@ export function layoutLeaders(items: LeaderInput[]): Leader[] {
     const found = candidates.find(clear);
     if (found !== undefined) leader.dropX = found;
   }
-  return leaders.map(({ id, dropX, stems }) => ({ id, dropX, stems }));
+  return leaders.map(({ dropX, topY, stems }) => ({ dropX, topY, stems }));
 }
 
-/** Orthogonal hairline from under a slot's caption: down to a rail, along it, down onto each segment centre */
-export function leaderPath(dropX: number, topY: number, railY: number, stems: number[], ribbonY: number): string {
-  if (stems.length === 0) return '';
+/**
+ * Every lit run as one orthogonal hairline tree
+ *
+ * - A drop from under each caption meets one rail, spanning the leftmost vertical to the rightmost
+ * - A stem leaves the rail onto each segment centre
+ */
+export function leaderTreePath(leaders: Leader[], railY: number, ribbonY: number): string {
   // Half-pixel offsets keep every run 1px crisp at any offset
-  const drop = Math.round(dropX) + 0.5;
-  const xs = stems.map((stem) => Math.round(stem) + 0.5);
-  if (xs.length === 1 && Math.abs(drop - xs[0]) < 2) return `M${drop},${topY} V${ribbonY}`;
-  const left = Math.min(drop, ...xs);
-  const right = Math.max(drop, ...xs);
+  const crisp = (x: number) => Math.round(x) + 0.5;
+  const linked = leaders.filter((leader) => leader.stems.length > 0);
+  const stems = Array.from(new Set(linked.flatMap((leader) => leader.stems.map(crisp))));
+  if (stems.length === 0) return '';
+  const drops = linked.map((leader) => {
+    const x = crisp(leader.dropX);
+    // A drop a pixel off a stem takes the stem's column, because a 1px jog reads as a kink
+    return { x: stems.find((stem) => Math.abs(stem - x) < 2) ?? x, topY: leader.topY };
+  });
+  const xs = [...drops.map((drop) => drop.x), ...stems];
+  const left = Math.min(...xs);
+  const right = Math.max(...xs);
+  // One rail for the whole hover, so runs that end beside each other never leave a hole between their rails
   return [
-    `M${drop},${topY} V${railY}`,
+    ...drops.map((drop) => `M${drop.x},${drop.topY} V${railY}`),
     left !== right ? `M${left},${railY} H${right}` : '',
-    ...xs.map((x) => `M${x},${railY} V${ribbonY}`),
+    ...stems.map((x) => `M${x},${railY} V${ribbonY}`),
   ].filter(Boolean).join(' ');
 }
 

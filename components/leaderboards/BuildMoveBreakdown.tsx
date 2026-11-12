@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { LBMoveEntry } from '@/lib/lb';
 import { processMoves, typeMeta, ProcessedModifier, ProcessedMove } from '@/lib/moveBreakdown';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
@@ -10,7 +11,7 @@ import { formatDamage } from './formatters';
 import { AbilityTable, CastList, EYEBROW, HealSource, HealSourceTable } from './moveBreakdown/AbilityTable';
 import { ProfileBar } from './moveBreakdown/ProfileBar';
 import { RotationStrip } from './moveBreakdown/RotationStrip';
-import { EMPTY_ROTATION, HEAL_COLOR, Highlight, LABEL_MIN_COLUMN, RotationSlot, buildRibbon, buildRotation, castRangeLabel, describeRow, dominantScaleStat, foldedKeys, formatShare, formatSigned, layoutColumns, mergeSmallSlots, rowDomId } from './moveBreakdown/model';
+import { EMPTY_ROTATION, HEAL_COLOR, Highlight, LABEL_MIN_COLUMN, RotationSlot, buildRibbon, buildRotation, castRangeLabel, describeRow, dominantScaleStat, foldedKeys, formatShare, formatSigned, layoutColumns, layoutRibbon, mergeSmallSlots, rowDomId } from './moveBreakdown/model';
 import { scrollElementIntoViewBelowNav } from './scrollToElementBelowNav';
 
 type TooltipState = {
@@ -215,6 +216,8 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
   const hasEnergyRegen = modifiers.some((modifier) => modifier.info?.kind === 'energy-regen');
   const hasStrip = !isHealing && rotation.buttonSlots.length + rotation.statusSlots.length > 0;
   const ribbon = useMemo(() => buildRibbon(stripSlots, rotation.statusSlots, bonuses), [bonuses, rotation.statusSlots, stripSlots]);
+  // Laid out once for the strip and for every open row's echo, so a lit span sits exactly under its segment
+  const ribbonLayout = useMemo(() => layoutRibbon(ribbon, width, lostDamage), [lostDamage, ribbon, width]);
   const healSegments = useMemo(
     () => healSources.map((source) => ({ key: source.key, color: HEAL_COLOR, damage: source.damage })),
     [healSources],
@@ -411,7 +414,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                 buttonSlots={stripSlots}
                 statusSlots={rotation.statusSlots}
                 ribbon={ribbon}
-                lostDamage={lostDamage}
+                ribbonLayout={ribbonLayout}
                 highlight={highlight}
                 playing={playing}
                 stepMs={stepMs}
@@ -524,6 +527,7 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
                 rawDamage={rawDamage}
                 rotation={rotation}
                 ribbon={ribbon}
+                ribbonSpans={ribbonLayout.spans}
                 mainScaleStat={mainScaleStat}
                 highlight={highlight}
                 expanded={expanded}
@@ -552,25 +556,27 @@ export const BuildMoveBreakdown: React.FC<BuildMoveBreakdownProps> = ({
         </div>
       )}
 
-      {tooltip && (
+      {tooltip && createPortal(
         // Own state rather than HoverTooltip, which makes every trigger a tab stop and a ribbon segment must not be one,
         // but the same shell: ground, tint, radius, shadow, enter motion. Stays mounted across the strip so only the
         // first open animates, the toolbar rule
+        // On body like HoverTooltip, because the profile stage's transform and clip-path would anchor and crop a fixed box
         <div
           aria-hidden
-          className="pointer-events-none fixed z-60"
+          className="pointer-events-none fixed z-60 font-plus-jakarta"
           style={{ left: tooltip.x, top: tooltip.y, transform: tooltip.placement === 'below' ? 'translate(-50%, 10px)' : 'translate(-50%, calc(-100% - 10px))' }}
         >
           <div className="hover-card-enter" style={{ transformOrigin: tooltip.placement === 'below' ? 'center top' : 'center bottom' }}>
             <div className={`${HOVER_SHELL} min-w-48`} style={{ '--hover-tint': tooltip.tint } as React.CSSProperties}>
-              <div className="whitespace-nowrap font-plus-jakarta text-[13px] font-semibold text-text-primary">{tooltip.title}</div>
+              <div className="whitespace-nowrap text-[13px] font-semibold text-text-primary">{tooltip.title}</div>
               {tooltip.subtitle && <div className="mt-0.5 whitespace-nowrap text-2xs text-text-primary/55">{tooltip.subtitle}</div>}
               <div className="mt-2 text-xs">
                 <HoverCardTable rows={tooltip.rows} />
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </section>
   );
