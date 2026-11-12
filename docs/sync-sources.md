@@ -236,10 +236,14 @@ Start from `/new`, then run the delta and the downstream steps:
 
 ```powershell
 py scripts\sync_encore.py --new-only --only all --workers 2 --lang-workers 2
+py scripts\sync_terms.py
 py scripts\mirror_images_to_public.py --apply
 py scripts\sync_backend.py
 py scripts\sync_lb.py
 ```
+
+`sync_terms.py` is in the list because a new character's kit links glossary ids that `Terms.json` only
+carries once it rescans the shipped JSON. A kind `/new` lists nothing for is skipped, not re-fetched.
 
 The same path takes explicit ids when `/new` is not the right set:
 
@@ -265,8 +269,12 @@ Why that rule is worth following rather than cherry-picking:
   one of those resolves to an empty name. (Element templates are driven by our `Fetters.json` ids and
   echo templates by `Echoes.json`, so only characters and weapons have this failure mode.)
 
-Two things the delta does not do:
+What the delta does not do:
 
+- Wuthery stays the source of record for text. Once its dump carries the new ids, re-fetch them with
+  `sync_characters.py --fetch --id N` and `sync_weapons.py --fetch --id N`, then rerun the steps above.
+- A new outfit for an existing character. `/new` lists it only under `item`, so that character is not
+  re-fetched, and its skin waits for the Wuthery re-fetch unless merged from `transform_skins`.
 - A new character has no LB board. That is hand-authored, see
   `lb/docs/character-implementation-guide.md`.
 - kurobot runs locally and is not deployed, so its lookup is not part of a release. Its
