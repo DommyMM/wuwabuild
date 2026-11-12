@@ -469,6 +469,7 @@ def transform_character(locales: dict[str, dict]) -> dict:
     tags = transform_tags(locales)
     skill_trees = transform_skill_trees(en)
     moves = transform_moves(locales)
+    chains = transform_chains(locales)
     icon_round = asset_url(en.get("RoleHeadIconCircle", ""))
 
     character: dict[str, Any] = {
@@ -500,13 +501,13 @@ def transform_character(locales: dict[str, dict]) -> dict:
         "tags": tags,
         "stats": transform_stats(en),
         "skillTrees": skill_trees,
-        "chains": transform_chains(locales),
+        "chains": chains,
         "skillIcons": transform_skill_icons(en),
         "moves": moves,
         "legacyId": extract_legacy_id(icon_round, char_id),
     }
 
-    preferred = get_preferred_substats(tags, skill_trees, moves, char_id)
+    preferred = get_preferred_substats(tags, skill_trees, moves, char_id, chains)
     if preferred:
         character["preferredStats"] = preferred
 

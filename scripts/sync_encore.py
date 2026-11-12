@@ -205,6 +205,7 @@ def _backfill_rover_skill_data(characters: list[dict]) -> None:
                 char.get("skillTrees"),
                 char.get("moves"),
                 char.get("id"),
+                char.get("chains"),
             )
             if preferred:
                 char["preferredStats"] = preferred
