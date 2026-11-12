@@ -217,6 +217,9 @@ def sync_characters(args: argparse.Namespace) -> list[dict]:
         ids = [args.id]
     if args.new_only and not ids:
         ids = [int(v) for v in _new_payload().get("character", [])]
+        if not ids:
+            print("Encore /new lists no characters, skipping")
+            return []
     if not ids:
         ids = _list_ids("character", "roleList")
     print(f"Fetching {len(ids)} Encore characters...")
@@ -356,6 +359,9 @@ def sync_weapons(args: argparse.Namespace) -> list[dict]:
         ids = [args.id]
     if args.new_only and not ids:
         ids = [int(v) for v in _new_payload().get("weapon", [])]
+        if not ids:
+            print("Encore /new lists no weapons, skipping")
+            return []
     if not ids:
         ids = _list_ids("weapon", "weapons")
     legacy_index = _load_legacy_weapon_name_index()
@@ -489,6 +495,9 @@ def sync_echoes(args: argparse.Namespace) -> list[dict]:
         ids = [args.id]
     if args.new_only and not ids:
         ids = [int(v) for v in _new_payload().get("echo", [])]
+        if not ids:
+            print("Encore /new lists no echoes, skipping")
+            return []
     if not ids:
         ids = _list_ids("echo", "Echo")
     print(f"Fetching {len(ids)} Encore echoes...")
