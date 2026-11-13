@@ -31,7 +31,7 @@ export const CHANGELOG: ChangelogEntry[] = [
             {
                 kind: 'fixed',
                 text: "Cartethyia's solo boards a bit lower, a single Sword Shadow plunge now uses its own multiplier",
-            }
+            },
             {
                 kind: 'new',
                 text: 'Lily and Hiyuki skin splash arts'

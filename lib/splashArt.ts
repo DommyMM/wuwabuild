@@ -41,7 +41,7 @@ const SPLASH_ART_TRANSFORMS: Record<string, CardArtTransform> = {
   '1212': { x: -100, y: 24, scale: 1.15 },
   '1302': { x: 0, y: 0, scale: 1.15 },
   '1304': { x: 0, y: 0, scale: 1.1 },
-  '1304-skin': { x: 0, y: 0, scale: 1 },
+  '1304-skin': { x: -122, y: 0, scale: 1 },
   '1305': { x: -80, y: 0, scale: 1.1 },
   '1306': { x: -110, y: 0, scale: 1 },
   '1308': { x: -150, y: 0, scale: 1 },
