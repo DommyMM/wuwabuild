@@ -1,7 +1,7 @@
 """Run every sync script with default options.
 
 Fetches characters, weapons, echoes, fetters (element and sonata sets), stats and the glossary into public/Data.
-Also generates the backend OCR data and the leaderboard constants.
+Also generates the backend OCR data and the leaderboard constants, then pulls new card splash art from the Drive.
 Wuthery is the default source, --encore switches to Encore's faster early-patch path.
 Flags are routed only to the child scripts that declare them.
 """
@@ -30,6 +30,7 @@ def main() -> int:
     parser.add_argument("--force-weapon-icons", action="store_true", help="Refresh existing backend weapon templates")
     parser.add_argument("--skip-echo-icons", action="store_true", help="Skip backend echo icon templates")
     parser.add_argument("--force-echo-icons", action="store_true", help="Refresh existing backend echo templates")
+    parser.add_argument("--skip-splash", action="store_true", help="Skip pulling new card splash art from the Drive")
     args = parser.parse_args()
 
     dry_run_flags = []
@@ -76,6 +77,9 @@ def main() -> int:
             ("Backend",    [sys.executable, str(scripts_dir / "sync_backend.py"), *backend_flags]),
             ("Leaderboard",[sys.executable, str(scripts_dir / "sync_lb.py"), *data_flags]),
         ]
+    # Last, so a Drive outage stops nothing the game data needs, and after Characters.json names any new character
+    if not args.skip_splash:
+        scripts.append(("Splash art", [sys.executable, str(scripts_dir / "sync_splash.py"), *dry_run_flags]))
 
     for name, cmd in scripts:
         print(f"\n--- Sync {name} ---")

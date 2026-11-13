@@ -11,7 +11,7 @@ import { CardArtSourceMode, CardArtTransform, DEFAULT_CARD_ART_TRANSFORM, MAX_AR
 import { isRover } from '@/lib/character';
 import { getBuildStandings, LBBuildDetailEntry, LBBuildRowEntry, LBStandingEntry } from '@/lib/lb';
 import { getWeaponPaths } from '@/lib/paths';
-import { getBundledSplashCardArt } from '@/lib/splashArt';
+import { getBundledSplashCardArt, getDefaultSplashVariant } from '@/lib/splashArt';
 import { SavedState } from '@/lib/build';
 import { ITEMS_PER_PAGE, parseLBSeqLevel, stripLBSeqPrefix } from '@/components/leaderboards/constants';
 import { buildLeaderboardHref } from '@/components/leaderboards/character/leaderboardCharacterQuery';
@@ -122,6 +122,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
           String(characterRef.id),
           characterRef.legacyId ?? null,
           isRover(characterRef),
+          { variant: getDefaultSplashVariant(characterRef) },
         )
       : null
   ), [characterRef]);
@@ -342,7 +343,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
   const cardContent = (
     <>
       <BuildCard
-        useAltSkin={false}
+        useAltSkin
         showCV
         showRollQuality
         artTransform={artTransform}

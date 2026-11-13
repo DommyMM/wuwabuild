@@ -24,7 +24,7 @@ import { changedFilterKeys, createRowsSignature } from '@/components/leaderboard
 import { capture } from '@/lib/analytics';
 import { QuerySnapshot, SelectedMainEntry, SelectedSetEntry, SetOption } from '@/components/leaderboards/types';
 import { isRover } from '@/lib/character';
-import { warmBundledSplashArt } from '@/lib/splashArt';
+import { getDefaultSplashVariant, warmBundledSplashArt } from '@/lib/splashArt';
 import { ProfileBuildExpanded } from './ProfileBuildExpanded';
 import { FeaturedBuildSelection, ProfileFeaturedBuild } from './ProfileFeaturedBuild';
 import { ProfileShowcase } from './ProfileShowcase';
@@ -366,6 +366,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
           String(characterRef.id),
           characterRef.legacyId ?? null,
           isRover(characterRef),
+          { variant: getDefaultSplashVariant(characterRef) },
         );
       }
     }
@@ -387,6 +388,7 @@ export const ProfilePageClient: React.FC<ProfilePageClientProps> = ({ uid, profi
         String(characterRef.id),
         characterRef.legacyId ?? null,
         isRover(characterRef),
+        { variant: getDefaultSplashVariant(characterRef) },
       );
     }
   }, [getCharacter, hasOpenCard]);

@@ -1,4 +1,5 @@
 import { CardArtTransform } from '@/lib/cardArt';
+import { Character, hasAlternateSkin } from '@/lib/character';
 
 export type SplashArtVariant = 'normal' | 'skin';
 
@@ -24,6 +25,7 @@ const SPLASH_ART_TRANSFORMS: Record<string, CardArtTransform> = {
   '1107': { x: -90, y: 30, scale: 1.2 },
   '1107-skin': { x: -240, y: 70, scale: 1.15 },
   '1108': { x: -80, y: 0, scale: 1.05 },
+  '1108-skin': { x: -120, y: 0, scale: 1.05 },
   '1109': { x: -125, y: 10, scale: 1.1 },
   '1110': { x: -145, y: 0, scale: 1.05 },
   '1203': { x: -20, y: 0, scale: 1 },
@@ -64,6 +66,7 @@ const SPLASH_ART_TRANSFORMS: Record<string, CardArtTransform> = {
   '1509-skin': { x: -144, y: 0, scale: 1.1 },
   '1510': { x: -130, y: 0, scale: 1.1 },
   '1511': { x: -210, y: 0, scale: 1.05 },
+  '1512': { x: -200, y: 30, scale: 1.2 },
   '1603': { x: 10, y: 0, scale: 1.05 },
   '1606': { x: -110, y: 0, scale: 1.1 },
   '1607': { x: -144, y: 0, scale: 1.1 },
@@ -97,6 +100,11 @@ export const getSplashUrlCandidates = (
 
   return Array.from(new Set(candidates));
 };
+
+/** Skin whenever the character has one, since no upload records which outfit the player wears */
+export const getDefaultSplashVariant = (
+  character: Pick<Character, 'iconRound' | 'banner' | 'skins'>,
+): SplashArtVariant => (hasAlternateSkin(character) ? 'skin' : 'normal');
 
 const getSplashStem = (url: string): string => (
   url.split('/').pop()?.replace(`.${SPLASH_EXTENSION}`, '') ?? ''

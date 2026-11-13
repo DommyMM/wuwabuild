@@ -32,6 +32,21 @@ Every Encore call goes through `cdn_config.encore_request_json`, which walks `EN
 caches the first host that answers. Its routes, payload-shape differences and outage history are in
 `../docs/sync-sources.md`, along with the patch catch-up procedure.
 
+Card splash art comes from a community Google Drive (`sync_splash.DRIVE_ROOT_ID`), one folder per
+character holding 4K `<Name> Splash.jpg` and `<Name> [Outfit ]Skin Splash.jpg`. The game data has no
+16:9 splash, Encore's `FormationRoleCard` is a portrait crop. Public folders list and download with
+no API key:
+
+```
+List:     GET https://drive.google.com/embeddedfolderview?id=<folder id>     (HTML, undocumented)
+Download: GET https://drive.usercontent.google.com/download?id=<file id>&export=download&confirm=t
+```
+
+File names map to ids through the English name in `Characters.json`, minus a leading "The" and
+punctuation, falling back to a unique first word ("Luuk"). Rover variants share `Rover`. A name that
+maps to nothing, or a second skin splash for one character, is reported and skipped since the card
+has one `-skin` slot.
+
 ## Pipeline
 
 `sync_all.py` runs everything in order:
@@ -45,16 +60,19 @@ caches the first host that answers. Its routes, payload-shape differences and ou
 7. `mirror_images_to_public.py --apply`
 8. `sync_backend.py`
 9. `sync_lb.py`
+10. `sync_splash.py` (skipped by `--skip-splash`)
 
 `--encore` collapses steps 1 to 4 into one `sync_encore.py` run. The tail is identical either way.
 
-Three ordering constraints, each with a reason:
+Four ordering constraints, each with a reason:
 
 - `sync_terms.py` follows the entity syncs because it scopes the glossary to the term ids the
   shipped JSON links.
 - `mirror_images_to_public.py` precedes `sync_backend.py` because backend echo templates read the
   mirrored file on disk once the icon URL has been rewritten to a local `/assets/` path.
-- `sync_lb.py` is last because it reads the finished `public/Data` JSON.
+- `sync_lb.py` follows the data syncs because it reads the finished `public/Data` JSON.
+- `sync_splash.py` runs last so a Drive outage stops nothing the game data needs, and after
+  `Characters.json` can name a new character.
 
 `sync_all.py --dry-run` means preview everywhere, so it withholds the mirror's `--apply` and nothing
 is written. It routes `--dry-run` / `--pretty` only to children that declare them, and the backend
@@ -66,6 +84,8 @@ game-text sanitizer and the Encore markup normalizer.
 
 Every script needs `requests`. `mirror_images_to_public.py` also needs Pillow for PNG-to-WebP.
 `sync_backend.py` needs `opencv-python` and `numpy` only when a non-WebP source has to be re-encoded.
+`sync_splash.py` needs Pillow and numpy, plus `onnxruntime` for framing, without which new entries
+start at the fallback x.
 The quarantined R2 helper `migrate_r2_png_to_jpg.py` (preview by default) needs boto3,
 python-dotenv and Pillow.
 
@@ -83,8 +103,14 @@ py sync_terms.py [--lang en]                 # --lang repeats
 py mirror_images_to_public.py --apply [--limit N] [--workers N]
 py sync_backend.py [--skip-echo-icons] [--force-echo-icons]   # same pair for element/character/weapon
 py sync_lb.py [--weapons-only]
-py sync_all.py [--encore] [--skip-*-icons] [--force-*-icons]
+py sync_splash.py [--refresh] [--only 1108-skin 1512] [--dry-run]
+py sync_all.py [--encore] [--skip-*-icons] [--force-*-icons] [--skip-splash]
 ```
+
+`sync_splash.py` pulls only splashes with no bundled file, and frames each new one in
+`SPLASH_ART_TRANSFORMS` at the `splash_framing.py` x with y 0 and scale 1, to finish in the editor.
+`--refresh` (or `--only`) also downloads bundled ones and replaces a file only when its art changed,
+keeping the hand-tuned entry, so re-check that card's framing. `--dry-run` writes nothing.
 
 `--id` on an entity sync fetches that one record and merges it into the combined JSON, so a targeted
 fetch never truncates the file.
